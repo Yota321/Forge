@@ -142,4 +142,3 @@ Every result is a snapshot, not a label. People evolve. Forge evolves with them.
 All rights reserved.
 
 Copyright © 2026 Golam Sayan Ahamed.
-"# Forge" 

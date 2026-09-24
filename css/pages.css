@@ -839,6 +839,11 @@ button.lp-card{ width:100%; }
 .ob-section{ width:100%; text-align:left; }
 .ob-section + .ob-section{ margin-top: 6px; }
 
+/* ---- Onboarding step 4 (confirmation): plain checklist, same card/text
+   language as the rest of the wizard rather than a new component. */
+.ob-confirm-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.ob-confirm-list li{ font-size:13.5px; color: var(--text-muted); display:flex; align-items:flex-start; gap:8px; }
+
 /* Single-select chip row: age group, gender, "why are you here" — quick
    taps, no scoring impact, so a plain toggle-button row (not the bigger
    quiz-style option cards) is the right weight for these. */
@@ -941,6 +946,15 @@ button.lp-card{ width:100%; }
 .qz-progress2-num .accent{ color: var(--accent); }
 .qz-progress2-num .dim{ color: var(--text-dim); }
 .qz-progress2-meta{ font-family: var(--font-mono); font-size:12px; color: var(--text-dim); letter-spacing:0.04em; }
+/* The one large illustration per question (see QUESTION_ILLUSTRATIONS in
+   engine.js / qzQuestionIllustration() in quiz.js) - sets a mood for the
+   scenario, sized to read clearly without competing with the question
+   text right below it for attention. */
+.qz-illustration-wrap{ display:flex; justify-content:center; margin: 18px 0 8px; }
+.qz-illustration{
+  width: clamp(76px, 10vw, 108px); height: clamp(76px, 10vw, 108px);
+  color: var(--accent); opacity: .85;
+}
 /* Text only, deliberately not inside a card — the question is the page's
    own voice, not one more module in the grid. */
 .qz-question2{
@@ -1380,8 +1394,109 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 .relationship-row .stat-bar-track{ flex:1; margin-top:0; }
 .relationship-row .r-score{ width:34px; text-align:right; font-family: var(--font-mono); font-size:12.5px; color: var(--text-muted); }
 
-canvas#radar{ display:block; margin: 0 auto; max-width:100%; }
 .radar-legend{ text-align:center; font-family: var(--font-mono); font-size:11.5px; color: var(--text-dim); margin-top:10px; }
+
+/* ---------------- Mind Map: personality fingerprint ----------------------
+   Large SVG radar (no permanent labels) + a ranked dimension panel that
+   drives the radar's highlight state. See renderRadarFingerprint() in
+   result.js. The modal this lives in opts into .detail-panel-wide (below)
+   so the radar can actually be the 520-600px centerpiece it's meant to be
+   instead of being squeezed into the standard 720px modal. */
+.detail-panel.detail-panel-wide{ width: min(1040px, 96vw); }
+.rf-layout{ display:flex; gap:32px; align-items:flex-start; }
+.rf-chart-wrap{ position:relative; flex: 0 0 auto; width: min(560px, 100%); margin: 0 auto; }
+.rf-svg{ display:block; width:100%; height:auto; }
+.rf-ring{ fill:none; stroke: var(--border); opacity:.5; }
+.rf-spoke{ stroke: var(--border); stroke-width:1; transition: opacity 200ms ease-out, stroke 200ms ease-out, stroke-width 200ms ease-out; }
+.rf-spoke.rf-active{ stroke: var(--rf-color, var(--user-accent-1)); stroke-width:1.75; }
+.rf-fill{
+  fill: color-mix(in srgb, var(--rf-color, var(--user-accent-1)) 16%, transparent);
+  stroke: var(--rf-color, var(--user-accent-1));
+  stroke-width:2; stroke-linejoin:round; stroke-linecap:round;
+  transform-origin: 300px 300px; transform: scale(0); opacity:0;
+  transition: transform 700ms var(--spring, var(--ease)), opacity 500ms var(--ease);
+}
+.rf-fill.rf-fill-in{ transform: scale(1); opacity:1; }
+.rf-edge{
+  fill:none; stroke: transparent; stroke-width:4; stroke-linecap:round;
+  transition: stroke 200ms ease-out, stroke-width 200ms ease-out;
+  pointer-events:none;
+}
+.rf-edge.rf-active{ stroke: var(--rf-color, var(--user-accent-1)); stroke-width:5; }
+.rf-vertex{
+  fill: var(--card); stroke: var(--rf-color, var(--user-accent-1)); stroke-width:1.5;
+  transition: r 200ms ease-out, opacity 200ms ease-out, fill 200ms ease-out;
+  pointer-events:none;
+}
+.rf-vertex.rf-active{ r:7; fill: var(--rf-color, var(--user-accent-1)); }
+.rf-spoke.rf-dimmed, .rf-vertex.rf-dimmed{ opacity:.28; }
+/* Invisible hit target, ~34px across (17 SVG units radius against a
+   ~560px-rendered 600-unit viewBox, so close to 1:1 on desktop) — a
+   4px dot is real but far too small a target to require exact aim on,
+   especially on touch. Real, tabbable elements so the radar itself is
+   keyboard-reachable, not just the panel rows. */
+.rf-hit{ fill: transparent; stroke: none; cursor: pointer; -webkit-tap-highlight-color: transparent; outline: none; }
+.rf-hit:focus{ outline: none; }
+.rf-hit:focus-visible{ outline: none; }
+.rf-tooltip{
+  position:absolute; pointer-events:none; opacity:0; visibility:hidden;
+  transform:translate(-50%,-130%) scale(.96); transform-origin: center bottom;
+  background: var(--card); border:1px solid var(--rf-color, var(--border-strong)); border-radius: var(--radius-sm);
+  padding:6px 11px; font-size:12px; font-family: var(--font-mono); color: var(--text);
+  white-space:nowrap; box-shadow: 0 12px 30px -12px rgba(0,0,0,.5); z-index:2;
+  transition: opacity 200ms ease-out, transform 200ms ease-out, visibility 200ms;
+}
+.rf-tooltip-visible{ opacity:1; visibility:visible; }
+.rf-tooltip[data-v="above"][data-h="center"]{ transform:translate(-50%,-130%) scale(1); }
+.rf-tooltip[data-v="below"][data-h="center"]{ transform:translate(-50%,30%) scale(1); }
+.rf-tooltip[data-v="above"][data-h="left"]{ transform:translate(0,-130%) scale(1); }
+.rf-tooltip[data-v="above"][data-h="right"]{ transform:translate(-100%,-130%) scale(1); }
+.rf-tooltip[data-v="below"][data-h="left"]{ transform:translate(0,30%) scale(1); }
+.rf-tooltip[data-v="below"][data-h="right"]{ transform:translate(-100%,30%) scale(1); }
+.rf-tooltip:not(.rf-tooltip-visible){ transform:translate(-50%,-130%) scale(.96); }
+
+.rf-panel{ flex:1 1 320px; min-width:0; display:flex; flex-direction:column; gap:22px; }
+.rf-section-title{ font-size:12px; text-transform:uppercase; letter-spacing:.06em; color: var(--text-dim); margin:0 0 10px; }
+.rf-growth-note{ font-size:12px; color: var(--text-muted); margin:-4px 0 10px; }
+.rf-rows{ display:flex; flex-direction:column; gap:4px; }
+.rf-rows-full{
+  max-height:340px; overflow-y:auto; padding-right:10px;
+  scrollbar-width: thin; scrollbar-color: var(--rf-color, var(--user-accent-1)) transparent;
+}
+.rf-rows-full::-webkit-scrollbar{ width:8px; }
+.rf-rows-full::-webkit-scrollbar-track{ background: transparent; border-radius:999px; }
+.rf-rows-full::-webkit-scrollbar-thumb{ background: var(--rf-color, var(--user-accent-1)); border-radius:999px; }
+.rf-rows-full::-webkit-scrollbar-thumb:hover{ background: color-mix(in srgb, var(--rf-color, var(--user-accent-1)) 80%, white); }
+.rf-rows-full::-webkit-scrollbar-thumb:active{ background: var(--rf-color, var(--user-accent-1)); }
+.rf-row{
+  display:flex; align-items:center; gap:10px; width:100%; padding:7px 9px; border-radius: var(--radius-md);
+  background:transparent; border:1px solid transparent; cursor:pointer; text-align:left;
+  font-family: inherit; color: var(--text-muted);
+  transition: background-color 200ms ease-out, border-color 200ms ease-out, color 200ms ease-out;
+}
+.rf-row:hover, .rf-row:focus-visible{ background: var(--surface); border-color: var(--border); color: var(--text); }
+.rf-row:focus-visible{ outline: 2px solid var(--user-accent-1); outline-offset:1px; }
+.rf-row-active{ background: color-mix(in srgb, var(--user-accent-1) 12%, var(--surface)); border-color: color-mix(in srgb, var(--user-accent-1) 35%, var(--border)); color: var(--text); }
+.rf-row-strength{ background: color-mix(in srgb, var(--user-accent-1) 6%, transparent); }
+.rf-star{ color: var(--user-accent-1); font-size:12px; flex-shrink:0; }
+.rf-dot{ width:5px; height:5px; border-radius:50%; background: var(--text-dim); flex-shrink:0; }
+.rf-row-label{ flex:1; font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rf-row-track{ width:70px; height:5px; border-radius:999px; background: var(--surface-strong); overflow:hidden; flex-shrink:0; }
+.rf-row-fill{ display:block; height:100%; border-radius:999px; background: var(--user-accent-1); }
+.rf-row-pct{ width:28px; text-align:right; font-family: var(--font-mono); font-size:12px; color: var(--text-dim); flex-shrink:0; }
+
+@media (max-width: 900px){
+  .rf-layout{ flex-direction:column; }
+  .rf-chart-wrap{ width:min(480px, 100%); }
+  .rf-rows-full{ max-height:none; overflow-y:visible; }
+}
+@media (prefers-reduced-motion: reduce){
+  .rf-tooltip{ transition-duration:.01ms !important; }
+}
+@media (prefers-reduced-motion: reduce){
+  .rf-fill{ transition-duration:.01ms !important; transform:scale(1) !important; opacity:1 !important; }
+  .rf-spoke, .rf-vertex, .rf-edge, .rf-row{ transition-duration:.01ms !important; }
+}
 
 /* Compare 2.0's dual-overlay radar canvases: same safety net as #radar
    above — the canvas's pixel size is fixed at draw time, so if the

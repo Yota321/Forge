@@ -271,8 +271,30 @@ function loadSaved(){
   const code = localStorage.getItem("pf_last_code");
   const decoded = code && decodeCode(code);
   if (!decoded){ showToast("No valid saved result found on this device."); return; }
+  if (decoded.obsolete){ renderObsoleteCodeScreen(decoded); return; }
   sessionStorage.setItem("pf_view_shared_code", code);
   location.href = "result.html";
+}
+
+/* PF4: shown instead of any profile whenever a decoded code turns out to
+   be PF1/PF2/PF3 -- see decodeCode()'s own comment in engine.js. No
+   migration is attempted; the only path forward is retaking. */
+function renderObsoleteCodeScreen(decoded){
+  setAccentColors();
+  setPageTitle("Result unavailable");
+  root.innerHTML = `
+    <div class="container">
+      ${topBar(false)}
+      <div class="shared-interstitial">
+        <h2>This result is from an earlier PersonaForge.</h2>
+        <p class="shared-interstitial-sub">${obEsc(OBSOLETE_CODE_MESSAGE)}</p>
+        <div class="cta-row" style="justify-content:center;margin-top:22px">
+          <button class="btn btn-primary" onclick="location.href='quiz.html'">Retake the Assessment</button>
+          <button class="btn btn-ghost" onclick="location.href='index.html'">Back Home</button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 
@@ -287,6 +309,7 @@ function loadSaved(){
 
 function renderSharedLinkInterstitial(){
   const decoded = pendingSharedProfile;
+  if (decoded.obsolete){ renderObsoleteCodeScreen(decoded); return; }
   // decoded.archetype is whatever archIdx was baked into the code string
   // at encode time -- stale the moment matchArchetype's scoring changes,
   // same class of bug as buildResultFromDecoded's identically-named field

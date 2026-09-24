@@ -684,7 +684,8 @@ function topBar(showBack){
   // scoring changes -- recomputing fresh from the profile's own code keeps
   // this dot in sync with what Profile/Growth/Result all show for the
   // same person. Falls back to the stored value if decoding fails.
-  const decodedForNav = profile && profile.code ? decodeCode(profile.code) : null;
+  const decodedForNav0 = profile && profile.code ? decodeCode(profile.code) : null;
+  const decodedForNav = decodedForNav0 && !decodedForNav0.obsolete ? decodedForNav0 : null;
   const freshSoulHex = decodedForNav ? computeSoulType(decodedForNav.normDims).hex : (profile && profile.soulHex);
   return `
   <div class="top-bar">
@@ -827,6 +828,7 @@ function viewProfileFromCode(){
   if (!val) return;
   const decoded = decodeCode(val);
   if (!decoded){ showToast("That code doesn't look right. Check for typos and try again."); return; }
+  if (decoded.obsolete){ showToast(OBSOLETE_CODE_MESSAGE); return; }
   click(500);
   if (typeof PF_PAGE !== "undefined" && PF_PAGE === "result"){
     lastResult = buildResultFromDecoded(decoded, val);
@@ -895,7 +897,7 @@ function exportProfile(){
     }
     if (extras){
       payload.name = extras.name;
-      payload.quizMode = extras.meta && extras.meta.questionMode;
+      payload.quizMode = extras.meta && extras.meta.pace;
       payload.confidence = extras.confidence;
       payload.archetype = { id: extras.archetype.id, name: extras.archetype.name, icon: extras.archetype.icon };
       payload.soul = extras.soul;
@@ -956,6 +958,7 @@ function importProfile(){
       const code = typeof payload.code === "string" ? payload.code : null;
       const decoded = code && decodeCode(code);
       if (!decoded){ showToast("That .pf file doesn't contain a valid Forge profile code."); return; }
+      if (decoded.obsolete){ showToast(OBSOLETE_CODE_MESSAGE); return; }
 
       try{ localStorage.setItem("pf_last_code", code); }
       catch(e){ showToast("Couldn't save that profile on this device (storage may be full or blocked)."); return; }
@@ -1216,6 +1219,7 @@ function viewMyLastResult(){
   const code = localStorage.getItem("pf_last_code");
   const decoded = code && decodeCode(code);
   if (!decoded){ showToast("No saved result found on this device yet."); return; }
+  if (decoded.obsolete){ showToast(OBSOLETE_CODE_MESSAGE); return; }
   sessionStorage.setItem("pf_view_shared_code", code);
   location.href = "result.html";
 }

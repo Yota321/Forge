@@ -55,863 +55,687 @@ function emptyDims(){
    the pool the adaptive stages pick from; no other code needs to change.
 ------------------------------------------------------------------------- */
 
+/* =========================================================================
+   FORGE v2.1 - QUESTION BANK (complete rewrite)
+   120 questions: 15 fixed "core" questions (see CORE_QUESTION_IDS below,
+   asked first, identical order, every user) + 105 adaptively-selectable
+   "pool" questions grouped here by emotional-pacing category (fun,
+   everyday, reflective, moral, emotional, weird -- see purpose/tone/
+   difficulty on each question for why). Every option carries a "why"
+   string: internal-only metadata explaining the psychological reasoning
+   behind its dimension deltas (never shown to the user, surfaced only
+   through result-page self-explanation and future engine debugging).
+   "tags" on an option are permanently added to session.tags once chosen;
+   "unlockConditions.anyTags" on a pool question gates its eligibility on
+   the adaptive engine having seen at least one of those tags so far --
+   this is the literal "your answer to Q3 can unlock Q56" branching the
+   spec asked for, layered on top of the existing info-gain ranking
+   (computeQuestionInfoValue still picks the single best question among
+   whatever is currently unlocked). "validates":"dim" (was "validates" in
+   v2.0 too) re-measures a dimension an earlier, differently-themed
+   question already touched, feeding _checkValidation()'s contradiction
+   tracking unchanged from v2.0. */
 const QUESTION_BANK = {
 
-  social: [
-    { id:"soc1", text:"You walk into a party where you know exactly one person, and they've just vanished to find a drink.", options:[
-      { text:"Start a conversation with the nearest stranger", d:{socialEnergy:2,confidence:2,risk:1} },
-      { text:"Find a snack table and look busy until your friend returns", d:{socialEnergy:-1,patience:1,independence:1} },
-      { text:"Scan the room for someone who also looks a bit lost", d:{empathy:2,socialEnergy:1,curiosity:1} } ]},
-    { id:"soc2", text:"A group chat is planning a trip and the conversation has 200 unread messages.", options:[
-      { text:"Read everything, then propose a clear plan", d:{planning:2,leadership:1,logic:1} },
-      { text:"Skim it and go with whatever the majority wants", d:{adaptability:2,independence:-1,socialEnergy:1} },
-      { text:"Mute it and ask one friend for the short version later", d:{independence:2,patience:1,socialEnergy:-1} } ]},
-    { id:"soc3", text:"You're invisible for exactly one day and no one will ever know what you did.", options:[
-      { text:"Sit in on a meeting or class you're curious about", d:{curiosity:2,independence:1} },
-      { text:"Spend it helping people in small, secret ways", d:{kindness:2,empathy:2} },
-      { text:"Use it to finally get a full day of total peace and quiet", d:{independence:2,patience:1,socialEnergy:-2} } ]},
-    { id:"soc4", text:"Your friend group is splitting into two dinner plans and both are asking you to pick a side.", options:[
-      { text:"Pick the louder, bigger group for the extra energy", d:{socialEnergy:2,risk:1} },
-      { text:"Pick the smaller group, better conversation", d:{empathy:1,socialEnergy:-1,trust:2} },
-      { text:"Suggest merging both plans into one", d:{leadership:2,adaptability:1} } ]},
-    { id:"soc5", text:"You accidentally become mildly famous overnight for something small and harmless.", options:[
-      { text:"Lean into it and enjoy the attention", d:{confidence:2,humor:1,socialEnergy:1} },
-      { text:"Politely ride it out and wait for it to fade", d:{patience:2,independence:1} },
-      { text:"Use the platform to talk about something you actually care about", d:{leadership:2,drive:1} } ]},
-    { id:"soc6", text:"You're the only person at a gathering who doesn't know the inside joke everyone's laughing at.", options:[
-      { text:"Ask directly what's so funny", d:{confidence:2,curiosity:1} },
-      { text:"Laugh along and figure it out later", d:{adaptability:2,socialEnergy:1} },
-      { text:"Quietly enjoy watching everyone else enjoy it", d:{empathy:1,patience:1,socialEnergy:-1} } ]},
-    { id:"soc7", text:"It's a big family gathering and someone brings up an old, slightly touchy argument from years ago.", options:[
-      { text:"Steer the conversation somewhere lighter", d:{adaptability:2,empathy:1,socialEnergy:1} },
-      { text:"Let people say their piece, even if it gets tense", d:{resilience:2,trust:2,emotionalStability:2} },
-      { text:"Quietly excuse yourself until it blows over", d:{independence:1,patience:1,socialEnergy:-2} } ]},
-    { id:"soc8", text:"A childhood friend you haven't spoken to in years messages you out of nowhere.", options:[
-      { text:"Reply right away, excited to catch up", d:{socialEnergy:2,trust:2,optimism:1} },
-      { text:"Reply, but keep it short until you see where it goes", d:{selfAwareness:1,patience:1,trust:-2} },
-      { text:"Let it sit a while before deciding how to respond", d:{independence:1,planning:1,patience:1} } ]},
-    { id:"soc9", text:"You're put on a group project with three people you've never worked with before.", options:[
-      { text:"Suggest everyone share their strengths first so roles make sense", d:{leadership:1,responsibility:3,planning:1} },
-      { text:"Wait to see how the group naturally organizes itself", d:{patience:1,adaptability:1,openMindedness:1} },
-      { text:"Pick the part you're best at and just get started", d:{drive:1,independence:1,confidence:1} } ]},
-    { id:"soc10", text:"You're invited to a wedding where you'll only know the couple, no one else.", options:[
-      { text:"Treat it as a chance to meet a room full of strangers", d:{socialEnergy:2,openMindedness:1,confidence:1} },
-      { text:"Stick close to the couple whenever you can", d:{trust:2,socialEnergy:-1,patience:1} },
-      { text:"Find the one other person who also looks a little out of place", d:{empathy:2,socialEnergy:1} } ]},
-    { id:"soc11", text:"A group chat you're in has slowly turned into people mostly talking over each other.", options:[
-      { text:"Try to bring some order back to the conversation", d:{leadership:1,responsibility:2,patience:1} },
-      { text:"Mute it and check in only when something matters", d:{independence:2,socialEnergy:-1} },
-      { text:"Just enjoy the chaos, it's kind of fun", d:{humor:2,adaptability:1,openMindedness:1} } ]},
-    { id:"soc12", text:"Everyone at work has an opinion about a decision that technically isn't theirs to make.", options:[
-      { text:"Share your opinion clearly when asked", d:{confidence:1,responsibility:2,logic:1} },
-      { text:"Stay out of it, it's not your call either", d:{patience:1,independence:1,discipline:1} },
-      { text:"Listen to everyone first, then quietly form your own view", d:{selfAwareness:2,curiosity:1} } ]},
-    { id:"soc13", text:"A close friend starts dating someone the rest of your friend group isn't sure about.", options:[
-      { text:"Give the new person a fair, honest chance", d:{openMindedness:2,trust:2,empathy:1} },
-      { text:"Trust your friend's judgment, even if you have doubts", d:{trust:3,patience:1} },
-      { text:"Say something if it keeps bothering you", d:{confidence:1,responsibility:2,empathy:1} } ]},
-    { id:"soc14", text:"You move to a new city where you don't know a single person yet.", options:[
-      { text:"Say yes to every invitation for the first few months", d:{socialEnergy:2,risk:1,openMindedness:1} },
-      { text:"Build a small, solid group slowly instead of a big one fast", d:{patience:2,trust:2} },
-      { text:"Get comfortable on your own before actively looking for people", d:{independence:2,emotionalStability:2} } ]},
-    { id:"soc15", text:"A friend keeps canceling plans last minute, again.", options:[
-      { text:"Bring it up honestly the next time it happens", d:{confidence:1,responsibility:2,trust:-2} },
-      { text:"Stop making plans that depend on them showing up", d:{independence:1,selfAwareness:1,discipline:1} },
-      { text:"Give them the benefit of the doubt, people get busy", d:{patience:2,kindness:1} } ]},
-
-    { id:"soc16", text:"You're assigned a random roommate for your first semester away from home.", options:[
-      { text:"Reach out before move-in day to break the ice", d:{socialEnergy:2,confidence:1,openMindedness:1} },
-      { text:"Wait and see what they're like in person first", d:{patience:2,adaptability:1} },
-      { text:"Set clear expectations early so things stay smooth", d:{planning:1,responsibility:3} } ]},
-    { id:"soc17", text:"A group trip with friends is being planned and everyone has a different idea of the perfect itinerary.", options:[
-      { text:"Volunteer to merge everyone's wish list into one plan", d:{leadership:1,planning:2} },
-      { text:"Go with whatever the majority picks", d:{adaptability:2,socialEnergy:1} },
-      { text:"Suggest splitting some days so everyone gets their thing", d:{creativity:1,empathy:1,leadership:1} } ]},
-    { id:"soc18", text:"At a big family reunion, the food table becomes an unofficial argument about whose dish is best.", options:[
-      { text:"Jump in and defend your own dish loudly", d:{humor:1,confidence:1,competitiveness:1} },
-      { text:"Stay neutral and just enjoy the food", d:{patience:1,adaptability:1} },
-      { text:"Quietly go compliment everyone individually", d:{kindness:2,empathy:1} } ]},
-    { id:"soc19", text:"You're about to post something a little vulnerable on social media and your thumb hovers over the button.", options:[
-      { text:"Post it, people can just scroll past if they don't care", d:{confidence:2,risk:1} },
-      { text:"Rewrite it to be a little safer first", d:{selfAwareness:1,patience:1} },
-      { text:"Save it as a draft and decide tomorrow", d:{patience:2,discipline:1} } ]},
-    { id:"soc20", text:"Your class group project has one member who keeps missing meetings.", options:[
-      { text:"Message them directly and ask what's going on", d:{empathy:1,responsibility:3} },
-      { text:"Quietly redistribute their part among the rest of the group", d:{leadership:1,independence:1,discipline:1} },
-      { text:"Flag it to the instructor before it becomes a bigger problem", d:{responsibility:3,confidence:1} } ]},
-
+  fun: [
+  { id:"c02", text:"You wake up and somehow have one completely free day: no obligations, no consequences tomorrow.", illustration:"lightbulb", type:"fun", tone:"playful", difficulty:"light", purpose:"A zero-stakes wish reveals what a person actually values when nothing is being tested.", measures:["curiosity","drive","openMindedness"], validates:null,
+    options:[
+      { text:"Chase something reckless you've always wanted to try", d:{risk:2,curiosity:1,drive:1}, reason:"Spending a truly free day on a risk you'd normally justify against shows risk tolerance is a real preference, not just circumstance.", tradeoff:"Gains upside, at the cost of the goodwill the other path here would have offered instead.", reveals:["Accepts uncertainty in exchange for upside", "Chooses exploration over certainty", "Pushes toward the outcome even under resistance"], tags:["adventurous"] },
+      { text:"Spend it slowly with the people who matter most to you", d:{kindness:2,socialEnergy:1,patience:1}, reason:"Given total freedom, choosing people over novelty reveals where meaning is actually located.", tradeoff:"Gains goodwill, at the cost of the upside the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Draws energy from engaging with others", "Tolerates discomfort rather than forcing resolution"], tags:["warm","loyal"] },
+      { text:"Disappear alone somewhere quiet and think", d:{independence:2,selfAwareness:1,openMindedness:1}, reason:"Using rare unstructured time for solitude over stimulation points to an introspective default, not fatigue-driven withdrawal.", tradeoff:"Gains autonomy, at the cost of the upside the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Names an uncomfortable truth about themselves", "Stays open to being wrong"], tags:["reflective","independent"] } ]},
+  { id:"c06", text:"You wake up inside your favorite story, and the characters have no idea you're not supposed to be there.", illustration:"doorway", type:"fun", tone:"playful", difficulty:"light", purpose:"An impossible, low-cost fantasy prompt reveals which impulse wins when reality's rules don't apply.", measures:["risk","leadership","curiosity"], validates:null,
+    options:[
+      { text:"Jump straight into the action and try to help however you can", d:{risk:2,kindness:1,drive:1}, reason:"Choosing to act inside a world where the stakes feel real but the consequences don't shows the impulse to help is instinctive, not calculated.", tradeoff:"Gains upside, at the cost of the insight the other path here would have offered instead.", reveals:["Chooses the less certain, more interesting path", "Softens a hard truth to protect someone", "Keeps moving rather than settling"], tags:["bold","adventurous"] },
+      { text:"Stay out of the plot and just quietly explore the world", d:{curiosity:2,independence:1,openMindedness:1}, reason:"Prioritizing exploration over involvement even somewhere consequence-free suggests curiosity outweighs the pull toward mattering.", tradeoff:"Gains insight, at the cost of the upside the other path here would have offered instead.", reveals:["Follows a question rather than letting it go", "Chooses self-reliance over relying on others", "Stays open to being wrong"], tags:["curious","independent"] },
+      { text:"Try to take the lead and steer the story your way", d:{leadership:2,confidence:1,competitiveness:1}, reason:"Wanting to author the outcome rather than participate in someone else's story, even hypothetically, is a real leadership tell.", tradeoff:"Gains control, at the cost of the upside the other path here would have offered instead.", reveals:["Takes the lead without being asked", "Acts before being fully sure", "Keeps pushing rather than settling for a tie"], tags:["bold","competitive"] } ]},
+  { id:"c10", text:"You have to choose how a shared project with a friend gets finished, and you disagree on the approach.", illustration:"bridge", type:"fun", tone:"light", difficulty:"light", purpose:"Everyday collaborative friction, low stakes, reads decision style under mild social cost.", measures:["leadership","adaptability","competitiveness"], validates:null,
+    options:[
+      { text:"Push for your approach, you're fairly sure it's better", d:{confidence:2,leadership:1,competitiveness:1}, reason:"Holding your position against a friend's preference, even mildly, over something you believe is better shows conviction outweighs harmony here.", tradeoff:"Gains conviction, at the cost of the goodwill the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Steps into the gap when no one else will", "Measures the situation by whether they're winning"], tags:["bold","competitive"] },
+      { text:"Go with theirs, the friendship matters more than being right", d:{kindness:2,adaptability:1,independence:-1}, reason:"Deliberately yielding on something you disagree with for the relationship's sake is a real, specific tradeoff, not indifference.", tradeoff:"Gains goodwill, at the cost of autonomy.", reveals:["Chooses someone else's comfort over their own convenience", "Adjusts course rather than forcing a plan through", "Chooses connection or reliance over going it alone"], tags:["warm","loyal"] },
+      { text:"Find a version that borrows from both, even if it's messier", d:{creativity:2,patience:1,planning:1}, reason:"Choosing the harder synthesis over either clean option reflects a preference for integration over efficiency.", tradeoff:"Gains originality, at the cost of the conviction the other path here would have offered instead.", reveals:["Builds a new option instead of picking a given one", "Lets a situation play out before intervening", "Prepares rather than improvising"], tags:["pragmatist","curious"] } ]},
+  { id:"f01", text:"An alien lands, politely asks you for directions to the nearest café, and seems completely unbothered by the fact that it's an alien.", illustration:"compass", type:"fun", tone:"playful", difficulty:"light", purpose:"Absurd-but-mundane framing tests default reaction to genuinely novel stimuli.", measures:["curiosity","emotionalStability","socialEnergy"], validates:null, unlockConditions:{anyTags:["curious","independent"]},
+    options:[
+      { text:"Give clear directions like this happens every day", d:{emotionalStability:2,logic:1,adaptability:1}, reason:"Treating the impossible as routine reveals a baseline that resists being rattled by novelty, not a lack of wonder.", tradeoff:"Gains composure, at the cost of the insight the other path here would have offered instead.", reveals:["Keeps a level head when things get tense", "Reasons through a situation before acting", "Changes approach when the situation shifts"], tags:["pragmatist","independent"] },
+      { text:"Ask it a dozen questions before it can even leave", d:{curiosity:2,socialEnergy:1,openMindedness:1}, reason:"Prioritizing the opportunity to learn over the mundane task at hand shows curiosity overriding social script.", tradeoff:"Gains insight, at the cost of the composure the other path here would have offered instead.", reveals:["Follows a question rather than letting it go", "Leans toward people rather than away from them", "Stays open to being wrong"], tags:["curious","playful"] },
+      { text:"Walk it there yourself just to see where this goes", d:{risk:1,curiosity:1,drive:1,humor:1}, reason:"Choosing direct involvement in something bizarre over safely disengaging is a genuine pull toward novelty over caution; treating an alien asking for directions as a fun bit to play along with, rather than a crisis, is a genuine light touch.", tradeoff:"Gains upside, at the cost of the composure the other path here would have offered instead.", reveals:["Accepts uncertainty in exchange for upside", "Chooses exploration over certainty", "Pushes toward the outcome even under resistance"], tags:["adventurous","bold","playful"] } ]},
+  { id:"f02", text:"You're granted one minor superpower, but only for a single day.", illustration:"lightbulb", type:"fun", tone:"playful", difficulty:"light", purpose:"A wish-fulfillment prompt that separates fantasy-of-power from fantasy-of-ease.", measures:["drive","curiosity","independence"], validates:null, unlockConditions:{anyTags:["bold","competitive","adventurous"]},
+    options:[
+      { text:"The power to be unbeatable at anything you attempt today", d:{competitiveness:2,confidence:1,drive:1}, reason:"Choosing dominance over convenience or insight, even temporarily, is a specific tell about what winning means to you.", tradeoff:"Gains an edge, at the cost of the insight the other path here would have offered instead.", reveals:["Measures the situation by whether they're winning", "Backs their own judgment under pressure", "Pushes toward the outcome even under resistance"], tags:["competitive","bold"] },
+      { text:"The power to know exactly what anyone is really thinking", d:{curiosity:2,logic:1,trust:-1}, reason:"Trading other people's privacy for total insight into them reveals how much uncertainty about others actually bothers you.", tradeoff:"Gains insight, at the cost of closeness.", reveals:["Chooses exploration over certainty", "Relies on logic over instinct", "Withholds trust until it's proven"], tags:["curious","analytical"] },
+      { text:"The power to undo any one mistake, just for today", d:{planning:1,resilience:-1,emotionalStability:1}, reason:"Wanting a safety net rather than power or knowledge suggests risk-aversion runs deeper than it usually shows.", tradeoff:"Gains preparedness, at the cost of forward motion.", reveals:["Prepares rather than improvising", "Lets a setback actually land before moving on", "Keeps a level head when things get tense"], tags:["cautious"] } ]},
+  { id:"f03", text:"You get cast, without warning, as the protagonist of the last movie you watched.", illustration:"masks", type:"fun", tone:"playful", difficulty:"light", purpose:"Tests instinct toward control versus improvisation when suddenly thrust into unfamiliar stakes.", measures:["leadership","adaptability","risk"], validates:null, unlockConditions:{anyTags:["adventurous","bold","curious"]},
+    options:[
+      { text:"Try to improve on the character's choices as you go", d:{confidence:2,leadership:1,creativity:1}, reason:"Assuming you can outperform a story already written shows a specific confidence in your own judgment over the established plan.", tradeoff:"Gains conviction, at the cost of the consistency the other path here would have offered instead.", reveals:["Acts before being fully sure", "Takes the lead without being asked", "Builds a new option instead of picking a given one"], tags:["bold","competitive"] },
+      { text:"Follow the plot exactly, it clearly worked out fine before", d:{discipline:2,patience:1,planning:1}, reason:"Trusting a proven path over your own improvisation, even where the outcome is already known, reflects real risk-aversion.", tradeoff:"Gains consistency, at the cost of the conviction the other path here would have offered instead.", reveals:["Holds a personal standard even without anyone watching", "Tolerates discomfort rather than forcing resolution", "Structures uncertainty before acting"], tags:["cautious","pragmatist"] },
+      { text:"Immediately go off-script and see what happens instead", d:{risk:2,curiosity:2,adaptability:-1}, reason:"Choosing the unknown over a guaranteed outcome purely out of curiosity is a genuine risk-seeking impulse.", tradeoff:"Gains upside, at the cost of flexibility.", reveals:["Accepts uncertainty in exchange for upside", "Chooses exploration over certainty", "Holds the original plan despite new information"], tags:["adventurous","curious"] } ]},
+  { id:"f04", text:"You're handed a time machine that only works once, for exactly one hour, anywhere in your own past.", illustration:"clock", type:"fun", tone:"playful", difficulty:"medium", purpose:"A single-use wish forces a real priority between correction, closure, and reliving.", measures:["persistence","emotionalStability","openMindedness"], validates:null, unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"Go fix the one decision you still regret", d:{persistence:2,discipline:1,emotionalStability:-1}, reason:"Spending your only hour on correction rather than reliving good moments shows regret outweighs nostalgia for you.", tradeoff:"Gains follow-through, at the cost of composure.", reveals:["Keeps going after the initial effort stops paying off", "Holds a personal standard even without anyone watching", "Lets the moment's weight actually register"], tags:["idealist","reflective"] },
+      { text:"Go relive one perfect, ordinary hour you didn't appreciate enough", d:{optimism:2,kindness:1,openMindedness:1}, reason:"Choosing appreciation over correction reveals a instinct to savor rather than fix.", tradeoff:"Gains ease, at the cost of the follow-through the other path here would have offered instead.", reveals:["Expects things to work out", "Softens a hard truth to protect someone", "Stays open to being wrong"], tags:["warm","reflective"] },
+      { text:"Use it to warn your past self about something big coming", d:{planning:2,responsibility:1,risk:-1}, reason:"Prioritizing prevention over either fixing or savoring the past shows a forward-looking, risk-averse instinct even when looking backward.", tradeoff:"Gains preparedness, at the cost of upside.", reveals:["Structures uncertainty before acting", "Takes ownership even when it costs them", "Protects against a worse outcome over a better one"], tags:["cautious","analytical"] } ]},
+  { id:"f05", text:"You're offered a role as the villain in a story where the villain is clearly, deliberately, the more interesting character.", illustration:"masks", type:"fun", tone:"playful", difficulty:"light", purpose:"Reads comfort with being disliked in exchange for being memorable.", measures:["confidence","independence","openMindedness"], validates:null, unlockConditions:{anyTags:["bold","independent","competitive"]},
+    options:[
+      { text:"Take it without hesitation, interesting beats liked every time", d:{confidence:2,independence:1,openMindedness:1}, reason:"Choosing impact over likability, even in something as low-stakes as a story role, is a genuine values signal.", tradeoff:"Gains conviction, at the cost of the connection the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Trusts their own judgment over consensus", "Reconsiders a position when given a reason to"], tags:["bold","independent"] },
+      { text:"Take it, but try to make the villain sympathetic anyway", d:{empathy:2,creativity:1,openMindedness:1}, reason:"Refusing to let a role be purely one-note reflects discomfort with simple, uncomplicated judgment of anyone.", tradeoff:"Gains connection, at the cost of the conviction the other path here would have offered instead.", reveals:["Reads the emotional stakes before acting", "Builds a new option instead of picking a given one", "Stays open to being wrong"], tags:["warm","curious"] },
+      { text:"Pass, you'd rather be liked than remembered", d:{socialEnergy:1,kindness:1,confidence:-1}, reason:"Choosing warmth over impact even hypothetically shows a real preference ordering, not just modesty.", tradeoff:"Gains engagement, at the cost of conviction.", reveals:["Leans toward people rather than away from them", "Softens a hard truth to protect someone", "Lets doubt slow down a decision"], tags:["loyal","cautious"] } ]},
+  { id:"f06", text:"You find a door in your home that definitely wasn't there yesterday. It's just slightly open.", illustration:"doorway", type:"fun", tone:"playful", difficulty:"light", purpose:"An impossible-but-personal prompt separates curiosity from caution under genuine mystery.", measures:["curiosity","risk","planning"], validates:null, unlockConditions:{anyTags:["curious","adventurous"]},
+    options:[
+      { text:"Open it immediately, whatever's there, you want to know", d:{curiosity:2,risk:2,patience:-1}, reason:"Choosing immediate knowledge over any precaution at all is a strong, specific curiosity signal.", tradeoff:"Gains insight, at the cost of stability.", reveals:["Follows a question rather than letting it go", "Chooses the less certain, more interesting path", "Acts rather than waiting it out"], tags:["curious","adventurous"] },
+      { text:"Grab something useful first, then go look", d:{planning:2,risk:1,logic:1}, reason:"Preparing before engaging with the unknown shows curiosity tempered by real caution, not suppressed by it.", tradeoff:"Gains preparedness, at the cost of the insight the other path here would have offered instead.", reveals:["Prepares rather than improvising", "Chooses the less certain, more interesting path", "Reasons through a situation before acting"], tags:["pragmatist","cautious"] },
+      { text:"Close it, note where it was, and go on with your day", d:{discipline:1,independence:1,curiosity:-1}, reason:"Actively choosing not to investigate something this strange is a genuine, deliberate cap on curiosity when uncertainty feels too open-ended.", tradeoff:"Gains consistency, at the cost of insight.", reveals:["Holds a personal standard even without anyone watching", "Trusts their own judgment over consensus", "Prefers the familiar over the unknown"], tags:["cautious"] } ]},
+  { id:"f07", text:"You're given the chance to instantly master any one skill, but you'll never know what it feels like to struggle to learn it.", illustration:"key", type:"fun", tone:"light", difficulty:"medium", purpose:"Tests whether mastery or the process of earning it is actually valued more.", measures:["persistence","drive","openMindedness"], validates:"persistence", unlockConditions:{anyTags:["competitive","independent"]},
+    options:[
+      { text:"Take it, the result matters more than how you got there", d:{drive:2,competitiveness:1,persistence:-1}, reason:"Choosing the outcome over the process, when explicitly offered both, is a clean, real read on what actually motivates you.", tradeoff:"Gains momentum, at the cost of follow-through.", reveals:["Keeps moving rather than settling", "Keeps pushing rather than settling for a tie", "Knows when to stop rather than pushing further"], tags:["competitive","pragmatist"] },
+      { text:"Pass, the struggle is the part that actually makes it feel earned", d:{persistence:2,discipline:1,resilience:1}, reason:"Turning down a genuine shortcut specifically because it removes the struggle shows the process itself is where the value lives.", tradeoff:"Gains follow-through, at the cost of the momentum the other path here would have offered instead.", reveals:["Sees something through past the easy stopping point", "Follows through on principle rather than convenience", "Treats a setback as temporary"], tags:["idealist","independent"] },
+      { text:"Take it, then immediately go find something harder to struggle with", d:{drive:1,curiosity:2,persistence:1}, reason:"Accepting the shortcut but redirecting the saved effort elsewhere reveals an appetite for challenge that isn't tied to any one skill.", tradeoff:"Gains insight, at the cost of the an edge the other path here would have offered instead.", reveals:["Follows a question rather than letting it go", "Keeps moving rather than settling", "Sees something through past the easy stopping point"], tags:["adventurous","competitive"] } ]},
+  { id:"f08", text:"A genie offers you three wishes, but warns that every wish will be granted in the most literal, technically-correct way possible.", illustration:"lightbulb", type:"fun", tone:"playful", difficulty:"light", purpose:"Reveals whether caution or ambition wins when a known trap is explicitly disclosed upfront.", measures:["logic","risk","planning"], validates:null, unlockConditions:{anyTags:["analytical","cautious"]},
+    options:[
+      { text:"Spend the first wish just closing every loophole in the other two", d:{logic:2,planning:2,risk:-1}, reason:"Sacrificing a third of your total upside purely to control for a known risk shows real risk-aversion under an explicit warning.", tradeoff:"Gains clarity, at the cost of upside.", reveals:["Reasons through a situation before acting", "Prepares rather than improvising", "Chooses the safer, more certain path"], tags:["analytical","cautious"] },
+      { text:"Wish for something so simple there's barely room to misinterpret it", d:{discipline:1,logic:1,drive:-1}, reason:"Deliberately shrinking your ambition to fit inside what's safely literal reveals a preference for certainty over upside.", tradeoff:"Gains consistency, at the cost of momentum.", reveals:["Follows through on principle rather than convenience", "Reasons through a situation before acting", "Chooses ease over pushing further"], tags:["cautious","pragmatist"] },
+      { text:"Go big anyway, a technically-correct version of something amazing is still amazing", d:{risk:2,optimism:2,drive:1,humor:1}, reason:"Accepting the disclosed trap in exchange for a shot at something large shows real appetite for upside over guaranteed safety; leaning into the absurdity of a 'technically-correct' loophole rather than fighting it is itself a small, genuine sense of humor about the situation.", tradeoff:"Gains upside, at the cost of the clarity the other path here would have offered instead.", reveals:["Accepts uncertainty in exchange for upside", "Frames setbacks as temporary", "Pushes toward the outcome even under resistance"], tags:["adventurous","bold"] } ]},
+  { id:"f09", text:"You can swap lives with a complete stranger for exactly one week, no memories lost on either side afterward.", illustration:"mirror", type:"fun", tone:"light", difficulty:"light", purpose:"Tests appetite for novelty against attachment to one's own life as it currently is.", measures:["curiosity","adaptability","independence"], validates:null, unlockConditions:{anyTags:["curious","adventurous","independent"]},
+    options:[
+      { text:"Pick someone whose life looks nothing like yours", d:{curiosity:2,adaptability:2,openMindedness:1}, reason:"Choosing maximum contrast over comfort shows curiosity about difference outweighs the appeal of an easier week.", tradeoff:"Gains insight, at the cost of the autonomy the other path here would have offered instead.", reveals:["Chooses exploration over certainty", "Adjusts course rather than forcing a plan through", "Reconsiders a position when given a reason to"], tags:["curious","adventurous"] },
+      { text:"Pass entirely, your own life is the one you'd rather be living", d:{independence:1,emotionalStability:1,curiosity:-1}, reason:"Turning down a completely consequence-free novelty offer is a genuine statement of contentment, not lack of imagination.", tradeoff:"Gains autonomy, at the cost of insight.", reveals:["Trusts their own judgment over consensus", "Stays steady under pressure", "Prefers the familiar over the unknown"], tags:["independent","loyal"] },
+      { text:"Pick someone specific whose choices you've always quietly judged", d:{empathy:1,curiosity:1,confidence:1}, reason:"Using the swap to actually test a judgment rather than just for novelty shows curiosity aimed at understanding, not escape.", tradeoff:"Gains connection, at the cost of the flexibility the other path here would have offered instead.", reveals:["Prioritizes how someone else is feeling", "Chooses exploration over certainty", "Backs their own judgment under pressure"], tags:["curious","reflective"] } ]},
+  { id:"f10", text:"You wake up and, for exactly 24 hours, no one who sees you can lie to you, whether they want to or not.", illustration:"scales", type:"fun", tone:"light", difficulty:"medium", purpose:"Absolute-truth premise tests appetite for unfiltered honesty against comfort with ambiguity.", measures:["trust","curiosity","emotionalStability"], validates:"trust", unlockConditions:{anyTags:["idealist","analytical"]},
+    options:[
+      { text:"Spend the day asking everyone you know the questions you've always wondered about", d:{curiosity:2,trust:1,confidence:1}, reason:"Using a rare truth-guarantee to actively seek out uncomfortable answers shows the pull toward certainty beats fear of what you'll hear.", tradeoff:"Gains insight, at the cost of the composure the other path here would have offered instead.", reveals:["Follows a question rather than letting it go", "Gives someone the benefit of the doubt", "Acts before being fully sure"], tags:["curious","bold"] },
+      { text:"Avoid asking anything you're not sure you actually want answered", d:{emotionalStability:1,patience:1,curiosity:-1}, reason:"Having guaranteed honesty available and still choosing not to use it reveals real limits on how much truth you actually want.", tradeoff:"Gains composure, at the cost of insight.", reveals:["Stays steady under pressure", "Tolerates discomfort rather than forcing resolution", "Prefers the familiar over the unknown"], tags:["cautious","reflective"] },
+      { text:"Use it mostly to check whether people around you are okay, not to catch anyone out", d:{empathy:2,kindness:1,trust:1}, reason:"Directing an unlimited truth tool toward care rather than curiosity or suspicion shows where your attention actually goes first.", tradeoff:"Gains connection, at the cost of the insight the other path here would have offered instead.", reveals:["Prioritizes how someone else is feeling", "Chooses someone else's comfort over their own convenience", "Extends trust before it's fully earned"], tags:["warm","loyal"] } ]},
+  { id:"f11", text:"You're offered the chance to relive today exactly once more, keeping everything you now know.", illustration:"clock", type:"fun", tone:"light", difficulty:"light", purpose:"Tests appetite for optimization over acceptance of an already-lived, ordinary day.", measures:["planning","optimism","persistence"], validates:null, unlockConditions:{anyTags:["analytical","pragmatist"]},
+    options:[
+      { text:"Take it and try to make every part of today slightly better", d:{planning:2,drive:1,persistence:1}, reason:"Choosing to optimize an already-fine day rather than accept it shows a real, low-key perfectionist streak.", tradeoff:"Gains preparedness, at the cost of the ease the other path here would have offered instead.", reveals:["Prepares rather than improvising", "Keeps moving rather than settling", "Sees something through past the easy stopping point"], tags:["pragmatist","analytical"] },
+      { text:"Pass, today happened the way it happened for a reason", d:{optimism:1,emotionalStability:1,openMindedness:-1}, reason:"Declining a genuinely free redo out of acceptance rather than indifference is a specific, real philosophical stance.", tradeoff:"Gains ease, at the cost of room to be wrong.", reveals:["Expects things to work out", "Keeps a level head when things get tense", "Holds a position rather than reconsidering it"], tags:["idealist","independent"] },
+      { text:"Take it just to see how differently it could go for fun", d:{curiosity:2,creativity:1,planning:-1}, reason:"Wanting the replay purely for the experiment, not to fix or accept anything, shows curiosity as the dominant motive here.", tradeoff:"Gains insight, at the cost of preparedness.", reveals:["Follows a question rather than letting it go", "Builds a new option instead of picking a given one", "Improvises rather than preparing"], tags:["curious","playful"] } ]},
+  { id:"f12", text:"You're given a magic notebook: whatever you write in it about tomorrow comes true, but only once, ever.", illustration:"key", type:"fun", tone:"light", difficulty:"medium", purpose:"A single guaranteed outcome forces a real ranking of personal, relational, and abstract goods.", measures:["drive","kindness","openMindedness"], validates:null, unlockConditions:{anyTags:["idealist","warm"]},
+    options:[
+      { text:"Write something that guarantees a big win for yourself", d:{drive:2,confidence:1,competitiveness:1}, reason:"Using a single guaranteed outcome on yourself over anyone else is a clean, honest read on where self-interest actually ranks.", tradeoff:"Gains momentum, at the cost of the goodwill the other path here would have offered instead.", reveals:["Pushes toward the outcome even under resistance", "Backs their own judgment under pressure", "Measures the situation by whether they're winning"], tags:["competitive","bold"] },
+      { text:"Write something that quietly fixes a hard day for someone you love", d:{kindness:2,empathy:1,drive:-1}, reason:"Spending a once-ever guarantee on someone else's ordinary hard day, not your own big moment, is a real and specific generosity.", tradeoff:"Gains goodwill, at the cost of momentum.", reveals:["Chooses someone else's comfort over their own convenience", "Prioritizes how someone else is feeling", "Chooses ease over pushing further"], tags:["warm","loyal"] },
+      { text:"Write something vague enough to leave room for how it plays out", d:{creativity:2,openMindedness:1,planning:-1}, reason:"Refusing to fully lock down even a guaranteed outcome shows discomfort with removing all uncertainty from life.", tradeoff:"Gains originality, at the cost of preparedness.", reveals:["Builds a new option instead of picking a given one", "Stays open to being wrong", "Improvises rather than preparing"], tags:["curious","independent"] } ]},
+  { id:"f13", text:"For one day, you can understand and speak to any animal, but they can also understand and speak back to you, honestly, about you.", illustration:"heart", type:"fun", tone:"playful", difficulty:"light", purpose:"A whimsical premise smuggling in a real ego-versus-curiosity test.", measures:["selfAwareness","curiosity","confidence"], validates:null, unlockConditions:{anyTags:["curious","reflective"]},
+    options:[
+      { text:"Seek it out anyway, honest feedback is honest feedback", d:{selfAwareness:2,confidence:1,openMindedness:1}, reason:"Actively pursuing unfiltered judgment from an unexpected source, even knowing it might sting, shows genuine appetite for self-knowledge.", tradeoff:"Gains self-knowledge, at the cost of the levity the other path here would have offered instead.", reveals:["Notices their own patterns in real time", "Backs their own judgment under pressure", "Reconsiders a position when given a reason to"], tags:["reflective","idealist"] },
+      { text:"Mostly just enjoy the novelty and skip the personal questions", d:{humor:2,curiosity:1,selfAwareness:-1}, reason:"Choosing the fun of the premise over the harder self-knowledge angle it opens up is a real, specific avoidance.", tradeoff:"Gains levity, at the cost of self-knowledge.", reveals:["Finds the lighter angle under pressure", "Follows a question rather than letting it go", "Doesn't examine their own reaction too closely"], tags:["playful","cautious"] },
+      { text:"Ask only the animals you already trust, not strangers' pets", d:{trust:1,empathy:1,independence:1}, reason:"Being selective about whose honesty you're willing to hear shows trust matters more than raw information here.", tradeoff:"Gains closeness, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Gives someone the benefit of the doubt", "Reads the emotional stakes before acting", "Chooses self-reliance over relying on others"], tags:["loyal","cautious"] } ]},
+  { id:"f14", text:"You're handed the aux cord at a party full of people whose taste you don't know at all.", illustration:"star", type:"fun", tone:"playful", difficulty:"light", purpose:"Everyday social-risk read disguised as a trivial choice.", measures:["confidence","socialEnergy","risk"], validates:null, unlockConditions:{anyTags:["playful","bold"]},
+    options:[
+      { text:"Play something you genuinely love, taste be damned", d:{confidence:2,independence:1,risk:1}, reason:"Prioritizing authenticity over guaranteed crowd approval in a low-stakes but visible moment is a real confidence tell.", tradeoff:"Gains conviction, at the cost of the engagement the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Trusts their own judgment over consensus", "Accepts uncertainty in exchange for upside"], tags:["bold","independent"] },
+      { text:"Play the safest crowd-pleaser you can think of", d:{socialEnergy:1,adaptability:1,risk:-1}, reason:"Optimizing for group comfort over self-expression, even somewhere this trivial, reflects a genuine social-harmony default.", tradeoff:"Gains engagement, at the cost of upside.", reveals:["Draws energy from engaging with others", "Adjusts course rather than forcing a plan through", "Protects against a worse outcome over a better one"], tags:["pragmatist","warm"] },
+      { text:"Hand it to someone else, you'd rather not be the one people judge", d:{socialEnergy:-1,independence:1,confidence:-1}, reason:"Declining a low-stakes spotlight moment entirely is a small but real data point about comfort with being watched.", tradeoff:"Gains autonomy, at the cost of engagement.", reveals:["Chooses distance over engagement", "Chooses self-reliance over relying on others", "Lets doubt slow down a decision"], tags:["cautious"] } ]},
+  { id:"f15", text:"You can permanently trade your sense of humor for guaranteed, unshakeable confidence in everything you do.", illustration:"masks", type:"fun", tone:"light", difficulty:"medium", purpose:"Forces a tradeoff between two genuinely likeable traits rather than trait versus flaw.", measures:["humor","confidence","openMindedness"], validates:"confidence", unlockConditions:{anyTags:["playful","bold"]},
+    options:[
+      { text:"Take the trade, confidence opens more doors than humor ever has", d:{confidence:2,drive:1,humor:-2}, reason:"Willingly giving up something genuinely valued for a different, more instrumentally useful trait is a real priority signal.", tradeoff:"Gains conviction, at the cost of levity.", reveals:["Acts before being fully sure", "Takes the moment seriously rather than lightly", "Keeps moving rather than settling"], tags:["pragmatist","bold"] },
+      { text:"Refuse, humor is too close to who you actually are to trade away", d:{humor:1,openMindedness:1,independence:1}, reason:"Protecting a trait purely because it feels core to identity, even against a strong incentive, shows real self-continuity matters more than optimization.", tradeoff:"Gains levity, at the cost of the conviction the other path here would have offered instead.", reveals:["Uses humor to navigate the moment", "Reconsiders a position when given a reason to", "Trusts their own judgment over consensus"], tags:["independent","loyal"] },
+      { text:"Ask if you can trade only half, you'd rather not lose either fully", d:{planning:1,logic:1,drive:-1}, reason:"Trying to negotiate rather than accept the binary reveals discomfort with fully sacrificing either trait.", tradeoff:"Gains preparedness, at the cost of momentum.", reveals:["Structures uncertainty before acting", "Relies on logic over instinct", "Chooses ease over pushing further"], tags:["analytical","cautious"] } ]},
+  { id:"f16", text:"You're told you can become fluent in any single subject overnight, but everyone will assume you've always known it, with no credit for the shortcut.", illustration:"lightbulb", type:"fun", tone:"light", difficulty:"medium", purpose:"Tests whether recognition or capability is the actual draw behind wanting to learn something.", measures:["curiosity","confidence","independence"], validates:null, unlockConditions:{anyTags:["curious","competitive"]},
+    options:[
+      { text:"Take it without hesitation, knowing it is worth more than being seen learning it", d:{curiosity:2,independence:1,drive:1}, reason:"Accepting zero credit in exchange for pure capability shows the knowledge itself is the actual goal.", tradeoff:"Gains insight, at the cost of the originality the other path here would have offered instead.", reveals:["Chooses exploration over certainty", "Trusts their own judgment over consensus", "Pushes toward the outcome even under resistance"], tags:["independent","curious"] },
+      { text:"Take it, but pick something no one will ever think to test you on", d:{creativity:1,curiosity:1,risk:-1}, reason:"Hedging against the one risk of the offer, being caught out, shows a careful streak even inside a fantasy scenario.", tradeoff:"Gains originality, at the cost of upside.", reveals:["Builds a new option instead of picking a given one", "Follows a question rather than letting it go", "Chooses the safer, more certain path"], tags:["cautious","analytical"] },
+      { text:"Turn it down, not getting credit for the effort would bother you more than you'd expect", d:{confidence:-1,responsibility:1,socialEnergy:1}, reason:"Admitting recognition matters enough to decline free mastery is an honest, slightly uncomfortable self-read.", tradeoff:"Gains accountability, at the cost of conviction.", reveals:["Lets doubt slow down a decision", "Accepts accountability without being asked", "Leans toward people rather than away from them"], tags:["reflective"] } ]},
+  { id:"f17", text:"You get to design one new, completely useless holiday that everyone in the world has to celebrate.", illustration:"star", type:"fun", tone:"playful", difficulty:"light", purpose:"An open-ended creative prompt with zero constraints reveals what a person defaults to building.", measures:["creativity","kindness","humor"], validates:null, unlockConditions:{anyTags:["playful","warm"]},
+    options:[
+      { text:"A day where everyone has to tell one person something they usually don't say", d:{kindness:2,empathy:1,trust:1}, reason:"Defaulting to a holiday built around connection, unprompted, shows where your instincts go when nothing is required of you.", tradeoff:"Gains goodwill, at the cost of the levity the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Prioritizes how someone else is feeling", "Extends trust before it's fully earned"], tags:["warm","idealist"] },
+      { text:"A day dedicated entirely to doing something ridiculous just because", d:{humor:2,openMindedness:1,adaptability:1}, reason:"Choosing pure absurdity over anything meaningful when given total freedom shows a genuine playful streak, not just a joke answer.", tradeoff:"Gains levity, at the cost of the goodwill the other path here would have offered instead.", reveals:["Finds the lighter angle under pressure", "Stays open to being wrong", "Changes approach when the situation shifts"], tags:["playful","adventurous"] },
+      { text:"A day with no plans allowed at all, mandatory unstructured time", d:{independence:2,patience:1,discipline:-1}, reason:"Building a holiday around enforced stillness reveals how much unstructured time is actually valued.", tradeoff:"Gains autonomy, at the cost of consistency.", reveals:["Chooses self-reliance over relying on others", "Lets a situation play out before intervening", "Lets a standard slide when it's inconvenient"], tags:["independent","reflective"] } ]},
+  { id:"f18", text:"You discover you can talk to your reflection, and it disagrees with a decision you're about to make.", illustration:"mirror", type:"fun", tone:"light", difficulty:"medium", purpose:"A literalized inner-conflict prompt reads how self-doubt actually gets handled.", measures:["confidence","selfAwareness","independence"], validates:"confidence", unlockConditions:{anyTags:["reflective","independent"]},
+    options:[
+      { text:"Hear it out, it might be voicing something you've been avoiding", d:{selfAwareness:2,openMindedness:1,confidence:-1}, reason:"Taking your own doubt seriously enough to actually pause is a real, if uncomfortable, form of self-awareness.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Names an uncomfortable truth about themselves", "Stays open to being wrong", "Lets doubt slow down a decision"], tags:["reflective","idealist"] },
+      { text:"Thank it for the input and do what you were already planning", d:{confidence:2,independence:1,discipline:1}, reason:"Acknowledging the doubt without being moved by it shows conviction that holds even against your own second-guessing.", tradeoff:"Gains conviction, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Trusts their own judgment over consensus", "Holds a personal standard even without anyone watching"], tags:["bold","independent"] },
+      { text:"Get oddly defensive about being questioned by your own reflection", d:{confidence:-1,emotionalStability:-1,selfAwareness:1}, reason:"Reacting emotionally to a literalized version of your own doubt is an honest, if unflattering, tell about how doubt actually lands on you.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Lets doubt slow down a decision", "Feels the disruption rather than absorbing it quietly", "Names an uncomfortable truth about themselves"], tags:["intense"] } ]},
+  { id:"f19", text:"You can permanently remove the concept of boredom from your life, but you'll also lose the restlessness that pushes you to try new things.", illustration:"hourglass", type:"fun", tone:"light", difficulty:"medium", purpose:"Tests whether discomfort is understood as purely negative or as functionally useful.", measures:["curiosity","persistence","drive"], validates:null, unlockConditions:{anyTags:["curious","adventurous"]},
+    options:[
+      { text:"Keep the restlessness, it's uncomfortable but it's what moves you forward", d:{drive:2,persistence:1,resilience:1}, reason:"Choosing to keep a source of discomfort because of what it produces shows discomfort isn't automatically something to eliminate for you.", tradeoff:"Gains momentum, at the cost of the ease the other path here would have offered instead.", reveals:["Keeps moving rather than settling", "Sees something through past the easy stopping point", "Treats a setback as temporary"], tags:["idealist","adventurous"] },
+      { text:"Take the trade, permanent contentment sounds like a good deal", d:{optimism:2,patience:1,drive:-1}, reason:"Willingly trading ambition for ease is a genuine, specific preference, not laziness.", tradeoff:"Gains ease, at the cost of momentum.", reveals:["Expects things to work out", "Lets a situation play out before intervening", "Chooses ease over pushing further"], tags:["pragmatist","independent"] },
+      { text:"Try to find a version where you keep the drive but lose the discomfort", d:{creativity:1,logic:1,planning:1}, reason:"Refusing the binary and looking for a third option even in a hypothetical shows a habitual unwillingness to accept forced tradeoffs.", tradeoff:"Gains originality, at the cost of the momentum the other path here would have offered instead.", reveals:["Reaches for an unconventional solution", "Relies on logic over instinct", "Structures uncertainty before acting"], tags:["analytical","curious"] } ]},
+  { id:"f20", text:"You're placed in a room with a button that does something completely unknown. No instructions, no context.", illustration:"key", type:"fun", tone:"light", difficulty:"light", purpose:"Pure novelty-versus-caution read with zero information to reason from.", measures:["risk","curiosity","patience"], validates:"risk", unlockConditions:{anyTags:["adventurous","cautious"]},
+    options:[
+      { text:"Press it immediately, unknown is more interesting than safe", d:{risk:2,curiosity:2,patience:-1}, reason:"Acting with zero information purely because the unknown is appealing is about as clean a risk-tolerance read as exists.", tradeoff:"Gains upside, at the cost of stability.", reveals:["Chooses the less certain, more interesting path", "Follows a question rather than letting it go", "Acts rather than waiting it out"], tags:["adventurous","bold"] },
+      { text:"Look for any clue at all before deciding anything", d:{logic:2,patience:1,planning:1}, reason:"Refusing to act without any information at all, even under mild pressure to just do something, shows a real analytical default.", tradeoff:"Gains clarity, at the cost of the upside the other path here would have offered instead.", reveals:["Reasons through a situation before acting", "Lets a situation play out before intervening", "Prepares rather than improvising"], tags:["analytical","cautious"] },
+      { text:"Leave it alone entirely, some things don't need pressing", d:{discipline:1,independence:1,risk:-2}, reason:"Declining the unknown outright, with no attempt to even investigate, is a stronger caution signal than simply hesitating.", tradeoff:"Gains consistency, at the cost of upside.", reveals:["Protects against a worse outcome over a better one", "Holds a personal standard even without anyone watching", "Trusts their own judgment over consensus"], tags:["cautious"] } ]},
+  { id:"f21", text:"You get a single do-over on any embarrassing moment from your life, but you have to pick just one, forever.", illustration:"hourglass", type:"fun", tone:"light", difficulty:"medium", purpose:"Tests attachment to past mistakes versus acceptance, using a lighthearted frame.", measures:["emotionalStability","resilience","selfAwareness"], validates:null, unlockConditions:{anyTags:["reflective","cautious"]},
+    options:[
+      { text:"Pick the one that still makes you cringe the most, just to finally let it go", d:{emotionalStability:2,resilience:1,selfAwareness:1}, reason:"Spending your one do-over on relief rather than strategic gain shows how much unresolved embarrassment actually weighs on you.", tradeoff:"Gains composure, at the cost of the ease the other path here would have offered instead.", reveals:["Stays steady under pressure", "Recovers forward rather than dwelling", "Notices their own patterns in real time"], tags:["reflective","intense"] },
+      { text:"Skip it, even the cringiest moments are part of how you got here", d:{resilience:2,optimism:1,openMindedness:1}, reason:"Turning down a genuinely free fix out of acceptance of your own history is a real, settled kind of self-regard.", tradeoff:"Gains forward motion, at the cost of the composure the other path here would have offered instead.", reveals:["Recovers forward rather than dwelling", "Frames setbacks as temporary", "Reconsiders a position when given a reason to"], tags:["independent","idealist"] },
+      { text:"Pick a small one almost no one else even remembers", d:{selfAwareness:1,independence:1,confidence:-1}, reason:"Choosing a moment that mattered mostly to you, not the most socially damaging one, reveals private embarrassment weighs more than public ones.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Trusts their own judgment over consensus", "Second-guesses their own read of a situation"], tags:["reflective"] } ]},
   ],
 
-  analytical: [
-    { id:"ana1", text:"You're handed a puzzle box with no instructions and told it opens a small prize inside.", options:[
-      { text:"Study it carefully before touching anything", d:{logic:2,patience:2,planning:1} },
-      { text:"Start twisting and pressing everything at once", d:{risk:2,adaptability:1,drive:1} },
-      { text:"Look up if anyone else has solved one like it", d:{curiosity:2,logic:1} } ]},
-    { id:"ana2", text:"Two plans for the weekend look equally good on paper, but you can only pick one.", options:[
-      { text:"Make a pros-and-cons list before deciding", d:{logic:2,planning:2} },
-      { text:"Go with your gut instinct immediately", d:{risk:1,confidence:1,adaptability:1} },
-      { text:"Ask someone else to break the tie", d:{trust:2,socialEnergy:1,independence:-1} } ]},
-    { id:"ana3", text:"A machine at work or school starts making a strange noise that no one else seems to notice.", options:[
-      { text:"Investigate exactly what's causing it", d:{curiosity:2,logic:2} },
-      { text:"Report it and let someone qualified handle it", d:{discipline:1,trust:2,planning:1} },
-      { text:"Assume it's fine unless it gets worse", d:{adaptability:1,optimism:1,discipline:-1} } ]},
-    { id:"ana4", text:"You find a long, complicated contract you're expected to sign by tomorrow.", options:[
-      { text:"Read every line, even if it takes all night", d:{discipline:2,logic:2,patience:1} },
-      { text:"Skim for anything alarming, then decide", d:{adaptability:1,risk:1,logic:1} },
-      { text:"Ask someone you trust to look it over with you", d:{trust:3,empathy:1} } ]},
-    { id:"ana5", text:"Your favorite theory about how something works turns out to be wrong.", options:[
-      { text:"Update your thinking immediately, no ego about it", d:{selfAwareness:2,logic:1,adaptability:1} },
-      { text:"Look for the exception that might still prove you right", d:{drive:1,logic:1,confidence:1} },
-      { text:"Feel a little embarrassed but move on quickly", d:{resilience:2,selfAwareness:1} } ]},
-    { id:"ana6", text:"You're debugging a problem that's been broken for hours and everyone else has given up.", options:[
-      { text:"Keep going alone until it's solved", d:{discipline:2,independence:2,drive:1} },
-      { text:"Step away, then come back with fresh eyes", d:{patience:2,selfAwareness:1,resilience:2} },
-      { text:"Call in someone with a different skill set", d:{trust:2,leadership:1,adaptability:1} } ]},
-    { id:"ana7", text:"You're splitting a shared bill and the numbers don't quite add up to what everyone remembers ordering.", options:[
-      { text:"Actually do the math before saying anything", d:{logic:2,responsibility:2,patience:1} },
-      { text:"Just round it out evenly, it's not worth the friction", d:{adaptability:1,patience:1,logic:-1} },
-      { text:"Ask the group to figure it out together", d:{leadership:1,socialEnergy:1,logic:1} } ]},
-    { id:"ana8", text:"You're choosing between two career paths that both look reasonable on paper.", options:[
-      { text:"Build an actual comparison of trade-offs before deciding", d:{logic:2,planning:2} },
-      { text:"Pick the one that scares you a little more", d:{risk:2,drive:1,confidence:1} },
-      { text:"Talk to people already in both fields first", d:{curiosity:1,openMindedness:1,socialEnergy:1} } ]},
-    { id:"ana9", text:"You're playing a strategy game and losing badly to someone using a tactic you've never seen before.", options:[
-      { text:"Pause and actually study what they're doing", d:{curiosity:2,logic:1,persistence:1} },
-      { text:"Adapt on the fly, mistakes included", d:{adaptability:2,resilience:2} },
-      { text:"Stick to your own strategy and refine it next round", d:{discipline:1,persistence:2} } ]},
-    { id:"ana10", text:"A movie's twist ending doesn't fully add up when you think about it afterward.", options:[
-      { text:"Go back and pick apart exactly where the logic breaks", d:{logic:2,curiosity:1} },
-      { text:"Let it go, it was still a good ride", d:{adaptability:1,optimism:1,logic:-1} },
-      { text:"Look up what other people think about it", d:{curiosity:1,openMindedness:1,socialEnergy:1} } ]},
-    { id:"ana11", text:"A family disagreement keeps circling the same argument without ever resolving.", options:[
-      { text:"Try to name the actual root issue everyone's dancing around", d:{logic:2,empathy:1,responsibility:2} },
-      { text:"Step back until emotions cool down", d:{patience:2,emotionalStability:2} },
-      { text:"Accept that some things just don't get fully resolved", d:{adaptability:1,patience:1} } ]},
-    { id:"ana12", text:"You're mapping out your next five years and it feels like there are too many variables to plan around.", options:[
-      { text:"Build a flexible plan with checkpoints instead of a fixed one", d:{planning:2,adaptability:1} },
-      { text:"Focus on the next year and figure out the rest later", d:{discipline:1,patience:1} },
-      { text:"Trust that you'll adjust as things come up", d:{optimism:1,adaptability:2} } ]},
-    { id:"ana13", text:"Something you worked hard on fails completely, and you have to figure out why.", options:[
-      { text:"Break down exactly what went wrong, step by step", d:{logic:2,selfAwareness:1,responsibility:2} },
-      { text:"Accept it wasn't meant to work and move to the next thing", d:{resilience:2,optimism:1} },
-      { text:"Ask someone else to look at it with fresh eyes", d:{trust:2,openMindedness:1} } ]},
-    { id:"ana14", text:"Two teammates disagree about the right approach and both make fair points.", options:[
-      { text:"Weigh both arguments against the actual evidence", d:{logic:2,leadership:1} },
-      { text:"Suggest testing both on a small scale first", d:{curiosity:1,planning:1,adaptability:1} },
-      { text:"Let the more experienced person's judgment carry more weight", d:{trust:2,patience:1,logic:1} } ]},
-    { id:"ana15", text:"You realize a rule you've been following at work doesn't actually make logical sense anymore.", options:[
-      { text:"Question it and propose something better", d:{logic:2,leadership:1,confidence:1} },
-      { text:"Follow it anyway until someone official changes it", d:{discipline:2,patience:1} },
-      { text:"Find a smart workaround without making a fuss", d:{adaptability:1,logic:1,independence:1} } ]},
-
-    { id:"ana16", text:"An AI tool gives you a recommendation that conflicts with your own instinct.", options:[
-      { text:"Trust your own read over the algorithm", d:{confidence:1,independence:2} },
-      { text:"Take the recommendation seriously and dig into why it differs", d:{curiosity:2,logic:1} },
-      { text:"Split the difference and test both", d:{adaptability:1,logic:1,openMindedness:1} } ]},
-    { id:"ana17", text:"You're budgeting for a trip and the numbers are tighter than you'd like.", options:[
-      { text:"Build a detailed spreadsheet before booking anything", d:{planning:2,discipline:1} },
-      { text:"Book the essentials and figure out the rest along the way", d:{adaptability:1,risk:1,optimism:1} },
-      { text:"Cut the trip down to what you can comfortably afford", d:{discipline:2,responsibility:2} } ]},
-    { id:"ana18", text:"A piece of technology you rely on breaks with zero warning, right before a deadline.", options:[
-      { text:"Methodically troubleshoot from the most likely cause down", d:{logic:2,patience:1} },
-      { text:"Find a workaround immediately and debug it properly later", d:{adaptability:2,drive:1} },
-      { text:"Call in someone who actually knows this better than you", d:{trust:2,logic:1} } ]},
-    { id:"ana19", text:"You're comparing two job offers and the numbers alone don't make the choice obvious.", options:[
-      { text:"Build an actual weighted comparison of every factor", d:{logic:2,planning:2} },
-      { text:"Go with whichever one you pictured yourself enjoying more", d:{optimism:1,confidence:1,selfAwareness:1} },
-      { text:"Ask people already at both places for the real picture", d:{curiosity:1,openMindedness:1,socialEnergy:1} } ]},
-    { id:"ana20", text:"You're studying an opponent's strategy before a competition and notice a clear pattern in how they play.", options:[
-      { text:"Build your entire approach around exploiting it", d:{logic:2,competitiveness:1} },
-      { text:"Prepare for it, but stay flexible in case they adapt too", d:{planning:1,adaptability:1,logic:1} },
-      { text:"Focus on your own game instead of reacting to theirs", d:{discipline:1,independence:1,confidence:1} } ]},
-
+  everyday: [
+  { id:"c01", text:"You're the first to arrive at a small gathering, and it's just you and someone you barely know for the next ten minutes.", illustration:"conversation", type:"everyday", tone:"light", difficulty:"light", purpose:"First read on social initiation style before anything else colors it.", measures:["socialEnergy","confidence","curiosity"], validates:"socialEnergy",
+    options:[
+      { text:"Start asking them real questions about themselves", d:{socialEnergy:2,curiosity:2,empathy:1}, reason:"Choosing to invest in a near-stranger under mild pressure signals genuine social appetite, not just tolerance.", tradeoff:"Gains engagement, at the cost of the flexibility the other path here would have offered instead.", reveals:["Leans toward people rather than away from them", "Follows a question rather than letting it go", "Reads the emotional stakes before acting"], tags:["warm","curious"] },
+      { text:"Make it easy for both of you with some light small talk", d:{socialEnergy:1,adaptability:1,patience:1}, reason:"Small talk as a bridge rather than a real dive shows comfort with people without needing depth immediately.", tradeoff:"Gains engagement, at the cost of the insight the other path here would have offered instead.", reveals:["Leans toward people rather than away from them", "Changes approach when the situation shifts", "Lets a situation play out before intervening"], tags:["pragmatist"] },
+      { text:"Check your phone and let the silence sit for a bit", d:{independence:2,socialEnergy:-1}, reason:"Choosing comfortable silence over forced effort under no real stakes reflects a genuine preference for solitude, not shyness.", tradeoff:"Gains autonomy, at the cost of engagement.", reveals:["Trusts their own judgment over consensus", "Draws energy from stepping back", "Chooses self-reliance over relying on others"], tags:["independent","cautious"] } ]},
+  { id:"c04", text:"A friend asks you to review something they made and clearly hope you'll love it. You don't.", illustration:"scales", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Classic honesty-versus-harmony fork, early and low-stakes enough to be a clean read.", measures:["trust","kindness","confidence"], validates:null,
+    options:[
+      { text:"Tell them exactly what you think, gently but plainly", d:{trust:2,confidence:1,kindness:-1}, reason:"Prioritizing their ability to actually improve over their feelings in the moment is a real, specific value trade, not just bluntness.", tradeoff:"Gains closeness, at the cost of goodwill.", reveals:["Extends trust before it's fully earned", "Backs their own judgment under pressure", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","bold"] },
+      { text:"Lead with what's working, and fold in the concerns carefully", d:{kindness:2,empathy:1,trust:1}, reason:"Delivering the same honest content but sequenced for how it lands shows care without sacrificing truth, a distinct path from either pure honesty or pure protection.", tradeoff:"Gains goodwill, at the cost of the conviction the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Prioritizes how someone else is feeling", "Extends trust before it's fully earned"], tags:["warm","pragmatist"] },
+      { text:"Focus on encouragement and let the flaws go unmentioned", d:{kindness:2,trust:-1,empathy:1}, reason:"Choosing their comfort over their growth in this exact moment is a genuine, if costly, prioritization of the relationship over the work.", tradeoff:"Gains goodwill, at the cost of closeness.", reveals:["Softens a hard truth to protect someone", "Stays guarded rather than assuming good faith", "Reads the emotional stakes before acting"], tags:["loyal"] } ]},
+  { id:"c05", text:"Your plans for tonight get cancelled last-minute, with zero warning.", illustration:"anchor", type:"everyday", tone:"light", difficulty:"light", purpose:"A minor, universal irritant with no real stakes — reveals baseline emotional reactivity.", measures:["emotionalStability","adaptability","optimism"], validates:"emotionalStability",
+    options:[
+      { text:"Shrug and immediately make a new plan for yourself", d:{adaptability:2,optimism:1,independence:1}, reason:"Converting a disruption into an opportunity with no visible friction shows genuinely low reactivity to minor setbacks.", tradeoff:"Gains flexibility, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Adjusts course rather than forcing a plan through", "Frames setbacks as temporary", "Trusts their own judgment over consensus"], tags:["pragmatist","independent"] },
+      { text:"Feel disproportionately annoyed about it for longer than it deserves", d:{emotionalStability:-1,selfAwareness:1}, reason:"Noticing the reaction outsizes the event is itself a real, honest signal about emotional volatility under trivial stress.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Notices their own patterns in real time", "Feels the disruption rather than absorbing it quietly"], tags:["intense"] },
+      { text:"Text them back something a little sharper than you meant to", d:{confidence:1,patience:-1,socialEnergy:-1}, reason:"Letting minor frustration leak into the response rather than absorbing it reflects a lower patience threshold under small provocations.", tradeoff:"Gains conviction, at the cost of stability.", reveals:["Acts before being fully sure", "Acts rather than waiting it out", "Chooses distance over engagement"], tags:["bold"] } ]},
+  { id:"c08", text:"Someone you're close to keeps making the same mistake, and it's starting to affect you too.", illustration:"puzzle", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Distinguishes conflict-avoidance from genuine patience under recurring, personal cost.", measures:["patience","leadership","trust"], validates:"patience",
+    options:[
+      { text:"Say directly that this pattern needs to change, now", d:{leadership:2,confidence:1,patience:-1}, reason:"Naming a repeated pattern plainly, rather than the single incident, requires confidence that the relationship can survive direct pressure.", tradeoff:"Gains control, at the cost of stability.", reveals:["Takes the lead without being asked", "Acts before being fully sure", "Acts rather than waiting it out"], tags:["bold","idealist"] },
+      { text:"Bring it up carefully, focused on how it's affecting you specifically", d:{empathy:1,trust:1,leadership:1}, reason:"Framing it around impact rather than blame is a distinct strategy from confrontation, aimed at preserving the relationship while still changing something.", tradeoff:"Gains connection, at the cost of the conviction the other path here would have offered instead.", reveals:["Reads the emotional stakes before acting", "Gives someone the benefit of the doubt", "Takes the lead without being asked"], tags:["warm","pragmatist"] },
+      { text:"Keep absorbing it and hope it resolves on its own", d:{patience:2,independence:-1,emotionalStability:-1}, reason:"Continuing to carry a cost you've already named as real, rather than raising it, is a genuine and specific tolerance for friction over confrontation.", tradeoff:"Gains stability, at the cost of autonomy.", reveals:["Lets a situation play out before intervening", "Chooses connection or reliance over going it alone", "Feels the disruption rather than absorbing it quietly"], tags:["loyal","cautious"] } ]},
+  { id:"c12", text:"An unfamiliar problem lands on you with no instructions and no one to ask.", illustration:"maze", type:"everyday", tone:"light", difficulty:"medium", purpose:"Reads default problem-solving posture under genuine uncertainty, not simulated novelty.", measures:["logic","creativity","resilience"], validates:null,
+    options:[
+      { text:"Break it into smaller pieces and work through them one at a time", d:{logic:2,planning:1,discipline:1}, reason:"Imposing structure on genuine uncertainty rather than improvising shows a systemic default under pressure.", tradeoff:"Gains clarity, at the cost of the flexibility the other path here would have offered instead.", reveals:["Relies on logic over instinct", "Structures uncertainty before acting", "Holds a personal standard even without anyone watching"], tags:["analytical","pragmatist"] },
+      { text:"Just start trying things and adjust based on what happens", d:{creativity:1,risk:1,adaptability:2}, reason:"Choosing action over analysis when no clear path exists reveals comfort with uncertainty itself.", tradeoff:"Gains flexibility, at the cost of the clarity the other path here would have offered instead.", reveals:["Changes approach when the situation shifts", "Builds a new option instead of picking a given one", "Chooses the less certain, more interesting path"], tags:["adventurous","curious"] },
+      { text:"Sit with it a while before touching anything", d:{patience:2,logic:1,resilience:1}, reason:"Resisting the urge to act immediately under pressure to look productive is a specific, deliberate form of composure.", tradeoff:"Gains stability, at the cost of the preparedness the other path here would have offered instead.", reveals:["Tolerates discomfort rather than forcing resolution", "Relies on logic over instinct", "Recovers forward rather than dwelling"], tags:["reflective","cautious"] } ]},
+  { id:"c15", text:"A stranger stops you and asks for directions somewhere you don't actually know well.", illustration:"compass", type:"everyday", tone:"light", difficulty:"light", purpose:"Closing core question: low-stakes helpfulness-versus-honesty read to end on a light, revealing note.", measures:["kindness","confidence","trust"], validates:"kindness",
+    options:[
+      { text:"Admit you're not sure, and try to help them figure it out anyway", d:{kindness:2,trust:1,openMindedness:1}, reason:"Staying engaged after admitting uncertainty, rather than disengaging, shows the helping impulse outlasts the ego cost of not knowing.", tradeoff:"Gains goodwill, at the cost of the clarity the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Extends trust before it's fully earned", "Reconsiders a position when given a reason to"], tags:["warm","pragmatist"] },
+      { text:"Point them toward someone or something more likely to actually know", d:{logic:1,kindness:1,planning:1}, reason:"Redirecting to a better source rather than guessing or walking away is a distinct, efficiency-first form of helpfulness.", tradeoff:"Gains clarity, at the cost of the closeness the other path here would have offered instead.", reveals:["Reasons through a situation before acting", "Softens a hard truth to protect someone", "Prepares rather than improvising"], tags:["analytical"] },
+      { text:"Take a guess with more confidence than you actually have", d:{confidence:1,trust:-1,risk:1}, reason:"Prioritizing seeming useful over being accurate, even for a stranger you'll never see again, is a small but real and specific choice.", tradeoff:"Gains conviction, at the cost of closeness.", reveals:["Backs their own judgment under pressure", "Withholds trust until it's proven", "Accepts uncertainty in exchange for upside"], tags:["bold"] } ]},
+  { id:"e01", text:"You're in line and the person ahead of you is undercharged by the register, and doesn't notice.", illustration:"scales", type:"everyday", tone:"light", difficulty:"light", purpose:"A small, victimless-seeming honesty test with no one watching.", measures:["responsibility","discipline","independence"], validates:"responsibility", unlockConditions:{anyTags:["idealist","analytical"]},
+    options:[
+      { text:"Point it out to the cashier before they leave", d:{responsibility:2,discipline:1,trust:1}, reason:"Correcting an error that costs a stranger nothing to ignore shows the standard applies even when no one's checking.", tradeoff:"Gains accountability, at the cost of the autonomy the other path here would have offered instead.", reveals:["Accepts accountability without being asked", "Follows through on principle rather than convenience", "Gives someone the benefit of the doubt"], tags:["idealist"] },
+      { text:"Say nothing, it's not really your problem to fix", d:{independence:1,responsibility:-1}, reason:"Letting a minor, harmless error slide when it isn't yours to manage reflects where you draw the line on responsibility.", tradeoff:"Gains autonomy, at the cost of accountability.", reveals:["Trusts their own judgment over consensus", "Lets responsibility sit with someone else", "Chooses self-reliance over relying on others"], tags:["pragmatist","independent"] },
+      { text:"Mention it to your own cashier instead, just to be safe on your end", d:{discipline:1,planning:1,independence:1}, reason:"Redirecting concern to your own transaction rather than a stranger's shows responsibility scoped tightly to what's actually yours.", tradeoff:"Gains consistency, at the cost of the accountability the other path here would have offered instead.", reveals:["Follows through on principle rather than convenience", "Prepares rather than improvising", "Chooses self-reliance over relying on others"], tags:["cautious","pragmatist"] } ]},
+  { id:"e02", text:"You're deep into a task when someone interrupts with something that could clearly wait.", illustration:"anchor", type:"everyday", tone:"light", difficulty:"light", purpose:"Reads patience and boundary-setting under a minor, common irritation.", measures:["patience","discipline","kindness"], validates:"patience", unlockConditions:{anyTags:["analytical","independent"]},
+    options:[
+      { text:"Stop and give them your full attention anyway", d:{kindness:2,patience:1,discipline:-1}, reason:"Sacrificing your own momentum for someone else's non-urgent need, every time, is a real and costly kindness default.", tradeoff:"Gains goodwill, at the cost of consistency.", reveals:["Softens a hard truth to protect someone", "Lets a situation play out before intervening", "Lets a standard slide when it's inconvenient"], tags:["warm","loyal"] },
+      { text:"Ask them to give you a few minutes to finish first", d:{discipline:2,planning:1,confidence:1}, reason:"Protecting your own focus while still committing to respond shows boundaries that don't require conflict.", tradeoff:"Gains consistency, at the cost of the goodwill the other path here would have offered instead.", reveals:["Holds a personal standard even without anyone watching", "Structures uncertainty before acting", "Backs their own judgment under pressure"], tags:["pragmatist","independent"] },
+      { text:"Answer quickly but stay visibly a little short about it", d:{patience:-1,confidence:1,socialEnergy:-1}, reason:"Letting mild irritation show rather than fully masking it is an honest, if less polished, reaction to boundary pressure.", tradeoff:"Gains conviction, at the cost of stability.", reveals:["Acts rather than waiting it out", "Acts before being fully sure", "Chooses distance over engagement"], tags:["bold"] } ]},
+  { id:"e03", text:"You lend something to a friend and it comes back damaged, with no explanation offered.", illustration:"anchor", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Distinguishes assertiveness from conflict-avoidance under a concrete, personal cost.", measures:["confidence","trust","patience"], validates:"confidence", unlockConditions:{anyTags:["bold","loyal"]},
+    options:[
+      { text:"Ask directly what happened, it's a fair question", d:{confidence:2,trust:-1,leadership:1}, reason:"Asking outright, even knowing it might feel like an accusation, shows the need for an answer outweighs the discomfort of asking.", tradeoff:"Gains conviction, at the cost of closeness.", reveals:["Backs their own judgment under pressure", "Withholds trust until it's proven", "Steps into the gap when no one else will"], tags:["bold","idealist"] },
+      { text:"Let it go, the friendship is worth more than the object", d:{kindness:2,patience:1,independence:-1}, reason:"Explicitly weighing the relationship against the loss and choosing the relationship is a real, specific tradeoff, not passivity.", tradeoff:"Gains goodwill, at the cost of autonomy.", reveals:["Softens a hard truth to protect someone", "Lets a situation play out before intervening", "Chooses connection or reliance over going it alone"], tags:["warm","loyal"] },
+      { text:"Mention it lightly, half-joking, to leave them an easy opening", d:{empathy:1,humor:1,confidence:1}, reason:"Choosing an indirect approach that still raises the issue shows a preference for low-conflict resolution over silence or confrontation.", tradeoff:"Gains connection, at the cost of the control the other path here would have offered instead.", reveals:["Prioritizes how someone else is feeling", "Uses humor to navigate the moment", "Backs their own judgment under pressure"], tags:["pragmatist","warm"] } ]},
+  { id:"e04", text:"You're asked to help with something you have zero experience in, on short notice.", illustration:"puzzle", type:"everyday", tone:"light", difficulty:"light", purpose:"Reads default reaction to being asked to operate outside competence.", measures:["confidence","adaptability","responsibility"], validates:null, unlockConditions:{anyTags:["pragmatist","bold"]},
+    options:[
+      { text:"Say yes and figure it out as you go", d:{confidence:2,adaptability:1,risk:1}, reason:"Committing before you're sure you can deliver shows real comfort with visible risk of failure.", tradeoff:"Gains conviction, at the cost of the accountability the other path here would have offered instead.", reveals:["Acts before being fully sure", "Changes approach when the situation shifts", "Chooses the less certain, more interesting path"], tags:["bold","adventurous"] },
+      { text:"Say yes, but ask for help from someone who actually knows it", d:{responsibility:1,socialEnergy:1,planning:1}, reason:"Accepting the responsibility while openly seeking support shows confidence doesn't require pretending to already know.", tradeoff:"Gains accountability, at the cost of the conviction the other path here would have offered instead.", reveals:["Takes ownership even when it costs them", "Draws energy from engaging with others", "Structures uncertainty before acting"], tags:["pragmatist","warm"] },
+      { text:"Be upfront that you're not the right person for this", d:{selfAwareness:2,responsibility:1,confidence:-1}, reason:"Declining clearly, even at the cost of seeming less capable, protects the outcome over your own image.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Takes ownership even when it costs them", "Second-guesses their own read of a situation"], tags:["cautious","idealist"] } ]},
+  { id:"e05", text:"A routine you've followed for a long time stops working the way it used to.", illustration:"hourglass", type:"everyday", tone:"light", difficulty:"light", purpose:"Tests attachment to habit versus willingness to abandon a familiar system.", measures:["adaptability","discipline","openMindedness"], validates:"adaptability", unlockConditions:{anyTags:["pragmatist","curious"]},
+    options:[
+      { text:"Overhaul it completely and try something new", d:{adaptability:2,openMindedness:1,creativity:1}, reason:"Abandoning a long routine at the first real sign it's failing shows low attachment to habit for its own sake.", tradeoff:"Gains flexibility, at the cost of the stability the other path here would have offered instead.", reveals:["Adjusts course rather than forcing a plan through", "Reconsiders a position when given a reason to", "Reaches for an unconventional solution"], tags:["adventurous","curious"] },
+      { text:"Tweak it slightly and give it more time first", d:{patience:2,discipline:1,planning:1}, reason:"Preferring incremental adjustment over overhaul reflects real investment in what's already been built.", tradeoff:"Gains stability, at the cost of the flexibility the other path here would have offered instead.", reveals:["Lets a situation play out before intervening", "Follows through on principle rather than convenience", "Prepares rather than improvising"], tags:["pragmatist","cautious"] },
+      { text:"Keep doing it exactly the same, it'll probably sort itself out", d:{discipline:1,persistence:1,adaptability:-1}, reason:"Sticking with a visibly failing routine anyway is a genuine, specific resistance to change, not just inertia.", tradeoff:"Gains consistency, at the cost of flexibility.", reveals:["Holds a personal standard even without anyone watching", "Keeps going after the initial effort stops paying off", "Holds the original plan despite new information"], tags:["independent"] } ]},
+  { id:"e06", text:"You're most of the way through something slow and tedious when you realize there was a much easier way to do it, and there's no time left to start over properly.", illustration:"maze", type:"everyday", tone:"light", difficulty:"light", purpose:"Tests reaction to wasted effort: sunk cost versus pure forward optimization.", measures:["logic","emotionalStability","persistence"], validates:null, unlockConditions:{anyTags:["analytical","pragmatist"]},
+    options:[
+      { text:"Switch immediately, no point finishing the slow way now", d:{logic:2,adaptability:1,persistence:-1}, reason:"Abandoning invested effort the moment a better path appears shows low sunk-cost attachment.", tradeoff:"Gains clarity, at the cost of follow-through.", reveals:["Reasons through a situation before acting", "Changes approach when the situation shifts", "Knows when to stop rather than pushing further"], tags:["analytical","pragmatist"] },
+      { text:"Finish this one the old way, then switch for next time", d:{discipline:2,persistence:1,planning:1}, reason:"Finishing what you started even knowing it's inefficient shows completion matters more than optimization mid-task.", tradeoff:"Gains consistency, at the cost of the clarity the other path here would have offered instead.", reveals:["Holds a personal standard even without anyone watching", "Keeps going after the initial effort stops paying off", "Structures uncertainty before acting"], tags:["independent","pragmatist"] },
+      { text:"Feel a little annoyed at yourself for not catching it sooner", d:{selfAwareness:1,emotionalStability:-1,confidence:-1}, reason:"Letting a minor inefficiency actually bother you, rather than shrugging it off, is a real, specific reactivity signal.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Notices their own patterns in real time", "Lets the moment's weight actually register", "Second-guesses their own read of a situation"], tags:["reflective","intense"] } ]},
+  { id:"e07", text:"Someone consistently shows up late to things you organize, without ever really apologizing for it.", illustration:"hourglass", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Recurring, low-grade disrespect tests the threshold for calling something out.", measures:["patience","leadership","trust"], validates:"patience", unlockConditions:{anyTags:["bold","loyal"]},
+    options:[
+      { text:"Say something directly the next time it happens", d:{leadership:2,confidence:1,patience:-1}, reason:"Naming a pattern rather than continuing to absorb it individually shows a real limit to your patience threshold.", tradeoff:"Gains control, at the cost of stability.", reveals:["Takes the lead without being asked", "Acts before being fully sure", "Acts rather than waiting it out"], tags:["bold","idealist"] },
+      { text:"Start planning around it quietly instead of confronting it", d:{planning:2,adaptability:1,independence:1}, reason:"Adjusting your own behavior rather than raising the issue is a real, specific strategy: solve it yourself rather than through them.", tradeoff:"Gains preparedness, at the cost of the control the other path here would have offered instead.", reveals:["Structures uncertainty before acting", "Adjusts course rather than forcing a plan through", "Trusts their own judgment over consensus"], tags:["pragmatist","independent"] },
+      { text:"Keep letting it go, it's not worth the tension over something small", d:{patience:2,kindness:1,confidence:-1}, reason:"Continuing to absorb a recurring cost specifically to avoid conflict is a genuine, if costly, conflict-avoidance pattern.", tradeoff:"Gains stability, at the cost of conviction.", reveals:["Lets a situation play out before intervening", "Softens a hard truth to protect someone", "Lets doubt slow down a decision"], tags:["loyal","cautious"] } ]},
+  { id:"e08", text:"You're given feedback on something you worked hard on, and it's more critical than you expected.", illustration:"scales", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Tests emotional processing of criticism against actual effort invested.", measures:["resilience","emotionalStability","openMindedness"], validates:"resilience", unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"Take it in and start figuring out what to actually change", d:{resilience:2,openMindedness:1,discipline:1}, reason:"Moving straight to action on hard feedback, without a visible sting first, shows a genuinely low ego-defense response.", tradeoff:"Gains forward motion, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Treats a setback as temporary", "Stays open to being wrong", "Follows through on principle rather than convenience"], tags:["idealist","pragmatist"] },
+      { text:"Feel it sting for a while before you're able to use it", d:{emotionalStability:-1,selfAwareness:1,resilience:1}, reason:"Admitting the sting rather than performing immediate acceptance is an honest, specific emotional read.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Notices their own patterns in real time", "Recovers forward rather than dwelling"], tags:["reflective","intense"] },
+      { text:"Push back on the parts you don't think are fair", d:{confidence:2,logic:1,openMindedness:-1}, reason:"Contesting feedback rather than absorbing it outright shows real confidence in your own judgment under challenge.", tradeoff:"Gains conviction, at the cost of room to be wrong.", reveals:["Acts before being fully sure", "Reasons through a situation before acting", "Holds a position rather than reconsidering it"], tags:["bold","independent"] } ]},
+  { id:"e09", text:"You have a full day planned, and a close friend calls needing to talk through something hard, right now.", illustration:"heart", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Direct conflict between personal plans and someone else's real need.", measures:["kindness","planning","independence"], validates:"kindness", unlockConditions:{anyTags:["warm","loyal"]},
+    options:[
+      { text:"Drop everything, the plan can be rebuilt later", d:{kindness:2,adaptability:1,planning:-1}, reason:"Sacrificing a full day's structure for someone's immediate need shows people consistently outrank your own schedule.", tradeoff:"Gains goodwill, at the cost of preparedness.", reveals:["Chooses someone else's comfort over their own convenience", "Adjusts course rather than forcing a plan through", "Improvises rather than preparing"], tags:["warm","loyal"] },
+      { text:"Make time for a real conversation, but keep it to a set window", d:{planning:1,empathy:1,discipline:1}, reason:"Protecting some of your day while still being fully present shows care doesn't require total self-sacrifice.", tradeoff:"Gains preparedness, at the cost of the goodwill the other path here would have offered instead.", reveals:["Structures uncertainty before acting", "Prioritizes how someone else is feeling", "Holds a personal standard even without anyone watching"], tags:["pragmatist","warm"] },
+      { text:"Offer a proper time later today instead of right now", d:{planning:2,independence:1,empathy:-1}, reason:"Holding your plan and offering a later slot, even for something hard, shows your own structure carries real weight for you.", tradeoff:"Gains preparedness, at the cost of connection.", reveals:["Structures uncertainty before acting", "Trusts their own judgment over consensus", "Prioritizes the outcome over someone's feelings"], tags:["independent","analytical"] } ]},
+  { id:"e10", text:"You notice you're the only one in a group who actually read the details before a decision gets made.", illustration:"puzzle", type:"everyday", tone:"light", difficulty:"light", purpose:"Tests whether being the informed one prompts leadership or quiet frustration.", measures:["leadership","responsibility","patience"], validates:null, unlockConditions:{anyTags:["analytical","bold"]},
+    options:[
+      { text:"Speak up and walk everyone through what actually matters here", d:{leadership:2,responsibility:1,confidence:1}, reason:"Stepping in to fix an information gap the group doesn't even know exists shows initiative that doesn't wait to be asked.", tradeoff:"Gains control, at the cost of the preparedness the other path here would have offered instead.", reveals:["Takes the lead without being asked", "Accepts accountability without being asked", "Acts before being fully sure"], tags:["bold","analytical"] },
+      { text:"Quietly flag the one or two most important details, nothing more", d:{planning:1,discipline:1,patience:1}, reason:"Choosing minimal, targeted correction over a full takeover shows restraint even when you clearly know more.", tradeoff:"Gains preparedness, at the cost of the control the other path here would have offered instead.", reveals:["Structures uncertainty before acting", "Holds a personal standard even without anyone watching", "Tolerates discomfort rather than forcing resolution"], tags:["pragmatist","cautious"] },
+      { text:"Let the group decide and mention the details only if it goes wrong", d:{patience:2,independence:1,responsibility:-1}, reason:"Withholding relevant information you have, specifically to avoid taking over, is a genuine, if costly, deference.", tradeoff:"Gains stability, at the cost of accountability.", reveals:["Tolerates discomfort rather than forcing resolution", "Trusts their own judgment over consensus", "Lets responsibility sit with someone else"], tags:["independent"] } ]},
+  { id:"e11", text:"You catch yourself about to repeat a story you've definitely already told this same person before.", illustration:"mirror", type:"everyday", tone:"light", difficulty:"light", purpose:"Tiny, universal social-awareness moment with an easy escape either way.", measures:["selfAwareness","socialEnergy","humor"], validates:null, unlockConditions:{anyTags:["reflective","playful"]},
+    options:[
+      { text:"Call it out yourself before they have to", d:{selfAwareness:2,humor:1,confidence:1}, reason:"Naming your own repetition before anyone else does costs a little ego but shows you're tracking the interaction closely.", tradeoff:"Gains self-knowledge, at the cost of the engagement the other path here would have offered instead.", reveals:["Notices their own patterns in real time", "Uses humor to navigate the moment", "Backs their own judgment under pressure"], tags:["reflective","bold"] },
+      { text:"Just tell it anyway, a good story earns a repeat", d:{confidence:1,socialEnergy:1,selfAwareness:-1}, reason:"Not being bothered by repeating yourself reflects low self-monitoring in low-stakes social moments.", tradeoff:"Gains conviction, at the cost of self-knowledge.", reveals:["Backs their own judgment under pressure", "Draws energy from engaging with others", "Doesn't examine their own reaction too closely"], tags:["independent","playful"] },
+      { text:"Catch yourself mid-sentence and awkwardly pivot", d:{selfAwareness:1,emotionalStability:-1,socialEnergy:-1}, reason:"The visible scramble to redirect shows real-time self-monitoring winning out, even clumsily, over just continuing.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Chooses distance over engagement"], tags:["cautious"] } ]},
+  { id:"e12", text:"You're asked your honest opinion on a decision that's already been made and can't be changed.", illustration:"scales", type:"everyday", tone:"light", difficulty:"light", purpose:"Reads honesty when it has literally no practical use, only social cost or relief.", measures:["trust","kindness","confidence"], validates:"trust", unlockConditions:{anyTags:["idealist","warm"]},
+    options:[
+      { text:"Give your real opinion, it's already done but honesty still matters", d:{trust:2,confidence:1,kindness:-1}, reason:"Choosing candor even where it can't change anything shows honesty is valued for its own sake, not just its usefulness.", tradeoff:"Gains closeness, at the cost of goodwill.", reveals:["Gives someone the benefit of the doubt", "Acts before being fully sure", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","bold"] },
+      { text:"Focus on the positives since there's nothing to be gained from criticizing now", d:{kindness:2,optimism:1,trust:-1}, reason:"Withholding a now-useless criticism to spare feelings, specifically because it can't help anymore, is a deliberate kindness calculation.", tradeoff:"Gains goodwill, at the cost of closeness.", reveals:["Chooses someone else's comfort over their own convenience", "Frames setbacks as temporary", "Withholds trust until it's proven"], tags:["warm","pragmatist"] },
+      { text:"Say you're glad it's settled and leave your real opinion out of it entirely", d:{independence:1,patience:1,trust:-1}, reason:"Declining to even engage with the question shows a preference for staying neutral once a decision is locked in.", tradeoff:"Gains autonomy, at the cost of closeness.", reveals:["Chooses self-reliance over relying on others", "Lets a situation play out before intervening", "Stays guarded rather than assuming good faith"], tags:["cautious","independent"] } ]},
+  { id:"e13", text:"You're given more praise than you think you actually deserve for something.", illustration:"star", type:"everyday", tone:"light", difficulty:"light", purpose:"Reads honesty-about-self under a flattering, low-cost incentive to just accept it.", measures:["selfAwareness","confidence","responsibility"], validates:"selfAwareness", unlockConditions:{anyTags:["idealist","reflective"]},
+    options:[
+      { text:"Gently correct it and give proper credit to what actually helped", d:{selfAwareness:2,responsibility:1,confidence:-1}, reason:"Turning down excess praise you didn't fully earn, when accepting it costs nothing, shows accuracy matters over flattering ease.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Takes ownership even when it costs them", "Second-guesses their own read of a situation"], tags:["idealist","reflective"] },
+      { text:"Accept it graciously and move on", d:{confidence:1,socialEnergy:1,selfAwareness:-1}, reason:"Taking praise at face value without correcting it reflects comfort with a flattering read standing uncorrected.", tradeoff:"Gains conviction, at the cost of self-knowledge.", reveals:["Backs their own judgment under pressure", "Draws energy from engaging with others", "Doesn't examine their own reaction too closely"], tags:["pragmatist"] },
+      { text:"Feel oddly uncomfortable but not sure how to say so without it being weird", d:{selfAwareness:1,socialEnergy:-1,confidence:-1}, reason:"Noticing the discomfort but not acting on it shows a gap between self-awareness and the confidence to act on it socially.", tradeoff:"Gains self-knowledge, at the cost of engagement.", reveals:["Notices their own patterns in real time", "Draws energy from stepping back", "Second-guesses their own read of a situation"], tags:["cautious"] } ]},
+  { id:"e14", text:"You're the one person in a group who has to deliver bad news that isn't your fault, but will land on you anyway.", illustration:"scales", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Tests willingness to absorb unfair social cost for the sake of the group.", measures:["responsibility","confidence","resilience"], validates:null, unlockConditions:{anyTags:["bold","loyal"]},
+    options:[
+      { text:"Deliver it straightforwardly and let the reaction land where it lands", d:{confidence:2,responsibility:1,resilience:1}, reason:"Accepting an unfair blast radius without deflecting it elsewhere shows willingness to absorb cost for the group's sake.", tradeoff:"Gains conviction, at the cost of the closeness the other path here would have offered instead.", reveals:["Acts before being fully sure", "Accepts accountability without being asked", "Treats a setback as temporary"], tags:["bold","idealist"] },
+      { text:"Be upfront that this wasn't your call before explaining it", d:{responsibility:1,trust:1,confidence:1}, reason:"Protecting your own record while still delivering the message shows fairness to yourself matters alongside the task.", tradeoff:"Gains accountability, at the cost of the forward motion the other path here would have offered instead.", reveals:["Takes ownership even when it costs them", "Extends trust before it's fully earned", "Backs their own judgment under pressure"], tags:["pragmatist","analytical"] },
+      { text:"Find a way to have someone else deliver it instead", d:{independence:1,planning:1,responsibility:-1}, reason:"Redirecting an unfair burden rather than absorbing it, when you actually can, is a real and specific self-protective instinct.", tradeoff:"Gains autonomy, at the cost of accountability.", reveals:["Trusts their own judgment over consensus", "Structures uncertainty before acting", "Lets responsibility sit with someone else"], tags:["cautious","independent"] } ]},
+  { id:"e15", text:"A plan you're excited about depends on someone else, and they keep pushing the timeline back.", illustration:"hourglass", type:"everyday", tone:"light", difficulty:"medium", purpose:"Tests patience and control-need under a delay outside your influence.", measures:["patience","leadership","independence"], validates:"patience", unlockConditions:{anyTags:["independent","analytical"]},
+    options:[
+      { text:"Set a real deadline and be direct about needing it kept", d:{leadership:2,confidence:1,patience:-1}, reason:"Imposing structure on someone else's delay shows low tolerance for open-ended waiting.", tradeoff:"Gains control, at the cost of stability.", reveals:["Takes the lead without being asked", "Acts before being fully sure", "Acts rather than waiting it out"], tags:["bold","analytical"] },
+      { text:"Find a version of the plan that doesn't depend on their timing", d:{independence:2,creativity:1,adaptability:1}, reason:"Rerouting around the dependency entirely, rather than pushing on it, shows a preference for control over persuasion.", tradeoff:"Gains autonomy, at the cost of the control the other path here would have offered instead.", reveals:["Trusts their own judgment over consensus", "Reaches for an unconventional solution", "Adjusts course rather than forcing a plan through"], tags:["independent","pragmatist"] },
+      { text:"Let it slide and adjust your own expectations instead", d:{patience:2,adaptability:1,drive:-1}, reason:"Absorbing someone else's delay without pushing back reflects genuine tolerance for things outside your control.", tradeoff:"Gains stability, at the cost of momentum.", reveals:["Lets a situation play out before intervening", "Changes approach when the situation shifts", "Chooses ease over pushing further"], tags:["cautious","loyal"] } ]},
+  { id:"e16", text:"You're mid-decision on something small when you notice you're overthinking it far more than it deserves.", illustration:"maze", type:"everyday", tone:"light", difficulty:"light", purpose:"Tests self-regulation once excessive deliberation is actually noticed in real time.", measures:["discipline","selfAwareness","confidence"], validates:null, unlockConditions:{anyTags:["analytical","reflective"]},
+    options:[
+      { text:"Force yourself to just pick one and move on", d:{discipline:2,confidence:1,planning:-1}, reason:"Cutting off deliberation on purpose, once you notice it's disproportionate, shows real self-regulation rather than just drifting into a decision.", tradeoff:"Gains consistency, at the cost of preparedness.", reveals:["Follows through on principle rather than convenience", "Acts before being fully sure", "Improvises rather than preparing"], tags:["pragmatist","bold"] },
+      { text:"Let yourself keep weighing it, it clearly matters enough to you", d:{patience:1,persistence:1,discipline:-1}, reason:"Continuing to deliberate even after noticing the excess reveals how much small decisions genuinely weigh on you.", tradeoff:"Gains stability, at the cost of consistency.", reveals:["Lets a situation play out before intervening", "Sees something through past the easy stopping point", "Lets a standard slide when it's inconvenient"], tags:["reflective","cautious"] },
+      { text:"Ask someone else to just decide for you", d:{independence:-1,socialEnergy:1,confidence:-1}, reason:"Handing the decision off rather than resolving it yourself, even for something small, is a real and specific choice about where effort goes.", tradeoff:"Gains engagement, at the cost of autonomy.", reveals:["Chooses connection or reliance over going it alone", "Leans toward people rather than away from them", "Lets doubt slow down a decision"], tags:["warm"] } ]},
+  { id:"e17", text:"You're complimented on something you didn't actually put much effort into, while something you worked hard on goes unnoticed.", illustration:"star", type:"everyday", tone:"light", difficulty:"light", purpose:"Tests whether recognition or personal standards matter more when they diverge.", measures:["confidence","selfAwareness","responsibility"], validates:null, unlockConditions:{anyTags:["independent","idealist"]},
+    options:[
+      { text:"Let it go, you know what actually took the effort", d:{independence:2,confidence:1,selfAwareness:1}, reason:"Being unbothered when recognition and effort don't line up shows your own standard matters more than external validation.", tradeoff:"Gains autonomy, at the cost of the closeness the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Acts before being fully sure", "Names an uncomfortable truth about themselves"], tags:["independent","idealist"] },
+      { text:"Mention, lightly, which one actually took the real work", d:{confidence:1,trust:1,socialEnergy:1}, reason:"Correcting the record instead of just accepting the mismatch shows recognition does matter to you, even if gently pursued.", tradeoff:"Gains conviction, at the cost of the autonomy the other path here would have offered instead.", reveals:["Acts before being fully sure", "Gives someone the benefit of the doubt", "Leans toward people rather than away from them"], tags:["pragmatist"] },
+      { text:"Feel quietly bothered by it for longer than you'd like to admit", d:{selfAwareness:1,emotionalStability:-1,confidence:-1}, reason:"Admitting it lingers, rather than claiming total indifference, is an honest read on how much recognition actually matters.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Lets doubt slow down a decision"], tags:["reflective"] } ]},
+  { id:"e18", text:"You're halfway through explaining something when you realize the other person already understood it minutes ago.", illustration:"mirror", type:"everyday", tone:"light", difficulty:"light", purpose:"Small, universal awkwardness read on self-monitoring speed.", measures:["selfAwareness","humor","confidence"], validates:null, unlockConditions:{anyTags:["playful","reflective"]},
+    options:[
+      { text:"Call it out with a laugh and wrap it up fast", d:{humor:2,selfAwareness:1,confidence:1}, reason:"Naming the overexplaining yourself, lightly, shows comfort turning a small misstep into something shared rather than awkward.", tradeoff:"Gains levity, at the cost of the consistency the other path here would have offered instead.", reveals:["Uses humor to navigate the moment", "Notices their own patterns in real time", "Backs their own judgment under pressure"], tags:["playful","bold"] },
+      { text:"Just keep going, finishing the thought properly", d:{discipline:1,persistence:1,selfAwareness:-1}, reason:"Finishing regardless of the cue reflects a preference for completing your own thought over reading the room in real time.", tradeoff:"Gains consistency, at the cost of self-knowledge.", reveals:["Follows through on principle rather than convenience", "Sees something through past the easy stopping point", "Doesn't examine their own reaction too closely"], tags:["independent"] },
+      { text:"Cut it short abruptly, a little embarrassed", d:{selfAwareness:1,emotionalStability:-1,socialEnergy:-1}, reason:"The visible abruptness shows real discomfort at being caught out, even over something this minor.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Chooses distance over engagement"], tags:["cautious"] } ]},
+  { id:"e19", text:"Something you own breaks in a way that's mostly your own fault, at an inconvenient time.", illustration:"anchor", type:"everyday", tone:"light", difficulty:"light", purpose:"Reads self-blame processing under a minor, self-caused setback.", measures:["responsibility","emotionalStability","resilience"], validates:null, unlockConditions:{anyTags:["analytical","pragmatist"]},
+    options:[
+      { text:"Own it immediately and deal with fixing it", d:{responsibility:2,resilience:1,discipline:1}, reason:"Moving straight to repair without dwelling on the self-blame shows a practical relationship with your own mistakes.", tradeoff:"Gains accountability, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Takes ownership even when it costs them", "Recovers forward rather than dwelling", "Holds a personal standard even without anyone watching"], tags:["pragmatist","independent"] },
+      { text:"Feel annoyed at yourself for longer than the situation really calls for", d:{emotionalStability:-1,selfAwareness:1,discipline:1}, reason:"Letting frustration at yourself outlast the actual inconvenience is an honest, specific self-criticism signal.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Feels the disruption rather than absorbing it quietly", "Names an uncomfortable truth about themselves", "Follows through on principle rather than convenience"], tags:["intense","reflective"] },
+      { text:"Shrug it off, these things happen", d:{optimism:2,adaptability:1,responsibility:-1}, reason:"Moving on without much self-directed friction at all shows a genuinely light relationship with your own errors.", tradeoff:"Gains ease, at the cost of accountability.", reveals:["Expects things to work out", "Changes approach when the situation shifts", "Lets responsibility sit with someone else"], tags:["independent","pragmatist"] } ]},
+  { id:"e20", text:"You have to choose between two ways to spend a free evening: one relaxing, one productive but a little draining.", illustration:"hourglass", type:"everyday", tone:"light", difficulty:"light", purpose:"Simple, recurring real-life tradeoff between rest and output.", measures:["drive","discipline","patience"], validates:"drive", unlockConditions:{anyTags:["pragmatist","competitive"]},
+    options:[
+      { text:"Pick the productive one, you'll feel better having used the time well", d:{drive:2,discipline:1,patience:-1}, reason:"Choosing output over rest on unstructured personal time shows drive operating even without external pressure.", tradeoff:"Gains momentum, at the cost of stability.", reveals:["Keeps moving rather than settling", "Follows through on principle rather than convenience", "Acts rather than waiting it out"], tags:["competitive","pragmatist"] },
+      { text:"Pick the relaxing one without a shred of guilt", d:{patience:2,emotionalStability:1,drive:-1}, reason:"Choosing rest cleanly, with no productivity guilt attached, reflects a genuinely low internal pressure to always be doing something.", tradeoff:"Gains stability, at the cost of momentum.", reveals:["Tolerates discomfort rather than forcing resolution", "Stays steady under pressure", "Chooses ease over pushing further"], tags:["independent","loyal"] },
+      { text:"Try to squeeze in a little of both and end up doing neither fully", d:{planning:-1,adaptability:1,optimism:1}, reason:"Refusing to just pick one, even at the cost of doing both halfway, shows discomfort with clean tradeoffs.", tradeoff:"Gains flexibility, at the cost of preparedness.", reveals:["Improvises rather than preparing", "Changes approach when the situation shifts", "Expects things to work out"], tags:["curious"] } ]},
+  { id:"e21", text:"You're mid-argument with someone you care about and realize you're actually winning the argument, but hurting them in the process.", illustration:"scales", type:"everyday", tone:"serious", difficulty:"heavy", purpose:"A genuine cost-tradeoff between being right and being kind, mid-conflict.", measures:["empathy","competitiveness","kindness"], validates:"empathy", unlockConditions:{anyTags:["intense","warm"]},
+    options:[
+      { text:"Stop and back off, even though you could keep pushing", d:{empathy:2,kindness:1,competitiveness:-1}, reason:"Voluntarily giving up a winning position mid-argument for someone else's sake is a costly, real empathy signal.", tradeoff:"Gains connection, at the cost of an edge.", reveals:["Reads the emotional stakes before acting", "Softens a hard truth to protect someone", "Steps back from a contest rather than pressing an advantage"], tags:["warm","loyal"] },
+      { text:"Finish the point, but soften how you land it", d:{competitiveness:1,empathy:1,confidence:1}, reason:"Refusing to fully abandon your position while adjusting delivery shows both conviction and care operating together.", tradeoff:"Gains an edge, at the cost of the goodwill the other path here would have offered instead.", reveals:["Measures the situation by whether they're winning", "Prioritizes how someone else is feeling", "Backs their own judgment under pressure"], tags:["pragmatist"] },
+      { text:"Keep going, being right matters more to you in the moment than it probably should", d:{competitiveness:2,confidence:1,empathy:-1}, reason:"Admitting the pull to keep winning outweighs the visible hurt is an honest, uncomfortable self-read.", tradeoff:"Gains an edge, at the cost of connection.", reveals:["Keeps pushing rather than settling for a tie", "Acts before being fully sure", "Prioritizes the outcome over someone's feelings"], tags:["bold","intense"] } ]},
+  { id:"e22", text:"You're offered an easy way out of a commitment you made, and nobody would ever know you took it.", illustration:"key", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Tests whether commitment holds when the accountability is entirely internal.", measures:["responsibility","discipline","independence"], validates:"responsibility", unlockConditions:{anyTags:["idealist","independent"]},
+    options:[
+      { text:"Follow through anyway, you said you would", d:{responsibility:2,discipline:1,persistence:1}, reason:"Honoring a commitment with zero external accountability shows the standard is internal, not performative.", tradeoff:"Gains accountability, at the cost of the flexibility the other path here would have offered instead.", reveals:["Accepts accountability without being asked", "Follows through on principle rather than convenience", "Sees something through past the easy stopping point"], tags:["idealist","independent"] },
+      { text:"Take the out, the commitment wasn't that serious to begin with", d:{adaptability:1,independence:1,responsibility:-1}, reason:"Reassessing the actual weight of the commitment rather than treating all promises as equally binding is a specific, honest calibration.", tradeoff:"Gains flexibility, at the cost of accountability.", reveals:["Adjusts course rather than forcing a plan through", "Trusts their own judgment over consensus", "Lets responsibility sit with someone else"], tags:["pragmatist"] },
+      { text:"Take it, but feel guilty enough to make it up some other way", d:{responsibility:1,emotionalStability:-1,kindness:1}, reason:"Taking the easier path but still feeling obligated to compensate shows commitment matters even when you don't fully honor it.", tradeoff:"Gains accountability, at the cost of composure.", reveals:["Takes ownership even when it costs them", "Lets the moment's weight actually register", "Chooses someone else's comfort over their own convenience"], tags:["reflective"] } ]},
+  { id:"e23", text:"You're asked to make a decision on behalf of a group, quickly, with incomplete information.", illustration:"compass", type:"everyday", tone:"light", difficulty:"medium", purpose:"Tests decisiveness under real, mild pressure and incomplete data.", measures:["confidence","logic","leadership"], validates:"confidence", unlockConditions:{anyTags:["bold","analytical"]},
+    options:[
+      { text:"Decide quickly with what you have and own the outcome", d:{confidence:2,leadership:1,risk:1}, reason:"Committing under real uncertainty rather than stalling for more data shows decisiveness that tolerates being wrong.", tradeoff:"Gains conviction, at the cost of the preparedness the other path here would have offered instead.", reveals:["Acts before being fully sure", "Takes the lead without being asked", "Chooses the less certain, more interesting path"], tags:["bold","competitive"] },
+      { text:"Buy a little more time to get at least one more piece of information", d:{planning:2,logic:1,patience:1}, reason:"Slowing down a time-pressured decision specifically to reduce uncertainty shows a real preference for information over speed.", tradeoff:"Gains preparedness, at the cost of the conviction the other path here would have offered instead.", reveals:["Structures uncertainty before acting", "Relies on logic over instinct", "Tolerates discomfort rather than forcing resolution"], tags:["analytical","cautious"] },
+      { text:"Make the call, but immediately flag how uncertain it actually is", d:{responsibility:1,confidence:1,trust:1}, reason:"Deciding while being transparent about the uncertainty shows accountability paired with honesty about its limits.", tradeoff:"Gains accountability, at the cost of the control the other path here would have offered instead.", reveals:["Takes ownership even when it costs them", "Backs their own judgment under pressure", "Extends trust before it's fully earned"], tags:["idealist","pragmatist"] } ]},
+  { id:"e24", text:"You're suddenly given a lot more say over something than you actually feel ready to handle.", illustration:"key", type:"everyday", tone:"light", difficulty:"medium", purpose:"Reads reaction to autonomy exceeding current confidence.", measures:["confidence","independence","resilience"], validates:null, unlockConditions:{anyTags:["independent","cautious"]},
+    options:[
+      { text:"Take it and grow into it as you go", d:{confidence:2,independence:1,risk:1}, reason:"Accepting autonomy before feeling fully ready shows comfort growing into responsibility rather than waiting to feel prepared.", tradeoff:"Gains conviction, at the cost of the preparedness the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Trusts their own judgment over consensus", "Accepts uncertainty in exchange for upside"], tags:["bold","adventurous"] },
+      { text:"Ask for a bit of structure or check-ins to start", d:{planning:1,discipline:1,confidence:-1}, reason:"Requesting scaffolding rather than either refusing or bluffing readiness shows a specific, honest way of managing the gap.", tradeoff:"Gains preparedness, at the cost of conviction.", reveals:["Structures uncertainty before acting", "Holds a personal standard even without anyone watching", "Second-guesses their own read of a situation"], tags:["pragmatist","analytical"] },
+      { text:"Voice that you're not sure you're the right person for this yet", d:{selfAwareness:2,responsibility:1,confidence:-1}, reason:"Naming the mismatch directly, even at some cost to how capable you look, protects the outcome over your image.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Names an uncomfortable truth about themselves", "Accepts accountability without being asked", "Lets doubt slow down a decision"], tags:["cautious","idealist"] } ]},
+  { id:"e25", text:"You realize partway through a long task that the original goal has quietly become pointless.", illustration:"maze", type:"everyday", tone:"light", difficulty:"medium", purpose:"Tests attachment to completion versus willingness to cut a now-meaningless loss.", measures:["persistence","logic","discipline"], validates:"persistence", unlockConditions:{anyTags:["analytical","independent"]},
+    options:[
+      { text:"Stop immediately, finishing something pointless helps no one", d:{logic:2,adaptability:1,persistence:-1}, reason:"Cutting a task the moment its purpose disappears, regardless of effort already spent, shows low sunk-cost pull.", tradeoff:"Gains clarity, at the cost of follow-through.", reveals:["Relies on logic over instinct", "Adjusts course rather than forcing a plan through", "Knows when to stop rather than pushing further"], tags:["analytical","independent"] },
+      { text:"Finish it anyway, quitting midway would bother you more than wasted effort", d:{persistence:2,discipline:1,logic:-1}, reason:"Prioritizing completion over logic once you're already committed shows persistence functions somewhat independently of purpose.", tradeoff:"Gains follow-through, at the cost of clarity.", reveals:["Keeps going after the initial effort stops paying off", "Holds a personal standard even without anyone watching", "Leans on instinct over analysis"], tags:["independent","idealist"] },
+      { text:"Repurpose it toward something that's actually still useful", d:{creativity:2,adaptability:1,planning:1}, reason:"Refusing either to quit or to finish blindly, and instead redirecting the effort, shows a resourceful middle path as a real default.", tradeoff:"Gains originality, at the cost of the clarity the other path here would have offered instead.", reveals:["Reaches for an unconventional solution", "Adjusts course rather than forcing a plan through", "Structures uncertainty before acting"], tags:["pragmatist","curious"] } ]},
+  { id:"e26", text:"Someone close to you makes a choice you think is genuinely a bad idea, but it's entirely their decision to make.", illustration:"bridge", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Tests boundary between care and control over someone else's autonomy.", measures:["kindness","independence","openMindedness"], validates:"kindness", unlockConditions:{anyTags:["warm","independent"]},
+    options:[
+      { text:"Say your concerns clearly once, then support whatever they choose", d:{kindness:2,trust:1,openMindedness:1}, reason:"Voicing concern exactly once and then genuinely stepping back respects both honesty and their autonomy.", tradeoff:"Gains goodwill, at the cost of the autonomy the other path here would have offered instead.", reveals:["Softens a hard truth to protect someone", "Gives someone the benefit of the doubt", "Stays open to being wrong"], tags:["warm","idealist"] },
+      { text:"Stay quiet, it's their life to run, not yours", d:{independence:2,openMindedness:1,kindness:-1}, reason:"Withholding even one round of concern shows a strong default respect for other people's autonomy over your own worry.", tradeoff:"Gains autonomy, at the cost of goodwill.", reveals:["Chooses self-reliance over relying on others", "Stays open to being wrong", "Chooses honesty or fairness over someone's comfort"], tags:["independent","cautious"] },
+      { text:"Keep bringing it up until you're sure they've really heard you", d:{persistence:1,kindness:1,independence:-1}, reason:"Continuing to push past the point of a single clear warning shows care overriding boundary-respect here.", tradeoff:"Gains follow-through, at the cost of autonomy.", reveals:["Keeps going after the initial effort stops paying off", "Chooses someone else's comfort over their own convenience", "Chooses connection or reliance over going it alone"], tags:["loyal","intense"] } ]},
+  { id:"e27", text:"You're in a group where the conversation has drifted somewhere you find genuinely uncomfortable.", illustration:"conversation", type:"everyday", tone:"serious", difficulty:"medium", purpose:"Tests willingness to disrupt group flow for personal comfort or principle.", measures:["confidence","socialEnergy","openMindedness"], validates:null, unlockConditions:{anyTags:["bold","cautious"]},
+    options:[
+      { text:"Say plainly that you'd rather talk about something else", d:{confidence:2,independence:1,socialEnergy:-1}, reason:"Interrupting group momentum for your own comfort, even mildly, shows a real willingness to disrupt the room.", tradeoff:"Gains conviction, at the cost of engagement.", reveals:["Acts before being fully sure", "Chooses self-reliance over relying on others", "Chooses distance over engagement"], tags:["bold","independent"] },
+      { text:"Steer it elsewhere naturally without drawing attention to why", d:{adaptability:2,socialEnergy:1,logic:1}, reason:"Redirecting quietly rather than naming the discomfort shows social smoothness winning over directness here.", tradeoff:"Gains flexibility, at the cost of the conviction the other path here would have offered instead.", reveals:["Changes approach when the situation shifts", "Leans toward people rather than away from them", "Reasons through a situation before acting"], tags:["pragmatist","analytical"] },
+      { text:"Sit with the discomfort rather than disrupt the group's flow", d:{patience:2,emotionalStability:-1,socialEnergy:-1}, reason:"Tolerating real discomfort specifically to avoid disrupting the group is a genuine, costly form of social deference.", tradeoff:"Gains stability, at the cost of composure.", reveals:["Tolerates discomfort rather than forcing resolution", "Lets the moment's weight actually register", "Draws energy from stepping back"], tags:["cautious","loyal"] } ]},
+  { id:"e28", text:"You notice a small mistake that nobody else has caught, one that won't actually matter until much later.", illustration:"puzzle", type:"everyday", tone:"light", difficulty:"medium", purpose:"Tests whether distant, low-visibility consequences still trigger responsibility now.", measures:["responsibility","planning","patience"], validates:"responsibility", unlockConditions:{anyTags:["analytical","idealist"]},
+    options:[
+      { text:"Flag it now, even though it'll seem like it doesn't matter yet", d:{responsibility:2,planning:1,confidence:1}, reason:"Raising a concern before it's urgent, when it's easy to stay quiet, shows responsibility that isn't triggered only by visible pressure.", tradeoff:"Gains accountability, at the cost of the stability the other path here would have offered instead.", reveals:["Takes ownership even when it costs them", "Structures uncertainty before acting", "Backs their own judgment under pressure"], tags:["idealist","analytical"] },
+      { text:"Make a note and bring it up closer to when it'll actually matter", d:{planning:2,patience:1,discipline:1}, reason:"Timing the concern deliberately rather than raising it immediately shows a measured, low-friction sense of responsibility.", tradeoff:"Gains preparedness, at the cost of the accountability the other path here would have offered instead.", reveals:["Structures uncertainty before acting", "Tolerates discomfort rather than forcing resolution", "Holds a personal standard even without anyone watching"], tags:["pragmatist","cautious"] },
+      { text:"Assume someone else will probably catch it before then", d:{independence:-1,optimism:1,responsibility:-1}, reason:"Deferring a known issue to someone else's future vigilance is a real, specific gap in how far your responsibility extends.", tradeoff:"Gains ease, at the cost of autonomy.", reveals:["Chooses connection or reliance over going it alone", "Frames setbacks as temporary", "Lets responsibility sit with someone else"], tags:["independent"] } ]},
+  { id:"e29", text:"A decision you have to make will disappoint one of two people close to you, no matter what you choose.", illustration:"bridge", type:"everyday", tone:"serious", difficulty:"heavy", purpose:"A real, unavoidable cost forces an explicit priority between two relationships.", measures:["kindness","confidence","emotionalStability"], validates:null, unlockConditions:{anyTags:["intense","loyal"]},
+    options:[
+      { text:"Decide based on who actually needs this more right now", d:{empathy:2,logic:1,kindness:1}, reason:"Ranking need over history or fairness as the deciding factor shows a specific, situational moral logic.", tradeoff:"Gains connection, at the cost of the conviction the other path here would have offered instead.", reveals:["Prioritizes how someone else is feeling", "Relies on logic over instinct", "Chooses someone else's comfort over their own convenience"], tags:["warm","analytical"] },
+      { text:"Decide based on what you genuinely think is the right call, and accept the fallout", d:{confidence:2,discipline:1,kindness:-1}, reason:"Prioritizing your own judgment of correctness over managing either person's feelings is a real, costly conviction.", tradeoff:"Gains conviction, at the cost of goodwill.", reveals:["Backs their own judgment under pressure", "Holds a personal standard even without anyone watching", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","bold"] },
+      { text:"Try to find some version that softens the blow for both, even if it's imperfect", d:{creativity:1,patience:1,planning:1}, reason:"Refusing the clean binary and searching for a messier middle path shows discomfort with a forced either/or.", tradeoff:"Gains originality, at the cost of the connection the other path here would have offered instead.", reveals:["Builds a new option instead of picking a given one", "Lets a situation play out before intervening", "Prepares rather than improvising"], tags:["pragmatist","warm"] } ]},
+  { id:"e30", text:"You're recognized publicly for something, and you know the recognition is only partly deserved.", illustration:"star", type:"everyday", tone:"light", difficulty:"light", purpose:"A second, lighter pass at partial-credit honesty, framed as public rather than private.", measures:["responsibility","confidence","selfAwareness"], validates:"responsibility", unlockConditions:{anyTags:["idealist","pragmatist"]},
+    options:[
+      { text:"Publicly share the credit with whoever else helped", d:{responsibility:2,kindness:1,confidence:-1}, reason:"Redistributing credit in a visible, public moment costs more socially than doing it privately would, showing real commitment to accuracy.", tradeoff:"Gains accountability, at the cost of conviction.", reveals:["Takes ownership even when it costs them", "Chooses someone else's comfort over their own convenience", "Second-guesses their own read of a situation"], tags:["idealist","warm"] },
+      { text:"Accept it graciously in the moment, and clarify it one-on-one later", d:{socialEnergy:1,planning:1,responsibility:1}, reason:"Separating the public moment from the private correction shows a preference for accuracy without public awkwardness.", tradeoff:"Gains engagement, at the cost of the goodwill the other path here would have offered instead.", reveals:["Leans toward people rather than away from them", "Prepares rather than improvising", "Accepts accountability without being asked"], tags:["pragmatist"] },
+      { text:"Just accept it, recognition evens out over time anyway", d:{optimism:2,independence:1,responsibility:-1}, reason:"Letting an imperfect distribution of credit stand on a long-run fairness assumption is a real, specific rationalization.", tradeoff:"Gains ease, at the cost of accountability.", reveals:["Frames setbacks as temporary", "Trusts their own judgment over consensus", "Lets responsibility sit with someone else"], tags:["independent"] } ]},
   ],
 
-  creative: [
-    { id:"cre1", text:"You're given one blank wall and unlimited paint, but only until sunset.", options:[
-      { text:"Plan a design first, then execute precisely", d:{planning:2,creativity:1,discipline:1} },
-      { text:"Start painting and let the piece evolve as you go", d:{creativity:2,adaptability:1,risk:1} },
-      { text:"Ask others what they'd want to see on it", d:{empathy:1,socialEnergy:1,creativity:1} } ]},
-    { id:"cre2", text:"You have to explain your favorite story to someone who's never heard of it, in one minute.", options:[
-      { text:"Hit the key plot points, efficiently", d:{logic:1,discipline:1,planning:1} },
-      { text:"Focus on the feeling it gave you", d:{empathy:1,creativity:1,humor:1} },
-      { text:"Make up a wildly exaggerated version for fun", d:{humor:2,creativity:2,confidence:1} } ]},
-    { id:"cre3", text:"You're asked to design something completely impossible, no budget, no physics, no limits.", options:[
-      { text:"Design something beautiful nobody's ever seen", d:{creativity:2,confidence:1} },
-      { text:"Design something wildly useful for everyone", d:{creativity:1,kindness:1,leadership:1} },
-      { text:"Design something deeply personal, just for you", d:{selfAwareness:2,creativity:1,independence:1} } ]},
-    { id:"cre4", text:"A movie you love is getting a sequel, and you get to pitch one twist.", options:[
-      { text:"A twist that recontextualizes everything that came before", d:{logic:1,creativity:2} },
-      { text:"A twist that's emotionally devastating", d:{empathy:1,creativity:1} },
-      { text:"A twist that's completely absurd and hilarious", d:{humor:2,creativity:1,risk:1} } ]},
-    { id:"cre5", text:"You've got fifteen unstructured minutes and nothing you're supposed to be doing.", options:[
-      { text:"Doodle, write, or build something just to make it", d:{creativity:2,independence:1} },
-      { text:"Text a few people to see what they're up to", d:{socialEnergy:2,curiosity:1} },
-      { text:"Just sit and let your mind wander", d:{patience:1,selfAwareness:2} } ]},
-    { id:"cre6", text:"You're told a rule you've always followed was actually always optional.", options:[
-      { text:"Immediately start bending it your way", d:{creativity:1,risk:1,independence:1} },
-      { text:"Keep following it, it worked fine either way", d:{discipline:2,patience:1} },
-      { text:"Investigate why the rule existed in the first place", d:{curiosity:2,logic:1} } ]},
-    { id:"cre7", text:"You get to pitch one new show to a streaming platform, any premise you want.", options:[
-      { text:"Something visually strange that's never been done before", d:{creativity:2,openMindedness:1,risk:1} },
-      { text:"A story that would genuinely make people cry", d:{empathy:1,creativity:1} },
-      { text:"Something built around a wild, original game-like world", d:{creativity:2,curiosity:1} } ]},
-    { id:"cre8", text:"You're designing a character for a game and can give them one defining trait.", options:[
-      { text:"A tragic backstory that explains everything they do", d:{empathy:1,creativity:1} },
-      { text:"A completely unpredictable, chaotic personality", d:{humor:1,creativity:2,openMindedness:1} },
-      { text:"A skill so specific it becomes their whole identity", d:{discipline:1,creativity:1,persistence:1} } ]},
-    { id:"cre9", text:"You're asked to build a fantasy world from absolute scratch, no reference material allowed.", options:[
-      { text:"Start with the rules of how the world works, then build up", d:{logic:1,creativity:1,planning:1} },
-      { text:"Start with one striking image and build outward from that", d:{creativity:2,openMindedness:1} },
-      { text:"Start with the people who live there and their problems", d:{empathy:2,creativity:1} } ]},
-    { id:"cre10", text:"Something you're genuinely embarrassed about from years ago keeps coming to mind.", options:[
-      { text:"Turn it into a story you can actually laugh about", d:{humor:2,selfAwareness:1,creativity:1} },
-      { text:"Let it remind you how much you've grown since", d:{selfAwareness:2,optimism:1} },
-      { text:"File it away and just move on", d:{emotionalStability:2,independence:1} } ]},
-    { id:"cre11", text:"A memory from childhood keeps resurfacing lately, for no clear reason.", options:[
-      { text:"Sit with it and try to understand why it matters now", d:{selfAwareness:2,curiosity:1} },
-      { text:"Turn it into something creative, a story, drawing, or song", d:{creativity:2,openMindedness:1} },
-      { text:"Let it pass without digging into it too much", d:{emotionalStability:2,patience:1} } ]},
-    { id:"cre12", text:"A project you poured yourself into completely falls apart before it's finished.", options:[
-      { text:"Salvage the interesting parts for something new", d:{creativity:2,resilience:2,persistence:1} },
-      { text:"Grieve it properly, then start fresh with a clean idea", d:{emotionalStability:2,resilience:2} },
-      { text:"Push through and finish it anyway, imperfect or not", d:{persistence:2,discipline:1} } ]},
-    { id:"cre13", text:"You're asked to invent one small object that doesn't exist yet but really should.", options:[
-      { text:"Something that solves a tiny daily annoyance", d:{creativity:1,logic:1,curiosity:1} },
-      { text:"Something purely delightful with no real use at all", d:{creativity:2,humor:1,openMindedness:1} },
-      { text:"Something that helps people connect with each other", d:{creativity:1,empathy:2} } ]},
-    { id:"cre14", text:"A family recipe gets passed down to you, and you're tempted to change it.", options:[
-      { text:"Keep it exactly as it was, tradition matters", d:{discipline:1,trust:2,responsibility:2} },
-      { text:"Tweak it a little and make it your own", d:{creativity:2,independence:1,openMindedness:1} },
-      { text:"Ask the family what they'd think before changing anything", d:{empathy:1,socialEnergy:1,openMindedness:1} } ]},
-    { id:"cre15", text:"You get to design your dream workspace with absolutely no budget limit.", options:[
-      { text:"Something minimal, quiet, and completely distraction-free", d:{discipline:1,independence:1,planning:1} },
-      { text:"Something strange and visually inspiring, full of odd objects", d:{creativity:2,openMindedness:2} },
-      { text:"Something built for constant collaboration with others nearby", d:{socialEnergy:2,creativity:1} } ]},
-
-    { id:"cre16", text:"You're designing an outfit for an event where absolutely nothing is off-limits.", options:[
-      { text:"Build something bold enough to be remembered", d:{creativity:2,confidence:1,risk:1} },
-      { text:"Design something quietly elegant instead", d:{discipline:1,creativity:1} },
-      { text:"Make something that tells a specific story if anyone asks", d:{creativity:2,curiosity:1} } ]},
-    { id:"cre17", text:"You're asked to compose a short piece of music with no restrictions on genre or instrument.", options:[
-      { text:"Blend genres that normally never touch", d:{creativity:2,openMindedness:2} },
-      { text:"Write something structurally precise and technical", d:{discipline:1,logic:1,creativity:1} },
-      { text:"Write something that's meant to make people feel one specific emotion", d:{empathy:2,creativity:1} } ]},
-    { id:"cre18", text:"You're handed a damaged, half-destroyed piece of art and asked to finish it however you see fit.", options:[
-      { text:"Restore it as close to the original as possible", d:{discipline:2,responsibility:2} },
-      { text:"Let the damage become part of the new piece", d:{creativity:2,openMindedness:1} },
-      { text:"Research the original artist's intent before touching it", d:{curiosity:2,responsibility:2} } ]},
-    { id:"cre19", text:"The moon suddenly disappears from the sky one night, no explanation, and everyone's asking what it means.", options:[
-      { text:"Start theorizing about the science of it immediately", d:{curiosity:2,logic:1} },
-      { text:"Feel oddly moved and want to write or create something about it", d:{creativity:2,selfAwareness:1} },
-      { text:"Mostly just wonder what it'll do to the tides and your sleep", d:{logic:1,humor:1} } ]},
-    { id:"cre20", text:"You get to completely redesign one boring required course from your school days.", options:[
-      { text:"Rebuild it entirely around hands-on projects", d:{creativity:1,leadership:1} },
-      { text:"Keep the content but make the delivery genuinely engaging", d:{creativity:2,empathy:1} },
-      { text:"Cut it down to only the parts that actually matter", d:{logic:1,discipline:1,confidence:1} } ]},
-
+  reflective: [
+  { id:"c03", text:"You realize, mid-conversation, that you were wrong about something you argued for confidently a minute ago.", illustration:"mirror", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests whether ego yields to accuracy in the moment it actually costs something.", measures:["selfAwareness","confidence","openMindedness"], validates:"selfAwareness",
+    options:[
+      { text:"Say so immediately, right in front of everyone", d:{selfAwareness:2,openMindedness:1,confidence:1}, reason:"Correcting yourself publicly the instant you notice costs status, so choosing it over quietly moving on reflects a real premium on accuracy over image.", tradeoff:"Gains self-knowledge, at the cost of the stability the other path here would have offered instead.", reveals:["Notices their own patterns in real time", "Reconsiders a position when given a reason to", "Backs their own judgment under pressure"], tags:["idealist"] },
+      { text:"Let the conversation move on and correct it with them privately after", d:{selfAwareness:2,patience:1,kindness:1}, reason:"Still fixing it, but protecting the moment's flow, shows the correction matters more than the audience.", tradeoff:"Gains self-knowledge, at the cost of the room to be wrong the other path here would have offered instead.", reveals:["Names an uncomfortable truth about themselves", "Lets a situation play out before intervening", "Softens a hard truth to protect someone"], tags:["pragmatist","warm"] },
+      { text:"Stay quiet about it unless someone actually calls it out", d:{independence:1,confidence:-1,selfAwareness:-1}, reason:"Letting a known error stand rather than volunteer the cost of correcting it is a real, if unflattering, data point about how much status weighs against accuracy.", tradeoff:"Gains autonomy, at the cost of conviction.", reveals:["Trusts their own judgment over consensus", "Second-guesses their own read of a situation", "Doesn't examine their own reaction too closely"], tags:["cautious"] } ]},
+  { id:"c13", text:"What would actually hurt more: being completely misunderstood by someone close to you, or being quietly forgotten by everyone else?", illustration:"masks", type:"reflective", tone:"philosophical", difficulty:"heavy", purpose:"A forced ranking of closeness-pain versus significance-pain, no comfortable third option offered.", measures:["selfAwareness","socialEnergy","emotionalStability"], validates:null,
+    options:[
+      { text:"Being misunderstood by someone close, that's the one that actually stays with you", d:{empathy:2,trust:1,emotionalStability:-1}, reason:"Ranking a single relationship's clarity above being remembered at all shows identity is anchored in specific bonds, not broader significance.", tradeoff:"Gains connection, at the cost of composure.", reveals:["Reads the emotional stakes before acting", "Gives someone the benefit of the doubt", "Feels the disruption rather than absorbing it quietly"], tags:["warm","intense"] },
+      { text:"Being forgotten, at least being misunderstood means you mattered enough to argue about", d:{socialEnergy:1,independence:1,selfAwareness:1}, reason:"Reframing being misunderstood as proof you mattered, and ranking erasure as worse, reveals a need for significance over harmony.", tradeoff:"Gains engagement, at the cost of the connection the other path here would have offered instead.", reveals:["Draws energy from engaging with others", "Trusts their own judgment over consensus", "Notices their own patterns in real time"], tags:["independent","reflective"] },
+      { text:"Neither, honestly, disappointing yourself quietly is the one that actually lingers", d:{selfAwareness:2,confidence:-1,discipline:1}, reason:"Rejecting both externally-caused pains in favor of an internally-generated one shows self-judgment outweighs how others see you.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Second-guesses their own read of a situation", "Holds a personal standard even without anyone watching"], tags:["reflective","idealist"] } ]},
+  { id:"r01", text:"You think about the version of yourself from several years ago.", illustration:"mirror", type:"reflective", tone:"philosophical", difficulty:"medium", purpose:"Tests self-continuity: pride, distance, or discomfort with an earlier self.", measures:["selfAwareness","optimism","emotionalStability"], validates:"selfAwareness", unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"Feel mostly proud of how far you've come", d:{optimism:2,confidence:1,resilience:1}, reason:"Framing growth as the dominant story rather than the gap or the errors shows a genuinely forward-oriented self-narrative.", tradeoff:"Gains ease, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Frames setbacks as temporary", "Backs their own judgment under pressure", "Recovers forward rather than dwelling"], tags:["idealist","independent"] },
+      { text:"Feel a strange distance, like they were a different person entirely", d:{selfAwareness:2,openMindedness:1,creativity:1}, reason:"Experiencing your past self as almost separate suggests identity is understood as something that changes substantially, not just accumulates.", tradeoff:"Gains self-knowledge, at the cost of the ease the other path here would have offered instead.", reveals:["Names an uncomfortable truth about themselves", "Stays open to being wrong", "Builds a new option instead of picking a given one"], tags:["reflective","curious"] },
+      { text:"Feel a little embarrassed by choices that seemed fine back then", d:{selfAwareness:1,emotionalStability:-1,discipline:1}, reason:"Judging your past self by current standards, rather than granting it context, reveals a fairly demanding internal bar.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Follows through on principle rather than convenience"], tags:["intense"] } ]},
+  { id:"r02", text:"You're alone with your thoughts longer than usual, with nothing to distract you.", illustration:"hourglass", type:"reflective", tone:"philosophical", difficulty:"medium", purpose:"Reads comfort with unstructured introspection versus need for stimulation.", measures:["independence","emotionalStability","curiosity"], validates:"independence", unlockConditions:{anyTags:["reflective","independent"]},
+    options:[
+      { text:"Settle into it, it's rare to get this kind of quiet", d:{independence:2,emotionalStability:1,patience:1}, reason:"Treating extended solitude as a resource rather than a gap to fill shows genuine comfort inside your own head.", tradeoff:"Gains autonomy, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Keeps a level head when things get tense", "Lets a situation play out before intervening"], tags:["independent","reflective"] },
+      { text:"Start actively working through something you've been avoiding thinking about", d:{selfAwareness:2,resilience:1,discipline:1}, reason:"Using unstructured time deliberately to confront something difficult, rather than just resting, shows introspection used with intent.", tradeoff:"Gains self-knowledge, at the cost of the autonomy the other path here would have offered instead.", reveals:["Notices their own patterns in real time", "Recovers forward rather than dwelling", "Holds a personal standard even without anyone watching"], tags:["idealist","intense"] },
+      { text:"Start looking for something, anything, to fill the silence", d:{socialEnergy:1,curiosity:1,independence:-1}, reason:"Needing to interrupt your own quiet fairly quickly is an honest, specific limit on how much unstructured introspection you actually want.", tradeoff:"Gains engagement, at the cost of autonomy.", reveals:["Draws energy from engaging with others", "Chooses exploration over certainty", "Chooses connection or reliance over going it alone"], tags:["playful","curious"] } ]},
+  { id:"r03", text:"You think about what people who know you well would say your biggest flaw is.", illustration:"mirror", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests self-perception accuracy versus self-protective blind spots.", measures:["selfAwareness","openMindedness","emotionalStability"], validates:"selfAwareness", unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"You already know exactly what they'd say, and you agree", d:{selfAwareness:2,openMindedness:1,confidence:1}, reason:"Being able to name and accept a real flaw without defensiveness reflects a genuinely accurate, unguarded self-model.", tradeoff:"Gains self-knowledge, at the cost of the insight the other path here would have offered instead.", reveals:["Names an uncomfortable truth about themselves", "Stays open to being wrong", "Acts before being fully sure"], tags:["idealist","reflective"] },
+      { text:"You can guess, but you'd probably argue with some of it", d:{confidence:1,openMindedness:-1,selfAwareness:1}, reason:"Anticipating the criticism but still contesting parts of it shows self-awareness paired with real resistance to full agreement.", tradeoff:"Gains conviction, at the cost of room to be wrong.", reveals:["Acts before being fully sure", "Holds a position rather than reconsidering it", "Names an uncomfortable truth about themselves"], tags:["independent","bold"] },
+      { text:"You genuinely have no idea, and that's a little unsettling", d:{selfAwareness:-1,curiosity:1,emotionalStability:-1}, reason:"Admitting a real gap in how you're perceived, rather than guessing confidently, is an honest and specific limit of self-knowledge.", tradeoff:"Gains insight, at the cost of self-knowledge.", reveals:["Doesn't examine their own reaction too closely", "Chooses exploration over certainty", "Lets the moment's weight actually register"], tags:["cautious"] } ]},
+  { id:"r04", text:"You notice a pattern: you tend to react to a certain kind of situation the same way, every time.", illustration:"maze", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests whether recognizing a pattern actually leads to trying to change it.", measures:["selfAwareness","discipline","persistence"], validates:null, unlockConditions:{anyTags:["reflective","analytical"]},
+    options:[
+      { text:"Start actively trying to break the pattern next time it comes up", d:{discipline:2,persistence:1,selfAwareness:1}, reason:"Moving from noticing to actively intervening shows self-awareness translating into real behavioral effort.", tradeoff:"Gains consistency, at the cost of the room to be wrong the other path here would have offered instead.", reveals:["Holds a personal standard even without anyone watching", "Keeps going after the initial effort stops paying off", "Notices their own patterns in real time"], tags:["idealist","analytical"] },
+      { text:"Just note it and accept it as part of how you operate", d:{selfAwareness:1,openMindedness:1,discipline:-1}, reason:"Choosing acceptance over correction, once the pattern is named, reflects comfort with your own defaults rather than a drive to optimize them.", tradeoff:"Gains self-knowledge, at the cost of consistency.", reveals:["Names an uncomfortable truth about themselves", "Stays open to being wrong", "Lets a standard slide when it's inconvenient"], tags:["independent","reflective"] },
+      { text:"Feel a little frustrated that you keep doing it anyway", d:{emotionalStability:-1,selfAwareness:1,resilience:-1}, reason:"Recognizing the pattern without yet managing to change it, and being bothered by that gap, is an honest, specific tension.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Notices their own patterns in real time", "Lets a setback actually land before moving on"], tags:["intense"] } ]},
+  { id:"r05", text:"You consider what you actually want your life to look like in ten years, honestly, not the impressive version.", illustration:"compass", type:"reflective", tone:"philosophical", difficulty:"medium", purpose:"Separates genuine desire from performed ambition.", measures:["drive","independence","optimism"], validates:null, unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"Something quiet and stable, closer to home than you'd admit out loud", d:{patience:1,kindness:1,drive:-1}, reason:"Admitting the honest answer is smaller and calmer than the expected ambitious one is a real, vulnerable disclosure.", tradeoff:"Gains stability, at the cost of momentum.", reveals:["Tolerates discomfort rather than forcing resolution", "Chooses someone else's comfort over their own convenience", "Chooses ease over pushing further"], tags:["independent","warm"] },
+      { text:"Something bigger than where you are now, and you're not embarrassed about wanting that", d:{drive:2,confidence:1,competitiveness:1}, reason:"Owning real ambition without hedging it shows drive isn't just performed for others.", tradeoff:"Gains momentum, at the cost of the stability the other path here would have offered instead.", reveals:["Pushes toward the outcome even under resistance", "Backs their own judgment under pressure", "Measures the situation by whether they're winning"], tags:["competitive","bold"] },
+      { text:"Honestly, you're not sure yet, and that doesn't bother you much", d:{openMindedness:2,curiosity:1,planning:-1}, reason:"Being genuinely comfortable with an unresolved future, rather than forcing an answer, shows real tolerance for ambiguity.", tradeoff:"Gains room to be wrong, at the cost of preparedness.", reveals:["Stays open to being wrong", "Follows a question rather than letting it go", "Improvises rather than preparing"], tags:["curious","independent"] } ]},
+  { id:"r06", text:"You think about a relationship that ended, for whatever reason.", illustration:"bridge", type:"reflective", tone:"intimate", difficulty:"heavy", purpose:"Tests how endings are processed: closure, resentment, or growth.", measures:["emotionalStability","openMindedness","resilience"], validates:"emotionalStability", unlockConditions:{anyTags:["reflective","intense"]},
+    options:[
+      { text:"Mostly feel grateful for what it was, even though it ended", d:{optimism:2,openMindedness:1,resilience:1}, reason:"Holding gratitude alongside loss, rather than letting the ending define the whole relationship, shows real emotional integration.", tradeoff:"Gains ease, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Frames setbacks as temporary", "Reconsiders a position when given a reason to", "Recovers forward rather than dwelling"], tags:["idealist","warm"] },
+      { text:"Still feel a flicker of something unresolved about it", d:{emotionalStability:-1,selfAwareness:1,persistence:1}, reason:"Admitting lingering unresolve, rather than claiming full closure, is an honest, specific emotional read.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Feels the disruption rather than absorbing it quietly", "Names an uncomfortable truth about themselves", "Sees something through past the easy stopping point"], tags:["intense","reflective"] },
+      { text:"Have mostly moved past it and rarely think about it at all", d:{independence:2,resilience:1,emotionalStability:1}, reason:"Genuine emotional distance, not suppression, from something that once mattered shows real processing has happened.", tradeoff:"Gains autonomy, at the cost of the ease the other path here would have offered instead.", reveals:["Trusts their own judgment over consensus", "Recovers forward rather than dwelling", "Stays steady under pressure"], tags:["independent"] } ]},
+  { id:"r07", text:"You consider whether you're more shaped by the people around you or by decisions you made alone.", illustration:"mirror", type:"reflective", tone:"philosophical", difficulty:"medium", purpose:"A direct self-theory question about locus of identity formation.", measures:["independence","socialEnergy","selfAwareness"], validates:"independence", unlockConditions:{anyTags:["reflective","independent"]},
+    options:[
+      { text:"Mostly the people, you're a product of who you've been close to", d:{socialEnergy:1,trust:1,kindness:1}, reason:"Attributing identity primarily to relationships rather than solitary choice shows a genuinely relational self-model.", tradeoff:"Gains engagement, at the cost of the autonomy the other path here would have offered instead.", reveals:["Leans toward people rather than away from them", "Gives someone the benefit of the doubt", "Softens a hard truth to protect someone"], tags:["warm","loyal"] },
+      { text:"Mostly your own decisions, even the ones made against advice", d:{independence:2,confidence:1,persistence:1}, reason:"Crediting solitary choice over social influence, especially decisions made against advice, shows a self-authored identity model.", tradeoff:"Gains autonomy, at the cost of the engagement the other path here would have offered instead.", reveals:["Trusts their own judgment over consensus", "Backs their own judgment under pressure", "Keeps going after the initial effort stops paying off"], tags:["independent","bold"] },
+      { text:"Honestly, more the hard moments than either people or choices", d:{resilience:2,selfAwareness:1,emotionalStability:1}, reason:"Attributing identity to adversity itself, rather than to people or agency, is a distinct third theory of self.", tradeoff:"Gains forward motion, at the cost of the engagement the other path here would have offered instead.", reveals:["Treats a setback as temporary", "Names an uncomfortable truth about themselves", "Keeps a level head when things get tense"], tags:["reflective","intense"] } ]},
+  { id:"r08", text:"You think about the last time you were genuinely proud of yourself, not because anyone else noticed.", illustration:"star", type:"reflective", tone:"serious", difficulty:"light", purpose:"Tests source of self-worth: private standards versus external validation.", measures:["confidence","independence","drive"], validates:null, unlockConditions:{anyTags:["independent","idealist"]},
+    options:[
+      { text:"It came easily to mind, private wins matter as much as public ones", d:{confidence:2,independence:1,selfAwareness:1}, reason:"Having an easy, ready answer shows private accomplishment is a genuine, active source of self-worth, not an afterthought.", tradeoff:"Gains conviction, at the cost of the momentum the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Trusts their own judgment over consensus", "Notices their own patterns in real time"], tags:["independent","idealist"] },
+      { text:"You had to think for a while before one came to mind", d:{selfAwareness:1,confidence:-1,drive:1}, reason:"The difficulty recalling one suggests self-worth leans more on external recognition than private satisfaction.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Second-guesses their own read of a situation", "Pushes toward the outcome even under resistance"], tags:["reflective"] },
+      { text:"It's tied to something small that would look unimpressive to anyone else", d:{openMindedness:1,independence:1,confidence:1}, reason:"Valuing something outwardly unremarkable shows your internal standard runs independently of how impressive things look.", tradeoff:"Gains room to be wrong, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Reconsiders a position when given a reason to", "Trusts their own judgment over consensus", "Backs their own judgment under pressure"], tags:["reflective","curious"] } ]},
+  { id:"r09", text:"You consider how much of what you do is actually for yourself versus for how it looks to others.", illustration:"masks", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Direct self-audit of intrinsic versus extrinsic motivation.", measures:["independence","selfAwareness","confidence"], validates:"independence", unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"Mostly for yourself, and you're fairly confident about that", d:{independence:2,confidence:1,selfAwareness:1}, reason:"Claiming a mostly intrinsic motivation with confidence, rather than hedging, is a strong, specific self-report.", tradeoff:"Gains autonomy, at the cost of the engagement the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Acts before being fully sure", "Names an uncomfortable truth about themselves"], tags:["independent","idealist"] },
+      { text:"Honestly, more for how it looks than you'd like to admit", d:{selfAwareness:2,confidence:-1,socialEnergy:1}, reason:"Admitting a less flattering truth about your own motives, unprompted, is itself a real act of self-awareness.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Second-guesses their own read of a situation", "Draws energy from engaging with others"], tags:["reflective"] },
+      { text:"It depends entirely on which part of your life you're talking about", d:{adaptability:1,openMindedness:1,selfAwareness:1}, reason:"Refusing to generalize across your whole life and insisting on nuance shows a specific resistance to oversimplifying yourself.", tradeoff:"Gains flexibility, at the cost of the autonomy the other path here would have offered instead.", reveals:["Changes approach when the situation shifts", "Stays open to being wrong", "Names an uncomfortable truth about themselves"], tags:["analytical","curious"] } ]},
+  { id:"r10", text:"You think about the last time you truly changed your mind about something important, not just adjusted it slightly.", illustration:"lightbulb", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests genuine openness to revision versus attachment to prior positions.", measures:["openMindedness","confidence","curiosity"], validates:"openMindedness", unlockConditions:{anyTags:["curious","analytical"]},
+    options:[
+      { text:"It comes to mind easily, and you're glad it happened", d:{openMindedness:2,curiosity:1,confidence:1}, reason:"Easily recalling a real mind-change, and viewing it positively, shows genuine comfort with revising deeply held views.", tradeoff:"Gains room to be wrong, at the cost of the consistency the other path here would have offered instead.", reveals:["Reconsiders a position when given a reason to", "Chooses exploration over certainty", "Backs their own judgment under pressure"], tags:["curious","idealist"] },
+      { text:"It's hard to think of one, your core views don't shift much", d:{discipline:1,persistence:1,openMindedness:-1}, reason:"Struggling to recall genuine belief-revision suggests real stability, or resistance, in your core convictions.", tradeoff:"Gains consistency, at the cost of room to be wrong.", reveals:["Follows through on principle rather than convenience", "Sees something through past the easy stopping point", "Holds a position rather than reconsidering it"], tags:["independent"] },
+      { text:"It happened, but it still stings a little to admit", d:{selfAwareness:1,confidence:-1,openMindedness:1}, reason:"Being open enough to have changed your mind but still uncomfortable admitting it shows openness and ego operating in tension.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Second-guesses their own read of a situation", "Reconsiders a position when given a reason to"], tags:["reflective","intense"] } ]},
+  { id:"r11", text:"You consider what you'd actually do with total anonymity for a week, no consequences, no one recognizing you anywhere.", illustration:"masks", type:"reflective", tone:"philosophical", difficulty:"medium", purpose:"Tests what surfaces when social consequence is fully removed.", measures:["risk","independence","openMindedness"], validates:null, unlockConditions:{anyTags:["adventurous","independent"]},
+    options:[
+      { text:"Probably something a little reckless you've never let yourself do", d:{risk:2,curiosity:1,discipline:-1}, reason:"What surfaces when consequences vanish reveals a real appetite that's normally kept in check, not invented in the moment.", tradeoff:"Gains upside, at the cost of consistency.", reveals:["Chooses the less certain, more interesting path", "Follows a question rather than letting it go", "Lets a standard slide when it's inconvenient"], tags:["adventurous","bold"] },
+      { text:"Honestly, probably not that different from your normal week", d:{discipline:2,independence:1,emotionalStability:1}, reason:"Behavior staying consistent even without any social consequence suggests your normal conduct isn't primarily performance.", tradeoff:"Gains consistency, at the cost of the upside the other path here would have offered instead.", reveals:["Follows through on principle rather than convenience", "Chooses self-reliance over relying on others", "Keeps a level head when things get tense"], tags:["independent","idealist"] },
+      { text:"You'd probably just watch how people treat someone they don't recognize", d:{curiosity:2,empathy:1,selfAwareness:1}, reason:"Using anonymity to observe rather than to indulge shows curiosity about others outweighing personal escape.", tradeoff:"Gains insight, at the cost of the upside the other path here would have offered instead.", reveals:["Follows a question rather than letting it go", "Reads the emotional stakes before acting", "Names an uncomfortable truth about themselves"], tags:["curious","reflective"] } ]},
+  { id:"r12", text:"You think about whether you trust your gut instinct or your careful reasoning more, when they genuinely disagree.", illustration:"scales", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Direct self-theory question about decision-making trust.", measures:["logic","confidence","risk"], validates:"logic", unlockConditions:{anyTags:["analytical","bold"]},
+    options:[
+      { text:"Your gut, it's been right often enough to earn that trust", d:{confidence:2,risk:1,logic:-1}, reason:"Explicitly trusting instinct over deliberate reasoning, and being able to justify why, shows a real, earned confidence in intuition.", tradeoff:"Gains conviction, at the cost of clarity.", reveals:["Acts before being fully sure", "Chooses the less certain, more interesting path", "Trusts feeling over evidence"], tags:["bold","independent"] },
+      { text:"Your reasoning, gut feelings have led you wrong too often", d:{logic:2,discipline:1,risk:-1}, reason:"Distrusting instinct specifically because of past errors shows a reasoning preference built from experience, not just temperament.", tradeoff:"Gains clarity, at the cost of upside.", reveals:["Reasons through a situation before acting", "Follows through on principle rather than convenience", "Chooses the safer, more certain path"], tags:["analytical","cautious"] },
+      { text:"It depends on how much time you actually have to decide", d:{adaptability:2,planning:1,logic:1}, reason:"Making the choice conditional on circumstance rather than picking a permanent default shows a flexible decision framework.", tradeoff:"Gains flexibility, at the cost of the conviction the other path here would have offered instead.", reveals:["Changes approach when the situation shifts", "Prepares rather than improvising", "Reasons through a situation before acting"], tags:["pragmatist","curious"] } ]},
+  { id:"r13", text:"Think about which feels better: someone genuinely depending on you, or needing no one at all.", illustration:"anchor", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Direct self-report on dependency orientation.", measures:["independence","kindness","socialEnergy"], validates:"independence", unlockConditions:{anyTags:["warm","independent"]},
+    options:[
+      { text:"Being needed, there's real meaning in someone relying on you", d:{kindness:2,responsibility:1,socialEnergy:1}, reason:"Finding meaning specifically in being relied upon, rather than in freedom, shows a relationally-anchored sense of purpose.", tradeoff:"Gains goodwill, at the cost of the autonomy the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Takes ownership even when it costs them", "Draws energy from engaging with others"], tags:["warm","loyal"] },
+      { text:"Being independent, needing no one is its own kind of relief", d:{independence:2,confidence:1,socialEnergy:-1}, reason:"Framing self-sufficiency as relief rather than isolation shows independence is a genuine preference, not a defense mechanism.", tradeoff:"Gains autonomy, at the cost of engagement.", reveals:["Chooses self-reliance over relying on others", "Acts before being fully sure", "Chooses distance over engagement"], tags:["independent"] },
+      { text:"Neither feels quite right, you'd rather it be mutual", d:{trust:1,empathy:1,independence:-1}, reason:"Rejecting both poles in favor of reciprocity shows discomfort with any one-directional relational frame.", tradeoff:"Gains closeness, at the cost of autonomy.", reveals:["Extends trust before it's fully earned", "Prioritizes how someone else is feeling", "Chooses connection or reliance over going it alone"], tags:["reflective","warm"] } ]},
+  { id:"r14", text:"You think about a belief you hold that you're aware most people around you don't share.", illustration:"lightbulb", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests comfort holding minority positions under mild social isolation.", measures:["independence","confidence","openMindedness"], validates:null, unlockConditions:{anyTags:["independent","idealist"]},
+    options:[
+      { text:"You hold it comfortably and don't feel much need to defend it", d:{independence:2,confidence:1,emotionalStability:1}, reason:"Genuine comfort in a minority position, without needing validation, shows internal conviction that doesn't depend on consensus.", tradeoff:"Gains autonomy, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Acts before being fully sure", "Keeps a level head when things get tense"], tags:["independent","idealist"] },
+      { text:"You hold it, but it does bother you a little to be the odd one out", d:{selfAwareness:1,emotionalStability:-1,confidence:1}, reason:"Keeping the belief despite real discomfort about being isolated shows conviction outweighing, but not eliminating, the social cost.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Notices their own patterns in real time", "Lets the moment's weight actually register", "Backs their own judgment under pressure"], tags:["reflective","bold"] },
+      { text:"You quietly soften how you express it, depending on the room", d:{adaptability:2,socialEnergy:1,confidence:-1}, reason:"Adjusting expression by audience, while still privately holding the belief, shows social calibration outranking full consistency.", tradeoff:"Gains flexibility, at the cost of conviction.", reveals:["Adjusts course rather than forcing a plan through", "Draws energy from engaging with others", "Second-guesses their own read of a situation"], tags:["pragmatist","cautious"] } ]},
+  { id:"r15", text:"You consider what actually motivates you more, on average: avoiding failure or chasing success.", illustration:"compass", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Direct self-theory question about approach versus avoidance motivation.", measures:["drive","risk","confidence"], validates:"drive", unlockConditions:{anyTags:["competitive","cautious"]},
+    options:[
+      { text:"Chasing success, the upside is what actually gets you moving", d:{drive:2,risk:1,optimism:1}, reason:"Naming reward-seeking as the primary engine, rather than fear-avoidance, is a specific, honest motivational self-report.", tradeoff:"Gains momentum, at the cost of the consistency the other path here would have offered instead.", reveals:["Pushes toward the outcome even under resistance", "Accepts uncertainty in exchange for upside", "Frames setbacks as temporary"], tags:["competitive","bold"] },
+      { text:"Avoiding failure, honestly, that's the stronger pull", d:{discipline:1,planning:1,risk:-1}, reason:"Admitting avoidance is the stronger motivator, even though success-language sounds better, is an honest and less flattering self-read.", tradeoff:"Gains consistency, at the cost of upside.", reveals:["Holds a personal standard even without anyone watching", "Structures uncertainty before acting", "Protects against a worse outcome over a better one"], tags:["cautious","analytical"] },
+      { text:"Neither much, you're mostly driven by curiosity about how things turn out", d:{curiosity:2,openMindedness:1,drive:-1}, reason:"Rejecting both fear and ambition as the primary driver, in favor of curiosity, points to a genuinely different motivational structure.", tradeoff:"Gains insight, at the cost of momentum.", reveals:["Follows a question rather than letting it go", "Stays open to being wrong", "Chooses ease over pushing further"], tags:["curious","independent"] } ]},
+  { id:"r16", text:"You think about whether you generally forgive people faster than you forgive yourself.", illustration:"heart", type:"reflective", tone:"intimate", difficulty:"heavy", purpose:"Tests asymmetry between self-directed and other-directed forgiveness.", measures:["kindness","selfAwareness","emotionalStability"], validates:"kindness", unlockConditions:{anyTags:["reflective","intense"]},
+    options:[
+      { text:"Definitely others, you're much harder on yourself", d:{selfAwareness:2,discipline:1,emotionalStability:-1}, reason:"Naming a real double standard against yourself is an honest, uncomfortable, and specific self-observation.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Follows through on principle rather than convenience", "Feels the disruption rather than absorbing it quietly"], tags:["intense","idealist"] },
+      { text:"Definitely yourself, other people's mistakes stick with you longer", d:{trust:-1,discipline:1,kindness:-1}, reason:"Admitting a harsher standard for others than for yourself is a less flattering but genuinely honest self-read.", tradeoff:"Gains consistency, at the cost of closeness.", reveals:["Withholds trust until it's proven", "Holds a personal standard even without anyone watching", "Chooses honesty or fairness over someone's comfort"], tags:["independent"] },
+      { text:"Roughly the same, you try to hold one consistent standard", d:{discipline:2,kindness:1,selfAwareness:1}, reason:"Claiming consistency across self and others, if accurate, reflects a genuinely stable, principle-based approach to forgiveness.", tradeoff:"Gains consistency, at the quiet cost of whichever other approach this moment also allowed.", reveals:["Follows through on principle rather than convenience", "Softens a hard truth to protect someone", "Names an uncomfortable truth about themselves"], tags:["idealist","analytical"] } ]},
+  { id:"r17", text:"You consider whether your sense of humor is mostly a way to connect, or mostly a way to deflect.", illustration:"masks", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests self-honesty about the function humor actually serves.", measures:["humor","selfAwareness","emotionalStability"], validates:"humor", unlockConditions:{anyTags:["playful","reflective"]},
+    options:[
+      { text:"Mostly connection, it's how you get close to people", d:{humor:2,socialEnergy:1,trust:1}, reason:"Framing humor as relational glue rather than a shield shows it's functioning as intended: bringing people closer, not keeping them at bay.", tradeoff:"Gains levity, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Finds the lighter angle under pressure", "Leans toward people rather than away from them", "Gives someone the benefit of the doubt"], tags:["warm","playful"] },
+      { text:"Honestly, more deflection than you'd like to admit", d:{selfAwareness:2,emotionalStability:-1,humor:1}, reason:"Admitting humor is doing defensive work, not just social work, is a specific and uncomfortable piece of self-knowledge.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Notices their own patterns in real time", "Lets the moment's weight actually register", "Uses humor to navigate the moment"], tags:["reflective","intense"] },
+      { text:"It depends entirely on who you're with", d:{adaptability:2,socialEnergy:1,selfAwareness:1}, reason:"Recognizing that humor's function shifts by relationship rather than staying fixed shows situational self-awareness.", tradeoff:"Gains flexibility, at the cost of the levity the other path here would have offered instead.", reveals:["Adjusts course rather than forcing a plan through", "Draws energy from engaging with others", "Notices their own patterns in real time"], tags:["analytical","curious"] } ]},
+  { id:"r18", text:"Think about the last time you actually asked for help with something you probably could have muscled through alone.", illustration:"key", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests actual, not aspirational, comfort asking for support.", measures:["independence","confidence","trust"], validates:"independence", unlockConditions:{anyTags:["independent","warm"]},
+    options:[
+      { text:"It comes to mind easily, asking for help has never felt like a big deal", d:{trust:2,socialEnergy:1,independence:-1}, reason:"Easy recall of asking for help, without framing it as a struggle, shows genuine comfort rather than a rare exception.", tradeoff:"Gains closeness, at the cost of autonomy.", reveals:["Gives someone the benefit of the doubt", "Leans toward people rather than away from them", "Chooses connection or reliance over going it alone"], tags:["warm","pragmatist"] },
+      { text:"It's genuinely hard to think of one, you tend to work through things solo", d:{independence:2,discipline:1,trust:-1}, reason:"Difficulty recalling an instance of asking for help suggests self-reliance is a strong, consistent default, not situational.", tradeoff:"Gains autonomy, at the cost of closeness.", reveals:["Chooses self-reliance over relying on others", "Follows through on principle rather than convenience", "Stays guarded rather than assuming good faith"], tags:["independent"] },
+      { text:"You can think of one, and you still feel a little odd about having needed it", d:{selfAwareness:1,confidence:-1,trust:1}, reason:"Recalling the instance but still carrying discomfort about it shows the need for help and the ease with it aren't the same thing.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Second-guesses their own read of a situation", "Extends trust before it's fully earned"], tags:["reflective","cautious"] } ]},
+  { id:"r19", text:"If everything you'd built or achieved disappeared tomorrow, think about what would still be left to define you.", illustration:"star", type:"reflective", tone:"philosophical", difficulty:"medium", purpose:"Forces a ranking between achievement-identity and relational-identity.", measures:["drive","kindness","independence"], validates:null, unlockConditions:{anyTags:["competitive","warm"]},
+    options:[
+      { text:"By what you've achieved, that's the part that actually feels solid", d:{drive:2,confidence:1,competitiveness:1}, reason:"Anchoring identity in accomplishment rather than relationships shows a self-concept built on demonstrable output.", tradeoff:"Gains momentum, at the cost of the goodwill the other path here would have offered instead.", reveals:["Pushes toward the outcome even under resistance", "Backs their own judgment under pressure", "Measures the situation by whether they're winning"], tags:["competitive","independent"] },
+      { text:"By the people close to you, that's the part that would remain if everything else went away", d:{kindness:2,socialEnergy:1,trust:1}, reason:"Choosing relational identity as the more durable core reveals what you'd fall back on if achievement disappeared.", tradeoff:"Gains goodwill, at the cost of the momentum the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Draws energy from engaging with others", "Extends trust before it's fully earned"], tags:["warm","loyal"] },
+      { text:"Neither, really, more by whether you stayed true to your own standards", d:{discipline:2,selfAwareness:1,independence:1}, reason:"Rejecting both external categories in favor of an internal, principle-based identity shows a distinct third anchor entirely.", tradeoff:"Gains consistency, at the cost of the momentum the other path here would have offered instead.", reveals:["Holds a personal standard even without anyone watching", "Notices their own patterns in real time", "Trusts their own judgment over consensus"], tags:["idealist","reflective"] } ]},
+  { id:"r20", text:"You think about whether you actually enjoy the process of working toward a goal, or mostly just want to already be finished.", illustration:"hourglass", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests process-orientation versus pure outcome-orientation.", measures:["persistence","drive","patience"], validates:"persistence", unlockConditions:{anyTags:["competitive","independent"]},
+    options:[
+      { text:"You genuinely enjoy the middle part, the working-toward is half the appeal", d:{persistence:2,patience:1,drive:1}, reason:"Genuine enjoyment of the process, not just tolerance of it, shows persistence is intrinsically rewarding, not just endured.", tradeoff:"Gains follow-through, at the cost of the autonomy the other path here would have offered instead.", reveals:["Keeps going after the initial effort stops paying off", "Tolerates discomfort rather than forcing resolution", "Pushes toward the outcome even under resistance"], tags:["idealist","independent"] },
+      { text:"Honestly, you mostly just want to already be on the other side of it", d:{drive:2,patience:-1,persistence:-1}, reason:"Admitting the process itself holds little appeal is an honest, specific outcome-first motivational profile.", tradeoff:"Gains momentum, at the cost of stability.", reveals:["Pushes toward the outcome even under resistance", "Moves to resolve tension quickly", "Knows when to stop rather than pushing further"], tags:["competitive","bold"] },
+      { text:"It depends entirely on whether you chose the goal yourself", d:{independence:1,drive:1,adaptability:1}, reason:"Making enjoyment conditional on ownership of the goal, rather than the goal itself, reveals autonomy as the real driver.", tradeoff:"Gains autonomy, at the cost of the follow-through the other path here would have offered instead.", reveals:["Trusts their own judgment over consensus", "Pushes toward the outcome even under resistance", "Adjusts course rather than forcing a plan through"], tags:["independent","analytical"] } ]},
+  { id:"r21", text:"You consider whether the people who know you best would describe you the same way you'd describe yourself.", illustration:"mirror", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Tests perceived alignment between self-image and how you're actually seen.", measures:["selfAwareness","confidence","socialEnergy"], validates:"selfAwareness", unlockConditions:{anyTags:["reflective","warm"]},
+    options:[
+      { text:"Pretty closely, you don't think there's much of a gap", d:{selfAwareness:2,confidence:1,emotionalStability:1}, reason:"Confidently claiming alignment between self-image and outside perception suggests either genuine accuracy or limited scrutiny of the gap.", tradeoff:"Gains self-knowledge, at the cost of the room to be wrong the other path here would have offered instead.", reveals:["Names an uncomfortable truth about themselves", "Acts before being fully sure", "Keeps a level head when things get tense"], tags:["independent","idealist"] },
+      { text:"Probably not, there's likely a side of you that doesn't come across", d:{selfAwareness:1,socialEnergy:-1,openMindedness:1}, reason:"Suspecting a real gap between self-image and perception, without being certain, shows honest uncertainty about your own visibility.", tradeoff:"Gains self-knowledge, at the cost of engagement.", reveals:["Names an uncomfortable truth about themselves", "Chooses distance over engagement", "Stays open to being wrong"], tags:["reflective","cautious"] },
+      { text:"You genuinely don't think about it much either way", d:{independence:1,confidence:1,selfAwareness:-1}, reason:"Not particularly caring how the two compare shows self-image isn't primarily built in reference to outside perception.", tradeoff:"Gains autonomy, at the cost of self-knowledge.", reveals:["Trusts their own judgment over consensus", "Backs their own judgment under pressure", "Doesn't examine their own reaction too closely"], tags:["independent"] } ]},
+  { id:"r22", text:"You think about whether you'd rather be quietly respected by a few people, or broadly liked by many.", illustration:"star", type:"reflective", tone:"serious", difficulty:"medium", purpose:"Forces a ranking between depth and breadth of social regard.", measures:["socialEnergy","independence","confidence"], validates:null, unlockConditions:{anyTags:["independent","competitive"]},
+    options:[
+      { text:"Quietly respected by a few, that feels like the more real version", d:{independence:2,confidence:1,selfAwareness:1}, reason:"Choosing depth of regard over breadth, unprompted, shows a genuine preference for substance over reach.", tradeoff:"Gains autonomy, at the cost of the engagement the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Acts before being fully sure", "Names an uncomfortable truth about themselves"], tags:["independent","idealist"] },
+      { text:"Broadly liked, there's something appealing about being easy for people to warm to", d:{socialEnergy:2,adaptability:1,kindness:1}, reason:"Explicitly valuing wide likability over narrow respect reveals a real, specific social orientation toward breadth.", tradeoff:"Gains engagement, at the cost of the autonomy the other path here would have offered instead.", reveals:["Leans toward people rather than away from them", "Changes approach when the situation shifts", "Softens a hard truth to protect someone"], tags:["warm","playful"] },
+      { text:"Neither much appeals to you as a goal in itself", d:{independence:1,openMindedness:1,confidence:1}, reason:"Rejecting both framings as things worth optimizing for shows social regard isn't a primary driver for you at all.", tradeoff:"Gains autonomy, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Chooses self-reliance over relying on others", "Stays open to being wrong", "Acts before being fully sure"], tags:["independent","reflective"] } ]},
   ],
 
-  impulsive: [
-    { id:"imp1", text:"You're trapped in an elevator with your biggest rival for an unknown amount of time.", options:[
-      { text:"Break the silence and try to clear the air", d:{confidence:2,empathy:1,leadership:1} },
-      { text:"Stay quiet and wait it out", d:{patience:2,independence:1} },
-      { text:"Use the time to needle them a little", d:{humor:1,risk:1,confidence:1} } ]},
-    { id:"imp2", text:"You find a door in a building you've visited a hundred times that you swear you've never seen before.", options:[
-      { text:"Open it immediately", d:{risk:2,curiosity:2} },
-      { text:"Ask a staff member what's behind it first", d:{planning:1,trust:2,curiosity:1} },
-      { text:"Leave it alone, some doors aren't yours to open", d:{patience:1,discipline:1,risk:-1} } ]},
-    { id:"imp3", text:"A stranger offers you a genuinely great opportunity, but you have to decide in the next sixty seconds.", options:[
-      { text:"Say yes, you can figure out details later", d:{risk:2,confidence:1,optimism:1} },
-      { text:"Ask one sharp clarifying question first", d:{logic:1,confidence:1} },
-      { text:"Say no, good opportunities don't need a countdown", d:{discipline:1,trust:-2,patience:1} } ]},
-    { id:"imp4", text:"You're mid-plan when a much more exciting, completely different opportunity shows up.", options:[
-      { text:"Drop the plan and chase the new thing", d:{adaptability:2,risk:2,drive:1} },
-      { text:"Finish what you started first", d:{discipline:2,planning:1} },
-      { text:"Try to find a way to do both", d:{creativity:1,drive:1,adaptability:1} } ]},
-    { id:"imp5", text:"You wake up with a genuinely wild idea you're sure could work.", options:[
-      { text:"Start acting on it before the excitement fades", d:{risk:2,drive:2,confidence:1} },
-      { text:"Write it down and sleep on it", d:{patience:1,planning:2} },
-      { text:"Pitch it to someone else first to test the reaction", d:{socialEnergy:1,trust:2,confidence:1} } ]},
-    { id:"imp6", text:"A once-in-a-lifetime trip appears with almost no notice and a real cost to your plans.", options:[
-      { text:"Go, you can rearrange the rest", d:{risk:2,adaptability:2,optimism:1} },
-      { text:"Weigh it seriously against what you'd give up", d:{planning:2,logic:1} },
-      { text:"Pass, stability matters more to you right now", d:{discipline:1,patience:1,risk:-1} } ]},
-    { id:"imp7", text:"Someone you've been quietly interested in asks you out with almost no warning.", options:[
-      { text:"Say yes immediately, why overthink it", d:{risk:2,confidence:1,optimism:1} },
-      { text:"Say yes, but suggest something low-pressure first", d:{planning:1,risk:1,emotionalStability:2} },
-      { text:"Ask for a day to actually think it over", d:{patience:1,selfAwareness:1,discipline:1} } ]},
-    { id:"imp8", text:"A rare item drops in a game you play, and you have to decide fast whether to use it or save it.", options:[
-      { text:"Use it right now, the moment might not come again", d:{risk:2,drive:1} },
-      { text:"Save it for exactly the right moment", d:{planning:2,patience:1} },
-      { text:"Trade it for something more useful to you now", d:{logic:1,adaptability:1,independence:1} } ]},
-    { id:"imp9", text:"You unexpectedly come into a decent amount of money with no strings attached.", options:[
-      { text:"Spend some right away on something you've wanted forever", d:{risk:1,optimism:1,drive:1} },
-      { text:"Save almost all of it without much internal debate", d:{discipline:2,planning:1,responsibility:2} },
-      { text:"Split it between saving, spending, and giving some away", d:{kindness:1,planning:1} } ]},
-    { id:"imp10", text:"A friend calls with a last-minute trip idea leaving in two days.", options:[
-      { text:"Start packing before you've even hung up", d:{risk:2,adaptability:2,optimism:1} },
-      { text:"Check what you'd actually be giving up first", d:{planning:1,logic:1,responsibility:2} },
-      { text:"Pass this time, but ask for more notice next time", d:{discipline:1,patience:1,risk:-1} } ]},
-    { id:"imp11", text:"You get a sudden, real opportunity to change careers entirely, starting almost from zero.", options:[
-      { text:"Take the leap while the door is open", d:{risk:2,confidence:1,drive:1} },
-      { text:"Build a transition plan first, then move", d:{planning:2,discipline:1} },
-      { text:"Test it part-time before fully committing", d:{logic:1,adaptability:1,persistence:1} } ]},
-    { id:"imp12", text:"At a wedding, the couple suddenly opens the floor for anyone to say a few words.", options:[
-      { text:"Stand up and speak from the heart, unplanned", d:{confidence:2,risk:1,empathy:1} },
-      { text:"Stay seated, better to let it happen organically", d:{patience:1,socialEnergy:-1} },
-      { text:"Quickly think of something short and sincere to say", d:{planning:1,confidence:1,empathy:1} } ]},
-    { id:"imp13", text:"A show you've been meaning to watch has its whole new season out, and it's already late.", options:[
-      { text:"Start it anyway, sleep is negotiable tonight", d:{risk:1,optimism:1} },
-      { text:"Watch one episode and stop on principle", d:{discipline:2,patience:1} },
-      { text:"Save it for the weekend when you can enjoy it properly", d:{planning:2,patience:1} } ]},
-    { id:"imp14", text:"You're offered a genuinely thrilling but slightly risky adventure activity on a trip.", options:[
-      { text:"Sign up on the spot, no second-guessing", d:{risk:2,confidence:1,optimism:1} },
-      { text:"Ask a few real questions about the risk first", d:{logic:1,planning:1,risk:1} },
-      { text:"Watch this time and maybe try it next trip", d:{patience:1,risk:-1,discipline:1} } ]},
-    { id:"imp15", text:"You're handed a wish that has to be used within the next sixty seconds or it disappears.", options:[
-      { text:"Wish for something big and bold without hesitating", d:{risk:2,confidence:1,drive:1} },
-      { text:"Wish for something small but genuinely meaningful", d:{empathy:1,selfAwareness:1,kindness:1} },
-      { text:"Freeze up and let the moment pass", d:{patience:1,emotionalStability:-2,risk:-1} } ]},
-
-    { id:"imp16", text:"You spot a genuinely striking piece of clothing that's a little out of your usual style and budget.", options:[
-      { text:"Buy it right there, it's rare to find something like this", d:{risk:2,confidence:1} },
-      { text:"Try it on, sleep on it, decide tomorrow", d:{patience:1,discipline:1} },
-      { text:"Pass, it's not really you", d:{discipline:1,selfAwareness:1,risk:-1} } ]},
-    { id:"imp17", text:"A local competition opens registration an hour before the deadline and you weren't planning to enter.", options:[
-      { text:"Sign up immediately, prepared or not", d:{risk:2,confidence:1,competitiveness:1} },
-      { text:"Quickly weigh whether you can actually do it justice first", d:{logic:1,planning:1} },
-      { text:"Skip this one and aim for the next", d:{discipline:1,patience:1} } ]},
-    { id:"imp18", text:"A cheap last-minute flight to somewhere you've never been shows up in your inbox.", options:[
-      { text:"Book it before you can talk yourself out of it", d:{risk:2,adaptability:1,optimism:1} },
-      { text:"Check your calendar properly before deciding", d:{planning:1,discipline:1} },
-      { text:"Let it go, spontaneity has limits", d:{discipline:1,risk:-1} } ]},
-    { id:"imp19", text:"At a new restaurant, the menu has one dish you've genuinely never heard of and can't quite picture.", options:[
-      { text:"Order it immediately, that's the whole point of trying new places", d:{curiosity:2,risk:1,openMindedness:1} },
-      { text:"Ask the server exactly what's in it first", d:{logic:1,curiosity:1} },
-      { text:"Stick with something familiar this time", d:{discipline:1,patience:1} } ]},
-    { id:"imp20", text:"A new gadget everyone's talking about goes on sale and you weren't planning to buy one.", options:[
-      { text:"Buy it same day, you can justify it later", d:{risk:1,drive:1,optimism:1} },
-      { text:"Research it properly before deciding", d:{logic:2,discipline:1} },
-      { text:"Wait for the next version, this one will be outdated soon anyway", d:{patience:1,logic:1} } ]},
-
+  moral: [
+  { id:"c07", text:"You're given credit in front of others for something that was actually a team effort.", illustration:"star", type:"moral", tone:"serious", difficulty:"heavy", purpose:"A genuine no-escape ethics fork: every option costs someone something, including possibly you.", measures:["responsibility","confidence","kindness"], validates:null,
+    options:[
+      { text:"Correct it on the spot and name who actually did the work", d:{responsibility:2,confidence:1,trust:1}, reason:"Giving up personal credit in the moment it's being handed to you, publicly, is a costly, real commitment to fairness over image.", tradeoff:"Gains accountability, at the cost of the goodwill the other path here would have offered instead.", reveals:["Accepts accountability without being asked", "Acts before being fully sure", "Gives someone the benefit of the doubt"], tags:["idealist","bold"] },
+      { text:"Let the moment pass, then make sure the credit reaches them privately later", d:{responsibility:1,kindness:1,independence:1}, reason:"Still correcting the record, but avoiding the public correction, trades some fairness for social ease — a real, different cost than option A.", tradeoff:"Gains accountability, at the cost of the conviction the other path here would have offered instead.", reveals:["Accepts accountability without being asked","Softens a hard truth to protect someone","Chooses self-reliance over relying on others"], tags:["pragmatist"] },
+      { text:"Accept it and mention their part only if it's specifically asked", d:{confidence:1,responsibility:-1,independence:1}, reason:"Letting misplaced credit stand unless directly challenged is a real, if uncomfortable, admission of how much the moment is worth to you.", tradeoff:"Gains conviction, at the cost of accountability.", reveals:["Backs their own judgment under pressure", "Lets responsibility sit with someone else", "Trusts their own judgment over consensus"], tags:["cautious"] } ]},
+  { id:"c14", text:"You're offered a shortcut that isn't technically against any rule, but it clearly isn't what the rule was meant to allow.", illustration:"key", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Distinguishes rule-literalism from rule-intent as a genuine values fork, without an escape option.", measures:["trust","competitiveness","discipline"], validates:null,
+    options:[
+      { text:"Take it, it's fair game if it's technically allowed", d:{competitiveness:2,risk:1,trust:-1}, reason:"Choosing letter-of-the-rule over its intent when there's a real advantage on the table is a genuine, specific value: outcomes over spirit.", tradeoff:"Gains an edge, at the cost of closeness.", reveals:["Keeps pushing rather than settling for a tie", "Chooses the less certain, more interesting path", "Stays guarded rather than assuming good faith"], tags:["competitive","pragmatist"] },
+      { text:"Skip it, and quietly flag that the rule probably needs fixing", d:{discipline:2,responsibility:1}, reason:"Refusing the loophole and addressing the gap itself, rather than just personally abstaining, is a distinct, systemic form of integrity.", tradeoff:"Gains consistency, at the cost of the an edge the other path here would have offered instead.", reveals:["Follows through on principle rather than convenience", "Accepts accountability without being asked", "Holds a personal standard even without anyone watching"], tags:["idealist","analytical"] },
+      { text:"Skip it for yourself, but you won't judge anyone else who takes it", d:{discipline:1,openMindedness:2,independence:1}, reason:"Holding a personal standard without projecting it onto others reflects a real, specific kind of moral individualism.", tradeoff:"Gains room to be wrong, at the cost of the an edge the other path here would have offered instead.", reveals:["Reconsiders a position when given a reason to", "Holds a personal standard even without anyone watching", "Trusts their own judgment over consensus"], tags:["independent","reflective"] } ]},
+  { id:"m01", text:"You find out your close friend has been unfaithful to their partner, who is also someone you know.", illustration:"scales", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Classic loyalty-versus-honesty dilemma with a real relationship on each side.", measures:["trust","kindness","responsibility"], validates:"trust", unlockConditions:{anyTags:["idealist","loyal"]},
+    options:[
+      { text:"Tell the partner directly, they deserve to know", d:{trust:2,responsibility:2,kindness:-1}, reason:"Prioritizing the wronged person's right to know over your friend's secret is a costly, specific stand for honesty over loyalty.", tradeoff:"Gains closeness, at the cost of goodwill.", reveals:["Gives someone the benefit of the doubt", "Accepts accountability without being asked", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","bold"] },
+      { text:"Keep the secret, but stop covering for it in any other way", d:{trust:-1,independence:1,kindness:1}, reason:"Protecting the friendship while refusing further complicity is a genuine middle stance, not the same as full loyalty.", tradeoff:"Gains autonomy, at the cost of closeness.", reveals:["Withholds trust until it's proven", "Trusts their own judgment over consensus", "Chooses someone else's comfort over their own convenience"], tags:["loyal","pragmatist"] },
+      { text:"Push your friend hard to confess it themselves, on a real deadline", d:{leadership:1,responsibility:1,trust:1}, reason:"Refusing to either tell or fully protect, and instead forcing your friend's hand, shifts the cost onto them rather than resolving it yourself.", tradeoff:"Gains control, at the cost of the autonomy the other path here would have offered instead.", reveals:["Steps into the gap when no one else will", "Takes ownership even when it costs them", "Extends trust before it's fully earned"], tags:["idealist","bold"] } ]},
+  { id:"m02", text:"You witness someone take credit for a serious mistake that was actually caused by someone else who's already struggling.", illustration:"scales", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Justice-versus-mercy fork where correcting the record actively hurts someone vulnerable.", measures:["responsibility","kindness","trust"], validates:"responsibility", unlockConditions:{anyTags:["idealist","warm"]},
+    options:[
+      { text:"Correct the record, the truth matters even if it lands badly", d:{responsibility:2,trust:1,kindness:-1}, reason:"Choosing accuracy even when it worsens someone's already hard situation is a real, costly commitment to fairness.", tradeoff:"Gains accountability, at the cost of goodwill.", reveals:["Takes ownership even when it costs them", "Extends trust before it's fully earned", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","bold"] },
+      { text:"Say nothing publicly, but quietly help the struggling person recover from it", d:{kindness:2,empathy:1,responsibility:-1}, reason:"Letting the misattribution stand while working around it to help the person harmed is a genuine, different form of care.", tradeoff:"Gains goodwill, at the cost of accountability.", reveals:["Chooses someone else's comfort over their own convenience", "Prioritizes how someone else is feeling", "Lets responsibility sit with someone else"], tags:["warm","pragmatist"] },
+      { text:"Go directly to the person who took credit and demand they fix it themselves", d:{leadership:1,confidence:1,responsibility:1}, reason:"Forcing the responsible party to correct it themselves, rather than doing it for them or staying silent, shifts accountability without you absorbing the fallout.", tradeoff:"Gains control, at the cost of the closeness the other path here would have offered instead.", reveals:["Takes the lead without being asked", "Acts before being fully sure", "Accepts accountability without being asked"], tags:["bold","idealist"] } ]},
+  { id:"m03", text:"You can guarantee a good outcome for someone you love by being dishonest with someone else who trusts you completely.", illustration:"key", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Direct conflict between two real people's interests with no third path available.", measures:["trust","kindness","responsibility"], validates:"trust", unlockConditions:{anyTags:["loyal","idealist"]},
+    options:[
+      { text:"Go through with it, the person you love matters more here", d:{kindness:2,trust:-2}, reason:"Choosing loyalty to someone you love over honesty to someone who trusts you is a real, specific ranking of relationships.", tradeoff:"Gains goodwill, at the cost of closeness.", reveals:["Softens a hard truth to protect someone", "Stays guarded rather than assuming good faith", "Chooses someone else's comfort over their own convenience"], tags:["loyal","warm"] },
+      { text:"Refuse, and tell the person you love you won't do it this way", d:{trust:2,responsibility:1,kindness:-1}, reason:"Protecting your own integrity even at the cost of disappointing someone you love shows principle outranking closeness here.", tradeoff:"Gains closeness, at the cost of goodwill.", reveals:["Gives someone the benefit of the doubt", "Accepts accountability without being asked", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","independent"] },
+      { text:"Tell the trusting person the full truth yourself, and let the outcome fall where it falls", d:{trust:2,responsibility:2,kindness:-2}, reason:"Refusing to be dishonest at all, even by omission, and accepting whatever damage that causes, is the costliest but most principle-driven path.", tradeoff:"Gains closeness, at the cost of goodwill.", reveals:["Gives someone the benefit of the doubt", "Accepts accountability without being asked", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","bold"] } ]},
+  { id:"m04", text:"You can help one of two people who both genuinely need it, but not both, and time is running out to decide.", illustration:"bridge", type:"moral", tone:"serious", difficulty:"heavy", purpose:"A forced allocation dilemma with no way to split the resource.", measures:["kindness","logic","responsibility"], validates:null, unlockConditions:{anyTags:["intense","analytical"]},
+    options:[
+      { text:"Help whichever one you're closer to, that bond means something", d:{kindness:1,trust:1,logic:-1}, reason:"Letting closeness decide, rather than treating both needs as equal, is an honest, specific prioritization of relationship over impartiality.", tradeoff:"Gains goodwill, at the cost of clarity.", reveals:["Chooses someone else's comfort over their own convenience", "Extends trust before it's fully earned", "Leans on instinct over analysis"], tags:["loyal","warm"] },
+      { text:"Help whichever one's need is objectively more urgent, regardless of closeness", d:{logic:2,responsibility:1,kindness:-1}, reason:"Overriding personal closeness in favor of a more impartial standard shows fairness ranked above relationship here.", tradeoff:"Gains clarity, at the cost of goodwill.", reveals:["Reasons through a situation before acting", "Accepts accountability without being asked", "Chooses honesty or fairness over someone's comfort"], tags:["idealist","analytical"] },
+      { text:"Make the call fast on instinct and live with not being sure it was right", d:{confidence:1,risk:1,emotionalStability:-1}, reason:"Accepting a decision made under real uncertainty, rather than freezing, shows a willingness to act despite the cost of doubt.", tradeoff:"Gains conviction, at the cost of composure.", reveals:["Backs their own judgment under pressure", "Accepts uncertainty in exchange for upside", "Lets the moment's weight actually register"], tags:["bold","intense"] } ]},
+  { id:"m05", text:"You discover a way to get real, lasting recognition for your work, but it requires letting someone else believe something untrue about their own contribution.", illustration:"star", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Ambition-versus-honesty where the dishonesty is passive, by omission, not an active lie.", measures:["responsibility","competitiveness","trust"], validates:"responsibility", unlockConditions:{anyTags:["competitive","idealist"]},
+    options:[
+      { text:"Let the misunderstanding stand and take the recognition", d:{competitiveness:2,drive:1,trust:-2}, reason:"Accepting a real gain built on someone else's false belief, even passively, is a specific and costly choice about what recognition is worth to you.", tradeoff:"Gains an edge, at the cost of closeness.", reveals:["Keeps pushing rather than settling for a tie", "Stays guarded rather than assuming good faith", "Keeps moving rather than settling"], tags:["competitive","bold"] },
+      { text:"Correct their understanding, even though it costs you the recognition", d:{trust:2,responsibility:2,competitiveness:-1}, reason:"Actively giving up a real gain to prevent someone else's false belief from standing shows honesty outranking ambition.", tradeoff:"Gains closeness, at the cost of an edge.", reveals:["Gives someone the benefit of the doubt", "Accepts accountability without being asked", "Steps back from a contest rather than pressing an advantage"], tags:["idealist","independent"] },
+      { text:"Take partial recognition and make sure they still get real credit too", d:{responsibility:1,creativity:1,competitiveness:1}, reason:"Refusing the clean binary and engineering a split outcome shows a preference for shared truth over either full gain or full sacrifice.", tradeoff:"Gains accountability, at the cost of the momentum the other path here would have offered instead.", reveals:["Accepts accountability without being asked", "Builds a new option instead of picking a given one", "Keeps pushing rather than settling for a tie"], tags:["pragmatist","analytical"] } ]},
+  { id:"m06", text:"Someone asks you to keep a secret that, if kept, protects them but leaves someone else genuinely misinformed about something that affects their life.", illustration:"key", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Confidentiality versus a third party's right to relevant information.", measures:["trust","responsibility","independence"], validates:"trust", unlockConditions:{anyTags:["loyal","idealist"]},
+    options:[
+      { text:"Keep the secret exactly as asked", d:{trust:1,responsibility:-1}, reason:"Honoring the specific request even at a real cost to a third party's informed decisions shows confidentiality weighted very heavily.", tradeoff:"Gains closeness, at the cost of accountability.", reveals:["Extends trust before it's fully earned", "Lets responsibility sit with someone else", "Gives someone the benefit of the doubt"], tags:["loyal"] },
+      { text:"Tell the person who asked that you can't keep this one, and let them decide what happens next", d:{responsibility:2,trust:1,confidence:1}, reason:"Refusing complicity while still not unilaterally breaking the confidence yourself is a distinct middle path with its own real cost.", tradeoff:"Gains accountability, at the cost of the originality the other path here would have offered instead.", reveals:["Accepts accountability without being asked", "Gives someone the benefit of the doubt", "Acts before being fully sure"], tags:["idealist","bold"] },
+      { text:"Find a way to get the missing information to the third party without naming the source", d:{creativity:2,responsibility:1,trust:-1}, reason:"Trying to serve both obligations by protecting the source while still surfacing the truth is a resourceful, if riskier, third path.", tradeoff:"Gains originality, at the cost of closeness.", reveals:["Reaches for an unconventional solution", "Takes ownership even when it costs them", "Withholds trust until it's proven"], tags:["analytical","pragmatist"] } ]},
+  { id:"m07", text:"You have to decide whether to enforce a rule exactly as written on someone who broke it for a genuinely sympathetic reason.", illustration:"scales", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Justice-as-consistency versus justice-as-context.", measures:["discipline","empathy","responsibility"], validates:"discipline", unlockConditions:{anyTags:["analytical","warm"]},
+    options:[
+      { text:"Enforce it exactly as written, the rule has to mean the same thing for everyone", d:{discipline:2,responsibility:1,empathy:-1}, reason:"Holding the line even against a sympathetic exception shows consistency valued over context here.", tradeoff:"Gains consistency, at the cost of connection.", reveals:["Follows through on principle rather than convenience", "Accepts accountability without being asked", "Prioritizes the outcome over someone's feelings"], tags:["idealist","analytical"] },
+      { text:"Make an exception, the reason behind it genuinely changes what's fair here", d:{empathy:2,kindness:1,discipline:-1}, reason:"Bending a rule for context, even knowing it sets a precedent, shows fairness understood as situational rather than absolute.", tradeoff:"Gains connection, at the cost of consistency.", reveals:["Prioritizes how someone else is feeling", "Chooses someone else's comfort over their own convenience", "Lets a standard slide when it's inconvenient"], tags:["warm","pragmatist"] },
+      { text:"Enforce it, but do what you can afterward to soften the actual consequence", d:{responsibility:1,kindness:1,discipline:1}, reason:"Refusing to bend the rule itself while still working to reduce its impact shows both consistency and empathy operating together, at some cost to each.", tradeoff:"Gains accountability, at the cost of the connection the other path here would have offered instead.", reveals:["Takes ownership even when it costs them", "Chooses someone else's comfort over their own convenience", "Holds a personal standard even without anyone watching"], tags:["pragmatist","idealist"] } ]},
+  { id:"m08", text:"You can prevent a real, upcoming disappointment for someone you care about, but only by taking a choice away from them without telling them.", illustration:"puzzle", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Protective paternalism versus respecting someone's right to their own outcome.", measures:["independence","kindness","trust"], validates:"independence", unlockConditions:{anyTags:["warm","independent"]},
+    options:[
+      { text:"Step in and quietly redirect things so they never have to face it", d:{kindness:2,independence:-1,trust:-1}, reason:"Choosing to protect someone from pain by overriding their autonomy, without their knowledge, is a real and costly paternalism.", tradeoff:"Gains goodwill, at the cost of autonomy.", reveals:["Softens a hard truth to protect someone", "Chooses connection or reliance over going it alone", "Stays guarded rather than assuming good faith"], tags:["warm","loyal"] },
+      { text:"Let them face it, it's their outcome to have, even if it hurts", d:{independence:2,trust:1,kindness:-1}, reason:"Respecting someone's right to their own disappointment, even when you could prevent it, shows autonomy outranking protection.", tradeoff:"Gains autonomy, at the cost of goodwill.", reveals:["Trusts their own judgment over consensus", "Extends trust before it's fully earned", "Chooses honesty or fairness over someone's comfort"], tags:["independent","idealist"] },
+      { text:"Tell them what you see coming and let them decide how to handle it", d:{trust:2,empathy:1,confidence:1}, reason:"Giving them the information rather than deciding for them, even though it removes the element of surprise, respects their agency while still caring enough to warn them.", tradeoff:"Gains closeness, at the cost of the goodwill the other path here would have offered instead.", reveals:["Extends trust before it's fully earned", "Prioritizes how someone else is feeling", "Backs their own judgment under pressure"], tags:["idealist","warm"] } ]},
+  { id:"m09", text:"You're the only one who can stop a plan you helped build, once you realize it will genuinely hurt someone who trusted the group.", illustration:"bridge", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Personal cost of principle: stopping something you helped create.", measures:["responsibility","leadership","persistence"], validates:null, unlockConditions:{anyTags:["idealist","bold"]},
+    options:[
+      { text:"Stop it, even though you helped build it and it'll cost you credibility", d:{responsibility:2,confidence:1,persistence:-1}, reason:"Reversing your own position publicly, at real cost to your standing, shows principle outweighing consistency or pride.", tradeoff:"Gains accountability, at the cost of follow-through.", reveals:["Accepts accountability without being asked", "Acts before being fully sure", "Knows when to stop rather than pushing further"], tags:["idealist","bold"] },
+      { text:"Try to quietly modify it so the harm is minimized without stopping it entirely", d:{creativity:1,responsibility:1,leadership:1}, reason:"Working within the plan to reduce harm, rather than halting it outright, reflects a preference for repair over rupture.", tradeoff:"Gains originality, at the cost of the conviction the other path here would have offered instead.", reveals:["Reaches for an unconventional solution", "Takes ownership even when it costs them", "Steps into the gap when no one else will"], tags:["pragmatist","analytical"] },
+      { text:"Let it proceed, you already committed and others are counting on it too", d:{persistence:1,responsibility:-1}, reason:"Prioritizing your commitment to the group over the harm you now foresee is a real, uncomfortable but honest choice.", tradeoff:"Gains follow-through, at the cost of accountability.", reveals:["Sees something through past the easy stopping point", "Lets responsibility sit with someone else", "Keeps going after the initial effort stops paying off"], tags:["loyal","independent"] } ]},
+  { id:"m10", text:"You can take an opportunity that's clearly better for you, knowing it will cost someone else something they can't easily recover from.", illustration:"roadsplit", type:"moral", tone:"serious", difficulty:"heavy", purpose:"Self-interest versus someone else's real, disproportionate cost.", measures:["competitiveness","empathy","independence"], validates:"competitiveness", unlockConditions:{anyTags:["competitive","warm"]},
+    options:[
+      { text:"Take it, opportunities like this don't come around twice", d:{competitiveness:2,drive:1,empathy:-1}, reason:"Choosing a real personal gain over someone else's disproportionate loss is a specific, honest statement about where self-interest sits for you.", tradeoff:"Gains an edge, at the cost of connection.", reveals:["Measures the situation by whether they're winning", "Pushes toward the outcome even under resistance", "Prioritizes the outcome over someone's feelings"], tags:["competitive","bold"] },
+      { text:"Pass on it, you couldn't live with what it costs them", d:{empathy:2,kindness:1,competitiveness:-1}, reason:"Giving up a genuine advantage specifically because of its cost to someone else shows empathy outweighing ambition here.", tradeoff:"Gains connection, at the cost of an edge.", reveals:["Reads the emotional stakes before acting", "Softens a hard truth to protect someone", "Steps back from a contest rather than pressing an advantage"], tags:["warm","idealist"] },
+      { text:"Take it, but do what you can afterward to help them recover from the cost", d:{competitiveness:1,responsibility:1,kindness:1}, reason:"Accepting the gain while committing to offset the damage shows an attempt to hold both self-interest and care at once, at a real cost to the cleanness of either.", tradeoff:"Gains an edge, at the cost of the momentum the other path here would have offered instead.", reveals:["Keeps pushing rather than settling for a tie", "Accepts accountability without being asked", "Softens a hard truth to protect someone"], tags:["pragmatist","analytical"] } ]},
   ],
 
-  empathic: [
-    { id:"emp1", text:"Your best friend admits they lied to protect someone you both care about.", options:[
-      { text:"Understand it, even if you wouldn't have done the same", d:{empathy:2,trust:2,patience:1} },
-      { text:"Push them to come clean to the person involved", d:{discipline:1,leadership:1,logic:1} },
-      { text:"Feel a little hurt that they didn't tell you first", d:{selfAwareness:1,empathy:1,trust:-2} } ]},
-    { id:"emp2", text:"A coworker takes credit for an idea that was mostly yours, in front of everyone.", options:[
-      { text:"Speak up and correct the record on the spot", d:{confidence:2,leadership:1} },
-      { text:"Let it go publicly, but address it privately later", d:{patience:1,discipline:1,empathy:1} },
-      { text:"Let it slide entirely, it's not worth the conflict", d:{patience:1,independence:1,trust:-2} } ]},
-    { id:"emp3", text:"Someone close to you is clearly struggling but insists they're fine.", options:[
-      { text:"Gently keep checking in until they open up", d:{empathy:2,patience:2} },
-      { text:"Respect their space and let them come to you", d:{patience:1,trust:2,independence:1} },
-      { text:"Do something small and kind without making it a big deal", d:{kindness:2,empathy:1} } ]},
-    { id:"emp4", text:"You overhear two friends arguing about something involving you, but they don't know you heard.", options:[
-      { text:"Bring it up honestly so it doesn't fester", d:{confidence:1,trust:2,leadership:1} },
-      { text:"Let it play out and see if it resolves itself", d:{patience:2,independence:1} },
-      { text:"Try to smooth things over without mentioning what you heard", d:{empathy:2,adaptability:1} } ]},
-    { id:"emp5", text:"A stranger is visibly overwhelmed in public and clearly needs help.", options:[
-      { text:"Step in directly and ask if they're okay", d:{empathy:2,confidence:1,kindness:1} },
-      { text:"Quietly find someone better equipped to help", d:{planning:1,empathy:1} },
-      { text:"Give them space, assuming they'd rather handle it alone", d:{patience:1,independence:1} } ]},
-    { id:"emp6", text:"You have to deliver honest, difficult feedback to someone who's trying their best.", options:[
-      { text:"Say it clearly and directly, kindness through honesty", d:{confidence:1,discipline:1,kindness:1} },
-      { text:"Soften it heavily so it doesn't hurt", d:{empathy:2,kindness:1} },
-      { text:"Delay it until you're sure exactly how to phrase it", d:{patience:1,planning:1,empathy:1} } ]},
-    { id:"emp7", text:"A family member says something hurtful during an argument that probably wasn't fully meant.", options:[
-      { text:"Let it go once things calm down, it was said in the heat of it", d:{patience:2,empathy:1,emotionalStability:2} },
-      { text:"Bring it up honestly once everyone's calm", d:{confidence:1,responsibility:2,trust:2} },
-      { text:"Need some real distance before you're ready to talk about it", d:{independence:1,emotionalStability:2,patience:1} } ]},
-    { id:"emp8", text:"Your partner is clearly having a rough day but insists they don't want to talk about it.", options:[
-      { text:"Stay close by without pushing for details", d:{empathy:2,patience:2} },
-      { text:"Do something small and thoughtful instead of asking questions", d:{kindness:2,empathy:1} },
-      { text:"Give them real space and check in again later", d:{independence:1,patience:1,trust:2} } ]},
-    { id:"emp9", text:"You remember a moment as a kid when an adult made you feel truly seen and understood.", options:[
-      { text:"Try to be that person for someone younger now", d:{empathy:2,kindness:1,responsibility:2} },
-      { text:"Carry it quietly as something that shaped who you are", d:{selfAwareness:2} },
-      { text:"Reach out and actually tell that person it mattered", d:{confidence:1,empathy:1,socialEnergy:1} } ]},
-    { id:"emp10", text:"A teammate is clearly struggling to keep up but hasn't said anything about it.", options:[
-      { text:"Quietly offer to help without making it a big deal", d:{empathy:2,kindness:1} },
-      { text:"Bring it up with the team so the workload gets rebalanced", d:{leadership:1,responsibility:3} },
-      { text:"Let them ask for help when they're ready", d:{patience:1,trust:2,independence:1} } ]},
-    { id:"emp11", text:"A close friend fails at something they'd worked toward for a long time.", options:[
-      { text:"Sit with them in it before saying anything fix-it shaped", d:{empathy:2,patience:1} },
-      { text:"Help them find the next practical step forward", d:{logic:1,leadership:1,empathy:1} },
-      { text:"Remind them of everything they did right along the way", d:{optimism:1,kindness:1,empathy:1} } ]},
-    { id:"emp12", text:"A character on a show you love makes a choice that genuinely upsets you.", options:[
-      { text:"Try to understand what would drive someone to that", d:{empathy:2,curiosity:1,openMindedness:1} },
-      { text:"Just feel the frustration, it's allowed to be upsetting", d:{emotionalStability:0,humor:0} },
-      { text:"Talk it through with whoever else watched it", d:{socialEnergy:1,empathy:1} } ]},
-    { id:"emp13", text:"A stranger online is venting about something painful in a comment section.", options:[
-      { text:"Leave a genuinely kind reply, even though you don't know them", d:{kindness:2,empathy:1} },
-      { text:"Scroll past, it's not really your place", d:{independence:1,patience:1} },
-      { text:"Report or flag it if it seems like they need real help", d:{responsibility:3,empathy:1} } ]},
-    { id:"emp14", text:"Your partner's family situation is a lot more complicated than your own.", options:[
-      { text:"Ask questions and genuinely try to understand it", d:{empathy:2,curiosity:1,openMindedness:1} },
-      { text:"Follow their lead on how much to get involved", d:{patience:1,trust:2,empathy:1} },
-      { text:"Keep some healthy distance from it either way", d:{independence:1,discipline:1} } ]},
-    { id:"emp15", text:"You realize, looking back, that you weren't very kind to someone who needed you once.", options:[
-      { text:"Reach out now, even if it's years later", d:{confidence:1,responsibility:3,empathy:1} },
-      { text:"Let it teach you something and be different going forward", d:{selfAwareness:2,kindness:1} },
-      { text:"Try not to dwell on it too much, everyone's imperfect", d:{emotionalStability:2,optimism:1} } ]},
-
-    { id:"emp16", text:"A friend at college is clearly overwhelmed but keeps insisting they're managing fine.", options:[
-      { text:"Check in consistently, even if they keep brushing it off", d:{empathy:2,patience:2} },
-      { text:"Help with something concrete instead of just asking how they are", d:{kindness:2,responsibility:2} },
-      { text:"Respect that they might genuinely want to handle it alone", d:{patience:1,trust:2,independence:1} } ]},
-    { id:"emp17", text:"Someone you're close to just lost a competition they'd trained hard for.", options:[
-      { text:"Let them feel it fully before saying anything encouraging", d:{empathy:2,patience:1} },
-      { text:"Remind them of everything that actually went right", d:{optimism:1,kindness:1,empathy:1} },
-      { text:"Help them start planning the next attempt", d:{leadership:1,logic:1,empathy:1} } ]},
-    { id:"emp18", text:"You notice an animal that seems distressed, maybe lost or hurt, in an unfamiliar place.", options:[
-      { text:"Stop everything and try to help it directly", d:{kindness:2,empathy:1,risk:1} },
-      { text:"Find someone or somewhere better equipped to help", d:{responsibility:3,logic:1} },
-      { text:"Keep an eye on it while figuring out the right move", d:{patience:1,empathy:1,logic:1} } ]},
-    { id:"emp19", text:"An older family member is anxious and a little embarrassed about not understanding new technology.", options:[
-      { text:"Sit with them and teach it patiently, however long it takes", d:{patience:2,kindness:1,empathy:1} },
-      { text:"Set it up simply for them so they don't have to stress about it", d:{kindness:1,responsibility:2} },
-      { text:"Reassure them it's genuinely not a big deal", d:{empathy:1,optimism:1,kindness:1} } ]},
-    { id:"emp20", text:"A friend tells you an embarrassing story about themselves and clearly needs it to land as funny, not awkward.", options:[
-      { text:"Laugh warmly and make it feel like a bonding moment", d:{humor:1,empathy:2} },
-      { text:"Match their energy and share an embarrassing one of your own", d:{empathy:1,humor:1,trust:2} },
-      { text:"Reassure them it's honestly not that bad", d:{kindness:1,empathy:1} } ]},
-
+  emotional: [
+  { id:"c11", text:"You find out a decision you made a while ago accidentally hurt someone you care about.", illustration:"heart", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests guilt processing and repair instinct when intent was never malicious.", measures:["empathy","responsibility","emotionalStability"], validates:"empathy",
+    options:[
+      { text:"Reach out immediately, even though it's uncomfortable to bring up", d:{empathy:2,responsibility:2,confidence:-1}, reason:"Reopening a closed, uncomfortable topic unprompted to make it right costs real comfort, showing repair matters more than avoiding awkwardness.", tradeoff:"Gains connection, at the cost of conviction.", reveals:["Reads the emotional stakes before acting", "Accepts accountability without being asked", "Lets doubt slow down a decision"], tags:["idealist","warm"] },
+      { text:"Wait for the right moment so it doesn't feel forced or sudden", d:{planning:1,empathy:1,patience:1}, reason:"Still intending repair, but on a timeline chosen for their comfort rather than your urgency, shows a different, more measured form of care.", tradeoff:"Gains preparedness, at the cost of the accountability the other path here would have offered instead.", reveals:["Prepares rather than improvising", "Reads the emotional stakes before acting", "Lets a situation play out before intervening"], tags:["pragmatist"] },
+      { text:"Carry the guilt privately and let your future actions make up for it", d:{responsibility:1,emotionalStability:-1,independence:1}, reason:"Choosing silent compensation over direct acknowledgment is a genuine, if avoidant, way of taking responsibility.", tradeoff:"Gains accountability, at the cost of composure.", reveals:["Takes ownership even when it costs them", "Lets the moment's weight actually register", "Trusts their own judgment over consensus"], tags:["cautious","reflective"] } ]},
+  { id:"em01", text:"You have feelings for a close friend, and saying so could either deepen the friendship or end it completely.", illustration:"heart", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Classic vulnerability-versus-safety fork with a real, named relationship at stake.", measures:["risk","confidence","trust"], validates:"risk", unlockConditions:{anyTags:["intense","bold"]},
+    options:[
+      { text:"Tell them, the uncertainty of not knowing is worse than the risk", d:{risk:2,confidence:1,emotionalStability:-1}, reason:"Choosing to risk a valued friendship rather than live with unspoken feelings shows honesty with yourself outweighing safety.", tradeoff:"Gains upside, at the cost of composure.", reveals:["Accepts uncertainty in exchange for upside", "Backs their own judgment under pressure", "Lets the moment's weight actually register"], tags:["bold","idealist"] },
+      { text:"Keep it to yourself and let the friendship stay exactly as it is", d:{patience:1,independence:1,risk:-2}, reason:"Protecting a known good over a possible better one shows real risk-aversion specifically where it costs the most.", tradeoff:"Gains stability, at the cost of upside.", reveals:["Protects against a worse outcome over a better one", "Tolerates discomfort rather than forcing resolution", "Trusts their own judgment over consensus"], tags:["cautious","loyal"] },
+      { text:"Let it show a little and see how they respond before deciding anything further", d:{emotionalStability:1,adaptability:1,confidence:1}, reason:"Testing the water incrementally rather than committing to either extreme shows a measured, information-gathering approach to vulnerability.", tradeoff:"Gains composure, at the cost of the upside the other path here would have offered instead.", reveals:["Stays steady under pressure", "Adjusts course rather than forcing a plan through", "Backs their own judgment under pressure"], tags:["pragmatist","reflective"] } ]},
+  { id:"em02", text:"You could make an irreversible sacrifice, right now, to meaningfully help someone you love.", illustration:"heart", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests where self-preservation sits relative to love, when the cost is permanent.", measures:["kindness","independence","resilience"], validates:null, unlockConditions:{anyTags:["loyal","intense"]},
+    options:[
+      { text:"Do it without much hesitation, this is what love actually costs sometimes", d:{kindness:2,resilience:1,independence:-1}, reason:"Accepting a permanent personal cost quickly, without extended deliberation, shows the sacrifice barely registers as a choice at all.", tradeoff:"Gains goodwill, at the cost of autonomy.", reveals:["Softens a hard truth to protect someone", "Treats a setback as temporary", "Chooses connection or reliance over going it alone"], tags:["loyal","warm"] },
+      { text:"Do it, but you'll carry what it cost you for a long time", d:{kindness:1,emotionalStability:-1,resilience:1}, reason:"Following through while openly acknowledging the lasting cost shows love winning without pretending the sacrifice is free.", tradeoff:"Gains goodwill, at the cost of composure.", reveals:["Chooses someone else's comfort over their own convenience", "Lets the moment's weight actually register", "Recovers forward rather than dwelling"], tags:["intense","idealist"] },
+      { text:"Look hard for a version that helps them without being irreversible", d:{creativity:1,planning:1,independence:1}, reason:"Refusing to accept the sacrifice as truly necessary until every alternative is exhausted shows self-preservation still has real weight for you.", tradeoff:"Gains originality, at the cost of the goodwill the other path here would have offered instead.", reveals:["Reaches for an unconventional solution", "Structures uncertainty before acting", "Trusts their own judgment over consensus"], tags:["analytical","independent"] } ]},
+  { id:"em03", text:"You think about someone you've lost touch with, or lost entirely, who you never got to say something important to.", illustration:"heart", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests how unresolved emotional business is carried or released.", measures:["emotionalStability","resilience","selfAwareness"], validates:"emotionalStability", unlockConditions:{anyTags:["reflective","intense"]},
+    options:[
+      { text:"You've found peace with it, even without ever getting to say it", d:{resilience:2,emotionalStability:1,optimism:1}, reason:"Reaching genuine peace without the closure of actually saying it shows real internal resolution, not avoidance.", tradeoff:"Gains forward motion, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Treats a setback as temporary", "Keeps a level head when things get tense", "Expects things to work out"], tags:["independent","idealist"] },
+      { text:"It still catches you off guard sometimes, even now", d:{emotionalStability:-1,selfAwareness:1,persistence:1}, reason:"Admitting it still surfaces unexpectedly, rather than claiming it's fully settled, is an honest, specific emotional read.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Notices their own patterns in real time", "Keeps going after the initial effort stops paying off"], tags:["intense","reflective"] },
+      { text:"You've found other ways to say it, even if they'll never hear it", d:{creativity:1,kindness:1,emotionalStability:1}, reason:"Actively creating a substitute form of closure shows a specific, resourceful way of processing something unfinished.", tradeoff:"Gains originality, at the cost of the forward motion the other path here would have offered instead.", reveals:["Reaches for an unconventional solution", "Chooses someone else's comfort over their own convenience", "Stays steady under pressure"], tags:["reflective","warm"] } ]},
+  { id:"em04", text:"Someone in your family disappointed you in a way that still affects how you see them.", illustration:"heart", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Family loyalty versus honest disappointment, a harder version of forgiveness.", measures:["kindness","trust","emotionalStability"], validates:"trust", unlockConditions:{anyTags:["loyal","intense"]},
+    options:[
+      { text:"You've mostly let it go, family gets a different standard than most people", d:{kindness:2,patience:1,trust:1}, reason:"Extending a specifically higher tolerance to family, by name, shows a deliberate, not automatic, forgiveness standard.", tradeoff:"Gains goodwill, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Tolerates discomfort rather than forcing resolution", "Extends trust before it's fully earned"], tags:["loyal","warm"] },
+      { text:"You've forgiven it, but the way you see them has genuinely changed", d:{selfAwareness:2,emotionalStability:1,trust:-1}, reason:"Separating forgiveness from restored trust shows a nuanced, honest emotional accounting rather than an all-or-nothing resolution.", tradeoff:"Gains self-knowledge, at the cost of closeness.", reveals:["Notices their own patterns in real time", "Stays steady under pressure", "Withholds trust until it's proven"], tags:["reflective","idealist"] },
+      { text:"You haven't really forgiven it, and you're not sure you owe that yet", d:{independence:1,confidence:1,trust:-2}, reason:"Refusing forgiveness on a timeline that isn't yours, even for family, shows real boundaries around what's owed automatically.", tradeoff:"Gains autonomy, at the cost of closeness.", reveals:["Withholds trust until it's proven", "Trusts their own judgment over consensus", "Backs their own judgment under pressure"], tags:["independent","bold"] } ]},
+  { id:"em05", text:"You consider whether you've ever felt genuinely lonely in a room full of people who care about you.", illustration:"anchor", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Distinguishes loneliness from isolation, a specific and revealing distinction.", measures:["socialEnergy","selfAwareness","emotionalStability"], validates:null, unlockConditions:{anyTags:["reflective","intense"]},
+    options:[
+      { text:"Yes, more than once, and it's a strange kind of lonely to explain", d:{selfAwareness:2,emotionalStability:-1,openMindedness:1}, reason:"Naming a specific, hard-to-articulate feeling shows deep self-observation rather than a generic answer.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Stays open to being wrong"], tags:["reflective","intense"] },
+      { text:"Not really, being around people who care tends to actually reach you", d:{socialEnergy:2,trust:1,optimism:1}, reason:"Genuine relief from presence, rather than performed contentment, shows connection functionally working for you as intended.", tradeoff:"Gains engagement, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Draws energy from engaging with others", "Extends trust before it's fully earned", "Frames setbacks as temporary"], tags:["warm","loyal"] },
+      { text:"You're honestly not sure you'd recognize it if it happened", d:{selfAwareness:-1,independence:1,curiosity:1}, reason:"Admitting uncertainty about your own emotional state, rather than claiming clarity either way, is an honest and specific limit of self-knowledge.", tradeoff:"Gains autonomy, at the cost of self-knowledge.", reveals:["Doesn't examine their own reaction too closely", "Trusts their own judgment over consensus", "Chooses exploration over certainty"], tags:["independent","cautious"] } ]},
+  { id:"em06", text:"You think about whether you've ever loved someone more than they loved you back, and whether you've made peace with that.", illustration:"heart", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests processing of asymmetric love, a common but rarely named experience.", measures:["emotionalStability","confidence","resilience"], validates:"emotionalStability", unlockConditions:{anyTags:["intense","reflective"]},
+    options:[
+      { text:"Yes, and you've made real peace with it, it doesn't define how you love now", d:{resilience:2,emotionalStability:1,optimism:1}, reason:"Genuine resolution that doesn't color future relationships shows real emotional processing rather than lingering guardedness.", tradeoff:"Gains forward motion, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Treats a setback as temporary", "Keeps a level head when things get tense", "Expects things to work out"], tags:["idealist","independent"] },
+      { text:"Yes, and honestly, it still shapes how carefully you love now", d:{selfAwareness:1,trust:-1,resilience:1}, reason:"Admitting the imbalance still influences your caution today is an honest, specific, less comfortable disclosure.", tradeoff:"Gains self-knowledge, at the cost of closeness.", reveals:["Names an uncomfortable truth about themselves", "Stays guarded rather than assuming good faith", "Treats a setback as temporary"], tags:["cautious","reflective"] },
+      { text:"You try hard not to keep score like that in the first place", d:{kindness:1,openMindedness:1,confidence:1}, reason:"Rejecting the framing of love as something measured or balanced shows a distinct philosophy about how it should work.", tradeoff:"Gains goodwill, at the cost of the forward motion the other path here would have offered instead.", reveals:["Softens a hard truth to protect someone", "Stays open to being wrong", "Acts before being fully sure"], tags:["idealist","warm"] } ]},
+  { id:"em07", text:"You consider a moment you were genuinely, deeply proud of someone else, more than you've ever told them.", illustration:"star", type:"emotional", tone:"intimate", difficulty:"medium", purpose:"Tests whether love and pride get expressed or just privately held.", measures:["kindness","socialEnergy","confidence"], validates:null, unlockConditions:{anyTags:["warm","loyal"]},
+    options:[
+      { text:"You should probably just tell them, so you decide to", d:{confidence:2,kindness:1,socialEnergy:1}, reason:"Acting on the realization rather than just noting it shows expression winning over the comfort of staying private.", tradeoff:"Gains conviction, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Chooses someone else's comfort over their own convenience", "Draws energy from engaging with others"], tags:["warm","bold"] },
+      { text:"You think about telling them, but it stays unsaid, as usual", d:{socialEnergy:-1,selfAwareness:1,confidence:-1}, reason:"Naming the pattern of holding back, honestly, without pretending you'll change it, is a real self-observation.", tradeoff:"Gains self-knowledge, at the cost of engagement.", reveals:["Chooses distance over engagement", "Names an uncomfortable truth about themselves", "Lets doubt slow down a decision"], tags:["reflective","cautious"] },
+      { text:"You show it in how you treat them instead of saying it outright", d:{kindness:2,responsibility:1,socialEnergy:-1}, reason:"Choosing action over words as your love language shows a specific, consistent way of expressing care that doesn't require saying it.", tradeoff:"Gains goodwill, at the cost of engagement.", reveals:["Softens a hard truth to protect someone", "Accepts accountability without being asked", "Chooses distance over engagement"], tags:["independent","loyal"] } ]},
+  { id:"em08", text:"You think about whether you trust people quickly and get hurt sometimes, or trust slowly and miss out sometimes.", illustration:"key", type:"emotional", tone:"intimate", difficulty:"medium", purpose:"Direct self-report on trust calibration and its known cost.", measures:["trust","risk","emotionalStability"], validates:"trust", unlockConditions:{anyTags:["warm","cautious"]},
+    options:[
+      { text:"Quickly, and yes, it's cost you before, but you'd rather risk it than close off", d:{trust:2,risk:1,openMindedness:1}, reason:"Continuing to trust quickly despite known past cost shows the value placed on openness outweighs the pain of being wrong.", tradeoff:"Gains closeness, at the cost of the consistency the other path here would have offered instead.", reveals:["Gives someone the benefit of the doubt", "Chooses the less certain, more interesting path", "Stays open to being wrong"], tags:["warm","adventurous"] },
+      { text:"Slowly, and you're at peace with whatever that costs you in missed connection", d:{trust:-1,discipline:1,independence:1}, reason:"Accepting the tradeoff of slower trust, including its real cost, shows a deliberate, examined caution rather than fear.", tradeoff:"Gains consistency, at the cost of closeness.", reveals:["Stays guarded rather than assuming good faith", "Follows through on principle rather than convenience", "Chooses self-reliance over relying on others"], tags:["cautious","independent"] },
+      { text:"It's changed a lot depending on who's hurt you most recently", d:{emotionalStability:-1,adaptability:1,selfAwareness:1}, reason:"Admitting your trust calibration shifts with recent experience, rather than staying fixed, is an honest, specific volatility.", tradeoff:"Gains flexibility, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Adjusts course rather than forcing a plan through", "Notices their own patterns in real time"], tags:["reflective","intense"] } ]},
+  { id:"em09", text:"You consider the last time you truly needed someone and whether you actually let them see that.", illustration:"anchor", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests the gap between needing support and being willing to show it.", measures:["independence","trust","emotionalStability"], validates:"independence", unlockConditions:{anyTags:["independent","reflective"]},
+    options:[
+      { text:"You let them see it fully, there wasn't much point hiding it", d:{trust:2,socialEnergy:1,independence:-1}, reason:"Full, unguarded visibility in a moment of real need shows trust operating even under the most vulnerable conditions.", tradeoff:"Gains closeness, at the cost of autonomy.", reveals:["Extends trust before it's fully earned", "Draws energy from engaging with others", "Chooses connection or reliance over going it alone"], tags:["warm","idealist"] },
+      { text:"You let them help, but you kept a version of yourself composed the whole time", d:{discipline:1,independence:1,emotionalStability:1}, reason:"Accepting support while still maintaining some composure shows need and self-control coexisting rather than one overriding the other.", tradeoff:"Gains consistency, at the cost of the closeness the other path here would have offered instead.", reveals:["Follows through on principle rather than convenience", "Chooses self-reliance over relying on others", "Keeps a level head when things get tense"], tags:["independent","cautious"] },
+      { text:"Honestly, you don't think you let them fully see it, even now", d:{independence:2,selfAwareness:1,trust:-1}, reason:"Admitting you kept real need hidden even from someone close is an honest, specific, less comfortable disclosure about your own guardedness.", tradeoff:"Gains autonomy, at the cost of closeness.", reveals:["Chooses self-reliance over relying on others", "Names an uncomfortable truth about themselves", "Stays guarded rather than assuming good faith"], tags:["independent","intense"] } ]},
+  { id:"em10", text:"You think about whether you've ever forgiven someone mostly for your own sake, not really for theirs.", illustration:"scales", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests understanding of forgiveness as self-directed relief versus relational repair.", measures:["kindness","selfAwareness","independence"], validates:"kindness", unlockConditions:{anyTags:["reflective","idealist"]},
+    options:[
+      { text:"Yes, and you're fine with that being the real reason", d:{selfAwareness:2,independence:1,kindness:1}, reason:"Naming self-interest as a legitimate motive for forgiveness, without discomfort, shows a mature, unsentimental view of it.", tradeoff:"Gains self-knowledge, at the cost of the consistency the other path here would have offered instead.", reveals:["Notices their own patterns in real time", "Trusts their own judgment over consensus", "Chooses someone else's comfort over their own convenience"], tags:["independent","idealist"] },
+      { text:"You'd like to think it was for them, but honestly, probably not entirely", d:{selfAwareness:2,confidence:-1,kindness:-1}, reason:"Admitting the less flattering truth behind your own forgiveness, rather than the comfortable story, is a real act of honesty.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Second-guesses their own read of a situation", "Chooses honesty or fairness over someone's comfort"], tags:["reflective","intense"] },
+      { text:"You try to make sure it's genuinely for the other person, not just relief", d:{kindness:2,discipline:1,empathy:1}, reason:"Actively checking your own motive and steering it toward the other person shows forgiveness treated as a discipline, not just a feeling.", tradeoff:"Gains goodwill, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Softens a hard truth to protect someone", "Follows through on principle rather than convenience", "Reads the emotional stakes before acting"], tags:["idealist","warm"] } ]},
+  { id:"em11", text:"You consider whether the people who love you know the version of you that exists when no one's watching.", illustration:"masks", type:"emotional", tone:"intimate", difficulty:"heavy", purpose:"Tests perceived gap between the private self and the self shown to loved ones.", measures:["trust","selfAwareness","independence"], validates:"trust", unlockConditions:{anyTags:["intense","independent"]},
+    options:[
+      { text:"Mostly yes, there isn't that much distance between the two versions", d:{trust:2,emotionalStability:1,selfAwareness:1}, reason:"Claiming close alignment between private and shown selves suggests real integration rather than compartmentalization.", tradeoff:"Gains closeness, at the cost of the autonomy the other path here would have offered instead.", reveals:["Gives someone the benefit of the doubt", "Keeps a level head when things get tense", "Names an uncomfortable truth about themselves"], tags:["idealist","warm"] },
+      { text:"Some of them do, but not all, and that's been on purpose", d:{independence:1,trust:-1,selfAwareness:1}, reason:"Deliberately gating access to your private self, even from people who love you, shows a specific, examined kind of guardedness.", tradeoff:"Gains autonomy, at the cost of closeness.", reveals:["Trusts their own judgment over consensus", "Withholds trust until it's proven", "Notices their own patterns in real time"], tags:["independent","cautious"] },
+      { text:"Probably not, and that gap bothers you more than you usually let on", d:{selfAwareness:2,emotionalStability:-1,trust:-1}, reason:"Admitting the gap exists and that it's a real source of discomfort, unprompted, is a costly and honest disclosure.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Stays guarded rather than assuming good faith"], tags:["reflective","intense"] } ]},
   ],
 
-  leadership: [
-    { id:"lea1", text:"Your boss offers you double pay in exchange for taking credit away from a teammate.", options:[
-      { text:"Refuse immediately, no negotiation", d:{trust:3,kindness:1,discipline:1} },
-      { text:"Push back and propose a version that's fair to both", d:{leadership:2,logic:1} },
-      { text:"Take a beat to think it through before responding", d:{patience:1,selfAwareness:1,logic:1} } ]},
-    { id:"lea2", text:"A group project is falling apart and no one has stepped up to organize it.", options:[
-      { text:"Take charge and assign clear next steps", d:{leadership:2,planning:1,confidence:1} },
-      { text:"Quietly start doing the coordinating work yourself", d:{discipline:1,independence:1,leadership:1} },
-      { text:"Wait to see if someone else naturally takes the lead", d:{patience:1,adaptability:1,leadership:-1} } ]},
-    { id:"lea3", text:"Two teammates are in a disagreement that's slowing everything down.", options:[
-      { text:"Mediate directly and push for a decision", d:{leadership:2,empathy:1} },
-      { text:"Let them work it out without your input", d:{independence:1,patience:1,trust:2} },
-      { text:"Propose a compromise that gives both something", d:{creativity:1,leadership:1,empathy:1} } ]},
-    { id:"lea4", text:"You're suddenly the most experienced person in the room on a topic everyone's relying on.", options:[
-      { text:"Step up and guide the group confidently", d:{leadership:2,confidence:2} },
-      { text:"Share what you know but let others weigh in equally", d:{empathy:1,leadership:1,humor:0} },
-      { text:"Feel the pressure but push through anyway", d:{resilience:2,confidence:1,leadership:1} } ]},
-    { id:"lea5", text:"A plan you championed is starting to visibly fail in front of everyone.", options:[
-      { text:"Own it publicly and pivot fast", d:{leadership:2,resilience:3,selfAwareness:1} },
-      { text:"Defend the plan while quietly adjusting it", d:{confidence:1,discipline:1} },
-      { text:"Ask the group for honest input on what to change", d:{empathy:1,leadership:1,trust:2} } ]},
-    { id:"lea6", text:"You're offered a leadership role you don't feel fully ready for.", options:[
-      { text:"Take it, you'll grow into it", d:{confidence:2,risk:1,drive:1} },
-      { text:"Take it, but ask for support along the way", d:{selfAwareness:1,trust:2,leadership:1} },
-      { text:"Turn it down until you feel genuinely ready", d:{patience:1,selfAwareness:1,confidence:-1} } ]},
-    { id:"lea7", text:"A project you led falls behind schedule and it's partly your fault.", options:[
-      { text:"Own it fully in front of the whole team", d:{responsibility:3,leadership:1,confidence:1} },
-      { text:"Fix what you can quietly and explain later if asked", d:{discipline:1,independence:1,responsibility:2} },
-      { text:"Get the team together to solve it as a group", d:{leadership:2,socialEnergy:1} } ]},
-    { id:"lea8", text:"Your family is deciding something big together and everyone has a different opinion.", options:[
-      { text:"Help guide the conversation toward an actual decision", d:{leadership:1,patience:1,responsibility:2} },
-      { text:"Voice your view once, then let others lead", d:{confidence:1,patience:1} },
-      { text:"Stay mostly quiet and support whatever gets decided", d:{patience:2,adaptability:1} } ]},
-    { id:"lea9", text:"You're offered a promotion that means managing people who used to be your peers.", options:[
-      { text:"Take it and figure out the dynamic as you go", d:{confidence:2,risk:1,leadership:1} },
-      { text:"Take it, but have an honest conversation with them first", d:{empathy:1,leadership:1,responsibility:2} },
-      { text:"Turn it down, you'd rather stay where you are", d:{independence:1,discipline:1,leadership:-1} } ]},
-    { id:"lea10", text:"You're leading a guild or team in a game and someone quits mid-event, leaving a gap.", options:[
-      { text:"Reorganize on the fly and keep things moving", d:{leadership:2,adaptability:2} },
-      { text:"Reach out to them first to see if something's actually wrong", d:{empathy:1,leadership:1} },
-      { text:"Recruit a replacement and move forward without dwelling on it", d:{drive:1,leadership:1,persistence:1} } ]},
-    { id:"lea11", text:"You witness something at work that feels ethically off, but reporting it could cause real friction.", options:[
-      { text:"Report it, regardless of the fallout", d:{responsibility:3,confidence:1,trust:2} },
-      { text:"Raise it privately with the person first", d:{empathy:1,leadership:1,responsibility:2} },
-      { text:"Document it and wait to see if it happens again", d:{planning:1,patience:1,logic:1} } ]},
-    { id:"lea12", text:"You're planning a big group event and two people both want to be in charge of the same part.", options:[
-      { text:"Split the task in a way that plays to both their strengths", d:{leadership:2,logic:1} },
-      { text:"Let them sort it out between themselves", d:{patience:1,independence:1} },
-      { text:"Make the call yourself and explain your reasoning", d:{confidence:1,leadership:2} } ]},
-    { id:"lea13", text:"A crisis hits your community and people are looking for someone to organize a response.", options:[
-      { text:"Step up immediately, even without being asked", d:{leadership:2,confidence:1,responsibility:2} },
-      { text:"Support whoever does step up as much as you can", d:{kindness:1,adaptability:1,leadership:1} },
-      { text:"Focus on the part you can personally help with most", d:{responsibility:2,independence:1} } ]},
-    { id:"lea14", text:"You're teaching someone a skill you're genuinely good at, and they're struggling to get it.", options:[
-      { text:"Break it down slower and stay patient through the repeats", d:{patience:2,empathy:1} },
-      { text:"Try a completely different way of explaining it", d:{creativity:1,adaptability:1,leadership:1} },
-      { text:"Let them struggle a bit longer before stepping in again", d:{patience:1,trust:2} } ]},
-    { id:"lea15", text:"Your idea gets picked over a colleague's in a meeting, and they seem visibly frustrated.", options:[
-      { text:"Talk to them privately afterward", d:{empathy:1,leadership:1,responsibility:2} },
-      { text:"Give them real credit for parts of their idea going forward", d:{kindness:1,leadership:1} },
-      { text:"Let it be, competition is normal", d:{confidence:1,competitiveness:1,independence:1} } ]},
-
-    { id:"lea16", text:"You're the one who actually understands the group project topic best, and it shows.", options:[
-      { text:"Take the lead and assign the workload", d:{leadership:2,confidence:1} },
-      { text:"Teach the others enough that leadership isn't just on you", d:{leadership:1,empathy:1,patience:1} },
-      { text:"Do more than your share quietly rather than manage people", d:{responsibility:3,independence:1} } ]},
-    { id:"lea17", text:"You're organizing a trip for a big group of friends with very different budgets.", options:[
-      { text:"Design one plan that works within the tightest budget", d:{leadership:1,empathy:1,planning:1} },
-      { text:"Offer tiered options so everyone can opt into what fits", d:{planning:2,leadership:1} },
-      { text:"Let people self-select into smaller compatible groups", d:{adaptability:1,leadership:1} } ]},
-    { id:"lea18", text:"Your team is about to enter a competitive event and morale is a little shaky.", options:[
-      { text:"Give a real, honest pep talk before it starts", d:{leadership:2,confidence:1,empathy:1} },
-      { text:"Focus everyone on the plan instead of the nerves", d:{logic:1,leadership:1,discipline:1} },
-      { text:"Lighten the mood with humor first", d:{humor:2,leadership:1} } ]},
-    { id:"lea19", text:"You're mentoring someone younger in a creative skill you've spent years developing.", options:[
-      { text:"Push them hard, growth happens under real challenge", d:{discipline:1,leadership:1,drive:1} },
-      { text:"Let them experiment freely before correcting anything", d:{patience:2,openMindedness:1} },
-      { text:"Tailor your approach specifically to how they learn best", d:{empathy:2,leadership:1} } ]},
-    { id:"lea20", text:"Your workplace is rolling out a new piece of technology and half the team is resistant to it.", options:[
-      { text:"Champion it publicly and show people it's not so bad", d:{leadership:2,confidence:1} },
-      { text:"Listen to the resistance first, there might be a real reason", d:{empathy:1,logic:1,leadership:1} },
-      { text:"Quietly master it yourself and let results speak", d:{independence:1,discipline:1,drive:1} } ]},
-
-  ],
-
-  philosophical: [
-    { id:"phi1", text:"You could know the exact date of your death, but never anything else about the future.", options:[
-      { text:"Yes, you'd plan your life around it", d:{planning:2,logic:1,drive:1} },
-      { text:"No, not knowing is part of what makes life feel open", d:{optimism:1,independence:1} },
-      { text:"You'd want to know, but you're not sure you could handle it", d:{selfAwareness:2,empathy:1} } ]},
-    { id:"phi2", text:"A machine could make you perfectly happy forever, but it's not real, would you plug in?", options:[
-      { text:"No, a real, imperfect life matters more than manufactured happiness", d:{selfAwareness:2,resilience:2} },
-      { text:"Yes, happiness is happiness, real or not", d:{optimism:1,risk:1} },
-      { text:"You'd want to try it briefly, then decide", d:{curiosity:2,adaptability:1} } ]},
-    { id:"phi3", text:"You find out a core belief you've held for years was built on a mistake.", options:[
-      { text:"Let it go immediately and rebuild from scratch", d:{selfAwareness:2,adaptability:1} },
-      { text:"Sit with it for a while before changing anything", d:{patience:2,logic:1} },
-      { text:"Keep the parts of it that still feel true to you", d:{independence:1,selfAwareness:1,confidence:1} } ]},
-    { id:"phi4", text:"Would you rather always know the truth, or always be comfortable?", options:[
-      { text:"Truth, every time, even when it's painful", d:{logic:2,resilience:2,confidence:1} },
-      { text:"Comfort, some truths aren't worth the cost", d:{empathy:1,patience:1,optimism:1} },
-      { text:"Depends entirely on who else it affects", d:{empathy:2,selfAwareness:1} } ]},
-    { id:"phi5", text:"You're given the chance to relive one year of your life exactly as it happened.", options:[
-      { text:"Yes, you'd want to feel it all again, mistakes included", d:{optimism:2,resilience:2} },
-      { text:"No, you'd rather move only forward", d:{drive:1,independence:1} },
-      { text:"Only if you could change one small thing", d:{selfAwareness:1,logic:1} } ]},
-    { id:"phi6", text:"Is it better to be feared, respected, or liked, if you could only pick one?", options:[
-      { text:"Respected, it lasts longer than the other two", d:{leadership:2,discipline:1} },
-      { text:"Liked, connection matters more than status", d:{empathy:1,kindness:1,socialEnergy:1} },
-      { text:"None of those matter as much as being understood", d:{selfAwareness:2,independence:1} } ]},
-    { id:"phi7", text:"Would you rather achieve real success that feels hollow, or genuine happiness that looks small from outside?", options:[
-      { text:"Happiness, quietly, every time", d:{optimism:2,selfAwareness:1} },
-      { text:"Success, it tends to create happiness eventually", d:{drive:2,confidence:1} },
-      { text:"You'd want to find a version that's actually both", d:{planning:1,optimism:1,logic:1} } ]},
-    { id:"phi8", text:"Is a regret you never act on still worth carrying, or is it just wasted weight?", options:[
-      { text:"It still teaches you something, even unresolved", d:{selfAwareness:2,resilience:2} },
-      { text:"Better to let it go completely if you're not acting on it", d:{emotionalStability:4,optimism:1} },
-      { text:"Depends entirely on what the regret actually is", d:{logic:1,selfAwareness:1} } ]},
-    { id:"phi9", text:"If you knew for certain your biggest dream would never happen, would you still chase it?", options:[
-      { text:"Yes, the chasing has its own value", d:{persistence:2,optimism:1} },
-      { text:"No, you'd redirect that energy somewhere winnable", d:{logic:2,adaptability:1} },
-      { text:"You'd want proof first, certainty like that is rare", d:{logic:1,curiosity:1} } ]},
-    { id:"phi10", text:"Does failure actually teach more than success does, or is that just something people say to feel better?", options:[
-      { text:"Genuinely, yes, failure is where the real lessons are", d:{resilience:3,selfAwareness:1} },
-      { text:"Success teaches plenty too, just different things", d:{optimism:1,logic:1} },
-      { text:"Depends on whether you actually reflect on either one", d:{selfAwareness:2,logic:1} } ]},
-    { id:"phi11", text:"A childhood memory you're fond of turns out to have not happened quite the way you remember it.", options:[
-      { text:"The feeling still matters more than the exact facts", d:{optimism:1,openMindedness:1} },
-      { text:"You'd want to know the real version, however it lands", d:{logic:2,selfAwareness:1} },
-      { text:"It makes you wonder what else you've misremembered", d:{curiosity:1,selfAwareness:2} } ]},
-    { id:"phi12", text:"Is it better to be afraid of the right things, or afraid of nothing at all?", options:[
-      { text:"Afraid of the right things, fear can be useful information", d:{logic:1,selfAwareness:1,discipline:1} },
-      { text:"Afraid of nothing, fear mostly just gets in the way", d:{risk:2,confidence:1} },
-      { text:"Somewhere in between, fully fearless sounds exhausting to maintain", d:{emotionalStability:2,logic:1} } ]},
-    { id:"phi13", text:"If money were never a factor again, would your daily life actually look different?", options:[
-      { text:"Completely different, money is the main thing in the way", d:{drive:1,optimism:1} },
-      { text:"Barely different, you're already doing what matters to you", d:{selfAwareness:2,optimism:1} },
-      { text:"You honestly don't know until you'd have to test it", d:{curiosity:1,selfAwareness:1} } ]},
-    { id:"phi14", text:"Do people mostly change who they are, or mostly just become more of who they already were?", options:[
-      { text:"People become more of who they already were", d:{selfAwareness:1,logic:1} },
-      { text:"People genuinely change, given the right circumstances", d:{optimism:1,openMindedness:2} },
-      { text:"Both happen, just on very different timelines", d:{logic:1,openMindedness:1} } ]},
-    { id:"phi15", text:"What matters more in the long run, being remembered, or having actually mattered while you were here?", options:[
-      { text:"Having mattered, being remembered is out of your control anyway", d:{selfAwareness:2,kindness:1} },
-      { text:"Being remembered still counts for something real", d:{drive:1,confidence:1} },
-      { text:"They're more connected than they first seem", d:{logic:1,openMindedness:1} } ]},
-
-    { id:"phi16", text:"If an AI could perfectly predict your next decision every time, would that change how you make decisions?", options:[
-      { text:"Yes, knowing you're predictable might push you to surprise it", d:{independence:1,risk:1,openMindedness:1} },
-      { text:"No, the decision would still feel like yours either way", d:{selfAwareness:2,confidence:1} },
-      { text:"It would mostly just make you curious how it's done", d:{curiosity:2,logic:1} } ]},
-    { id:"phi17", text:"Do animals experience something close to what we'd call an inner life, or is that mostly us projecting?", options:[
-      { text:"Almost certainly yes, in their own way", d:{empathy:2,openMindedness:1} },
-      { text:"Hard to say, and that uncertainty is honestly interesting", d:{curiosity:2,logic:1} },
-      { text:"Probably simpler than we like to imagine", d:{logic:2} } ]},
-    { id:"phi18", text:"Is home a place, or is it something you carry with you wherever you actually end up?", options:[
-      { text:"A place, specifically, it's not interchangeable", d:{trust:2,discipline:1} },
-      { text:"Something you carry, it's the people and habits, not the address", d:{independence:1,optimism:1,selfAwareness:1} },
-      { text:"A mix, and it changes depending on the season of your life", d:{adaptability:2,openMindedness:1} } ]},
-    { id:"phi19", text:"Does real competition make people better, or does it just make people more anxious versions of who they already were?", options:[
-      { text:"It makes people genuinely better, pressure reveals capacity", d:{competitiveness:2,drive:1} },
-      { text:"It mostly just amplifies whatever was already there", d:{selfAwareness:2,logic:1} },
-      { text:"Depends entirely on whether the competition feels fair", d:{logic:1,empathy:1} } ]},
-    { id:"phi20", text:"Is art meant to be understood, or is being felt enough, even without full understanding?", options:[
-      { text:"Felt is enough, understanding is optional", d:{creativity:1,openMindedness:2} },
-      { text:"Understanding deepens the feeling, both matter", d:{logic:1,curiosity:1,creativity:1} },
-      { text:"Depends entirely on what the art is trying to do", d:{logic:1,openMindedness:1} } ]},
-
-  ],
-
-  playful: [
-    { id:"pla1", text:"You're given a fake stopwatch that can pause real time for exactly sixty seconds, once.", options:[
-      { text:"Save it for a genuine emergency", d:{planning:2,discipline:1} },
-      { text:"Use it immediately just to see what happens", d:{curiosity:2,risk:2} },
-      { text:"Use it to do something small and delightful for someone else", d:{kindness:2,creativity:1} } ]},
-    { id:"pla2", text:"You can instantly become fluent in one skill, but everyone will know you cheated to get it.", options:[
-      { text:"Don't care, take the skill anyway", d:{confidence:2,risk:1} },
-      { text:"Skip it, earning things matters to your identity", d:{discipline:2,selfAwareness:1} },
-      { text:"Take it, but only tell people who'd understand", d:{trust:2,selfAwareness:1,humor:1} } ]},
-    { id:"pla3", text:"Everyone at a gathering is asked to share an embarrassing story about themselves.", options:[
-      { text:"Go all in with your best one", d:{confidence:2,humor:2,socialEnergy:1} },
-      { text:"Share something mild and safe", d:{patience:1,socialEnergy:1} },
-      { text:"Deflect with a joke instead of a real story", d:{humor:2,independence:1} } ]},
-    { id:"pla4", text:"You get to add one universally understood rule to how the world works, purely for fun.", options:[
-      { text:"Everyone has to dance for ten seconds on their birthday", d:{humor:2,creativity:1} },
-      { text:"Everyone gets one genuinely honest compliment a day", d:{kindness:2,empathy:1} },
-      { text:"Everyone gets one free redo on their worst decision", d:{empathy:1,optimism:2} } ]},
-    { id:"pla5", text:"A game night turns unexpectedly, hilariously competitive.", options:[
-      { text:"Lean all the way into winning", d:{drive:2,confidence:1,risk:1} },
-      { text:"Play it up for laughs more than the win", d:{humor:2,socialEnergy:1} },
-      { text:"Quietly make sure everyone's still having fun", d:{empathy:2,leadership:1} } ]},
-    { id:"pla6", text:"You could have any harmless, ridiculous superpower for one day.", options:[
-      { text:"Talk to animals, just to see what they'd say", d:{curiosity:2,humor:1} },
-      { text:"Teleport anywhere, instantly", d:{independence:2,risk:1} },
-      { text:"Make anyone laugh, guaranteed", d:{humor:2,empathy:1} } ]},
-    { id:"pla7", text:"A meme format takes over the internet for exactly one week and then vanishes forever.", options:[
-      { text:"Ride it hard while it lasts", d:{humor:2,socialEnergy:1,openMindedness:1} },
-      { text:"Watch from a distance and enjoy other people's versions", d:{humor:1,patience:1} },
-      { text:"Make one good one and move on", d:{creativity:1,humor:1,discipline:1} } ]},
-    { id:"pla8", text:"You're given a game power that lets you swap places with any NPC for exactly one hour.", options:[
-      { text:"Pick the most chaotic background character available", d:{humor:2,risk:1,openMindedness:1} },
-      { text:"Pick someone who seems to be having a genuinely great life", d:{curiosity:1,optimism:1} },
-      { text:"Pick the shopkeeper, free reign of the inventory for an hour", d:{humor:1,risk:1} } ]},
-    { id:"pla9", text:"Two completely different TV shows are getting a surprise crossover episode, your pick.", options:[
-      { text:"Two shows that would clash hilariously in tone", d:{humor:2,creativity:1} },
-      { text:"Two shows whose characters would genuinely get along", d:{empathy:1,creativity:1} },
-      { text:"Two shows that would just break reality entirely", d:{creativity:2,openMindedness:1} } ]},
-    { id:"pla10", text:"You find the exact toy or game you were obsessed with as a kid, still in its original box.", options:[
-      { text:"Open it immediately, nostalgia doesn't keep", d:{risk:1,optimism:1,openMindedness:1} },
-      { text:"Keep it sealed as a little time capsule", d:{discipline:1,patience:1} },
-      { text:"Track down the exact person you used to play it with", d:{socialEnergy:2,empathy:1} } ]},
-    { id:"pla11", text:"A wedding you're at hits a moment of pure, unplanned chaos, the cake falls, the mic cuts out, something.", options:[
-      { text:"Laugh loudly, it's the best part of the story now", d:{humor:2,optimism:1,adaptability:1} },
-      { text:"Quietly try to help fix it", d:{kindness:1,responsibility:2,adaptability:1} },
-      { text:"Film it discreetly for posterity", d:{humor:1,curiosity:1} } ]},
-    { id:"pla12", text:"You meet a genuinely friendly mythical creature that grants exactly one small, silly wish.", options:[
-      { text:"Wish to always know the perfect thing to say", d:{confidence:1,humor:1,socialEnergy:1} },
-      { text:"Wish for a pet version of the creature itself", d:{humor:2,openMindedness:1} },
-      { text:"Wish to understand what animals are actually thinking", d:{curiosity:2,empathy:1} } ]},
-    { id:"pla13", text:"Your family tells the same embarrassing story about you every single gathering.", options:[
-      { text:"Lean into it and tell it better than they do", d:{humor:2,confidence:1} },
-      { text:"Groan through it every time, it never gets old to them", d:{patience:1,humor:1} },
-      { text:"Retaliate with an embarrassing story of your own", d:{humor:2,competitiveness:1} } ]},
-    { id:"pla14", text:"You're on a first date and the conversation turns into an unexpectedly ridiculous hypothetical game.", options:[
-      { text:"Go all in, the weirder the better", d:{humor:2,openMindedness:2} },
-      { text:"Play along but keep it a little grounded", d:{adaptability:1,humor:1} },
-      { text:"Redirect toward something a bit more real", d:{selfAwareness:1,patience:1} } ]},
-    { id:"pla15", text:"You're asked to predict, for fun, what your life looks like in an absurdly exaggerated ten years.", options:[
-      { text:"Go with the most over-the-top version possible", d:{humor:2,optimism:1,openMindedness:1} },
-      { text:"Give a genuinely hopeful, grounded answer instead", d:{optimism:2,selfAwareness:1} },
-      { text:"Deflect with a joke about how unpredictable life is", d:{humor:2,adaptability:1} } ]},
-
-    { id:"pla16", text:"Your pet could suddenly talk, fluently, for exactly five minutes.", options:[
-      { text:"Ask them what they actually think of you", d:{confidence:1,humor:1,curiosity:1} },
-      { text:"Ask if they're happy and what would make life better for them", d:{empathy:2,kindness:1} },
-      { text:"Ask them to settle an old argument about what they did that one time", d:{humor:2,curiosity:1} } ]},
-    { id:"pla17", text:"You receive exactly one letter from your future self, no more contact allowed after this.", options:[
-      { text:"Hope it's full of specific, practical advice", d:{planning:1,logic:1,curiosity:1} },
-      { text:"Hope it's mostly just reassurance that things turn out okay", d:{optimism:2,empathy:1} },
-      { text:"Almost don't want to open it, some things are better unknown", d:{discipline:1,independence:1} } ]},
-    { id:"pla18", text:"A surprisingly polite dragon knocks and asks, sincerely, if you'd like to become its roommate.", options:[
-      { text:"Say yes immediately, this is objectively incredible", d:{risk:2,openMindedness:2,optimism:1} },
-      { text:"Ask a lot of very reasonable logistical questions first", d:{logic:2,planning:1} },
-      { text:"Politely decline, but ask to stay in touch", d:{kindness:1,discipline:1,patience:1} } ]},
-    { id:"pla19", text:"You find a mysterious, ornate key that doesn't seem to match any lock you know of.", options:[
-      { text:"Spend the next while actively trying every lock you can find", d:{persistence:2,curiosity:1} },
-      { text:"Keep it somewhere safe and let the mystery be its own reward", d:{patience:1,openMindedness:1} },
-      { text:"Show it to someone who might actually know what it's from", d:{socialEnergy:1,curiosity:1,trust:2} } ]},
-    { id:"pla20", text:"You're granted the ability to instantly become fluent in the language of exactly one animal.", options:[
-      { text:"Dogs, obviously, the drama alone would be worth it", d:{humor:2,empathy:1} },
-      { text:"Crows, they clearly know something we don't", d:{curiosity:2,openMindedness:1} },
-      { text:"Whatever animal would tell you the most useful things", d:{logic:1,curiosity:1} } ]},
-
-  ],
-
-  cautious: [
-    { id:"cau1", text:"A financial opportunity promises big returns but asks you to move fast with no guarantees.", options:[
-      { text:"Pass, if it's rushing you, it's a red flag", d:{discipline:2,trust:-2,logic:1} },
-      { text:"Put in a small amount to test it", d:{risk:1,logic:1,planning:1} },
-      { text:"Go all in, big rewards need big risk", d:{risk:2,confidence:1,optimism:1} } ]},
-    { id:"cau2", text:"You're offered a comfortable, stable path or an exciting, uncertain one.", options:[
-      { text:"Stable, peace of mind wins", d:{discipline:2,patience:1,planning:1} },
-      { text:"Exciting, regret scares you more than risk does", d:{risk:2,drive:2} },
-      { text:"You'd want a plan to eventually combine both", d:{planning:2,creativity:1} } ]},
-    { id:"cau3", text:"Before a big decision, you realize you don't have all the information you'd like.", options:[
-      { text:"Gather more before deciding, even if it takes time", d:{planning:2,patience:1,discipline:1} },
-      { text:"Decide anyway with what you've got", d:{risk:1,confidence:1,adaptability:1} },
-      { text:"Ask someone more experienced to weigh in", d:{trust:3,empathy:1} } ]},
-    { id:"cau4", text:"You've saved up for something you've wanted for a long time, and a tempting alternative appears.", options:[
-      { text:"Stick to the original plan", d:{discipline:2,patience:1} },
-      { text:"Switch, if the new option is genuinely better", d:{adaptability:2,logic:1} },
-      { text:"Sleep on it for a few days first", d:{patience:2,planning:1} } ]},
-    { id:"cau5", text:"You're about to try something physically or socially risky for the first time.", options:[
-      { text:"Just go for it, overthinking ruins the moment", d:{risk:2,confidence:2} },
-      { text:"Prepare thoroughly first", d:{planning:2,discipline:1} },
-      { text:"Bring someone along for support", d:{trust:2,socialEnergy:1,empathy:1} } ]},
-    { id:"cau6", text:"A rule at work or school seems outdated, but breaking it could cause real trouble.", options:[
-      { text:"Follow it anyway, not your fight today", d:{discipline:2,patience:1} },
-      { text:"Push to change it through the proper channels", d:{leadership:2,logic:1} },
-      { text:"Quietly work around it if no one's really watching", d:{risk:1,independence:1,adaptability:1} } ]},
-    { id:"cau7", text:"A friend pitches a business idea and wants you to invest your own savings.", options:[
-      { text:"Ask for real numbers before considering anything", d:{logic:2,discipline:1} },
-      { text:"Invest a small, safe amount to support them", d:{kindness:1,risk:1,planning:1} },
-      { text:"Say no to money, but offer to help in other ways", d:{discipline:2,trust:2} } ]},
-    { id:"cau8", text:"You're deciding whether to take a stable job offer or hold out for a riskier, better one.", options:[
-      { text:"Take the stable offer, certainty has real value", d:{discipline:2,planning:1} },
-      { text:"Hold out, the upside is worth the wait", d:{risk:2,persistence:1} },
-      { text:"Take the stable one while quietly still looking", d:{planning:2,logic:1} } ]},
-    { id:"cau9", text:"Your family is discussing a big shared financial decision that affects everyone.", options:[
-      { text:"Push for the most conservative option available", d:{discipline:2,responsibility:2} },
-      { text:"Advocate for taking a calculated chance", d:{risk:1,logic:1,confidence:1} },
-      { text:"Trust whoever in the family knows finances best", d:{trust:3,patience:1} } ]},
-    { id:"cau10", text:"You're dating someone great, but a few small things about them keep nagging at you.", options:[
-      { text:"Bring it up early, better to know now", d:{confidence:1,responsibility:2} },
-      { text:"Watch a while longer before deciding it matters", d:{patience:2,logic:1} },
-      { text:"Let it go, nobody's perfect", d:{optimism:1,trust:2} } ]},
-    { id:"cau11", text:"A game you love adds a purchase that promises a real edge, for real money.", options:[
-      { text:"Buy it without much hesitation", d:{risk:1,drive:1} },
-      { text:"Skip it on principle, you'd rather earn it", d:{discipline:2,persistence:1} },
-      { text:"Wait to see if it's actually worth it first", d:{logic:1,patience:1,discipline:1} } ]},
-    { id:"cau12", text:"Your team wants to try a completely untested approach right before a major deadline.", options:[
-      { text:"Push back, this isn't the moment to gamble", d:{discipline:2,responsibility:2} },
-      { text:"Support a small test version of it instead", d:{logic:1,adaptability:1,planning:1} },
-      { text:"Trust the team and go for it fully", d:{trust:3,risk:1} } ]},
-    { id:"cau13", text:"Before a serious long-term commitment, you realize you still have real doubts.", options:[
-      { text:"Voice the doubts honestly before going further", d:{confidence:1,responsibility:3} },
-      { text:"Give it more time to see if the doubts fade", d:{patience:2,discipline:1} },
-      { text:"Trust your gut and decide either way", d:{confidence:1,risk:1} } ]},
-    { id:"cau14", text:"An adventure activity you want to try has a real, if small, chance of injury.", options:[
-      { text:"Do it anyway, some risk is worth the experience", d:{risk:2,optimism:1} },
-      { text:"Do it, but only with every safety precaution available", d:{planning:2,discipline:1} },
-      { text:"Skip it, the odds don't need to favor you every time", d:{discipline:2,patience:1} } ]},
-    { id:"cau15", text:"You've failed at the same kind of thing twice before and a third chance just showed up.", options:[
-      { text:"Try again, third time might genuinely be different", d:{persistence:2,optimism:1} },
-      { text:"Change your whole approach before trying again", d:{logic:1,adaptability:2} },
-      { text:"Sit this one out, some patterns are worth noticing", d:{selfAwareness:2,discipline:1} } ]},
-
-    { id:"cau16", text:"A friend wants you to co-invest in an AI startup idea that sounds promising but very unproven.", options:[
-      { text:"Ask for a real business plan before considering it", d:{logic:2,discipline:1} },
-      { text:"Put in a small amount as a bet on the friendship and the idea", d:{trust:2,risk:1,kindness:1} },
-      { text:"Pass entirely, unproven ideas aren't where your savings go", d:{discipline:2,responsibility:2} } ]},
-    { id:"cau17", text:"You're planning a solo trip somewhere you don't speak the language.", options:[
-      { text:"Go anyway and figure it out as you go", d:{risk:2,adaptability:1,confidence:1} },
-      { text:"Prepare thoroughly, translation apps, routes, backups", d:{planning:2,discipline:1} },
-      { text:"Book a guided option instead of going fully solo", d:{discipline:1,patience:1} } ]},
-    { id:"cau18", text:"You're holding onto an embarrassing secret that isn't really hurting anyone by staying hidden.", options:[
-      { text:"Keep it exactly where it is, some things don't need airing", d:{discipline:1,independence:1} },
-      { text:"Tell one deeply trusted person, just to not carry it alone", d:{trust:3,empathy:1} },
-      { text:"Let it go eventually when the moment feels right", d:{patience:1,selfAwareness:1} } ]},
-    { id:"cau19", text:"During a competition, you notice a small way to bend the rules that almost certainly wouldn't get caught.", options:[
-      { text:"Absolutely not, it's not worth what it costs internally", d:{discipline:2,responsibility:3} },
-      { text:"Feel tempted, but ultimately walk away from it", d:{selfAwareness:1,discipline:1} },
-      { text:"Consider it seriously if the stakes are high enough", d:{risk:1,competitiveness:2} } ]},
-    { id:"cau20", text:"A fashion trend everyone's suddenly wearing doesn't really feel like you, but it's genuinely everywhere.", options:[
-      { text:"Try a toned-down version just to see", d:{adaptability:1,openMindedness:1} },
-      { text:"Skip it entirely, trends aren't a good reason on their own", d:{independence:2,discipline:1} },
-      { text:"Wait and see if it's still around in six months", d:{patience:2,logic:1} } ]},
-
-  ],
-
-  ambitious: [
-    { id:"amb1", text:"You're offered a huge opportunity, but it means leaving behind people and places you love.", options:[
-      { text:"Take it, this is exactly the kind of chance you chase", d:{drive:2,risk:1,independence:1} },
-      { text:"Turn it down, what you have matters more", d:{kindness:1,patience:1,drive:-1} },
-      { text:"Negotiate a version that lets you keep both", d:{creativity:1,leadership:1,planning:1} } ]},
-    { id:"amb2", text:"You could guarantee steady, comfortable success, or gamble for a shot at something extraordinary.", options:[
-      { text:"Gamble, extraordinary is worth the risk", d:{drive:2,risk:2,optimism:1,competitiveness:1} },
-      { text:"Steady success, extraordinary is overrated", d:{discipline:1,patience:1,drive:-1} },
-      { text:"Depends entirely on what you'd be gambling with", d:{logic:2,planning:1} } ]},
-    { id:"amb3", text:"You hit a huge setback on something you've worked toward for years.", options:[
-      { text:"Get back up immediately and adjust the plan", d:{resilience:3,drive:1,planning:1} },
-      { text:"Take real time to process before moving again", d:{selfAwareness:2,patience:1} },
-      { text:"Question whether it was even the right goal", d:{selfAwareness:1,logic:1,adaptability:1} } ]},
-    { id:"amb4", text:"You're far ahead of schedule on a personal goal, what now?", options:[
-      { text:"Raise the bar and push further", d:{drive:2,confidence:1,competitiveness:1} },
-      { text:"Enjoy the win before starting the next thing", d:{optimism:2,patience:1} },
-      { text:"Help someone else catch up to where you are", d:{kindness:2,leadership:1} } ]},
-    { id:"amb5", text:"Someone you respect tells you your goal is unrealistic.", options:[
-      { text:"It only makes you want it more", d:{drive:2,confidence:1,resilience:2,competitiveness:1} },
-      { text:"You take it seriously and reconsider", d:{selfAwareness:2,logic:1} },
-      { text:"You ask them exactly why, and decide from there", d:{curiosity:1,logic:1,confidence:1} } ]},
-    { id:"amb6", text:"You reach a major goal, but almost no one notices or celebrates it with you.", options:[
-      { text:"It doesn't matter, you know what you did", d:{independence:2,confidence:1,selfAwareness:1} },
-      { text:"It stings more than you'd like to admit", d:{selfAwareness:2,empathy:1} },
-      { text:"You make sure to celebrate it properly yourself", d:{optimism:2,kindness:1} } ]},
-    { id:"amb7", text:"You're offered a role that pays less but is a real step toward the career you actually want.", options:[
-      { text:"Take it, the direction matters more than the number", d:{drive:2,persistence:1} },
-      { text:"Negotiate hard before accepting anything", d:{confidence:1,logic:1,drive:1} },
-      { text:"Pass, the pay cut isn't worth it right now", d:{discipline:1,planning:1,drive:-1} } ]},
-    { id:"amb8", text:"You're ranked against other people in something competitive, like a game or a sport, and you're falling behind.", options:[
-      { text:"Grind harder until you close the gap", d:{persistence:2,competitiveness:2,drive:1} },
-      { text:"Study what the people ahead of you are doing differently", d:{logic:1,curiosity:1,competitiveness:1} },
-      { text:"Let the ranking matter less than actually enjoying it", d:{optimism:1,competitiveness:-1} } ]},
-    { id:"amb9", text:"Your family expected a very specific path for you, and your actual dream looks nothing like it.", options:[
-      { text:"Follow your own dream, even if it disappoints them", d:{independence:2,confidence:1,drive:1} },
-      { text:"Find a version that satisfies both, if one exists", d:{adaptability:1,logic:1,planning:1} },
-      { text:"Follow their path and keep your dream as a side pursuit", d:{responsibility:2,discipline:1,patience:1} } ]},
-    { id:"amb10", text:"You define success mostly by what, when you're honest with yourself?", options:[
-      { text:"How far you've come compared to where you started", d:{selfAwareness:1,drive:1} },
-      { text:"How you compare to the people around you", d:{competitiveness:2,drive:1} },
-      { text:"Whether you're proud of how you got there", d:{selfAwareness:2,discipline:1} } ]},
-    { id:"amb11", text:"A tenth failed attempt at the same big goal lands, and it stings more than the last nine.", options:[
-      { text:"Push through anyway, the tenth doesn't cancel the effort", d:{persistence:2,resilience:3} },
-      { text:"Take a real break before deciding whether to try an eleventh", d:{selfAwareness:1,patience:1,emotionalStability:2} },
-      { text:"Rethink whether this particular goal still fits who you are now", d:{selfAwareness:2,logic:1} } ]},
-    { id:"amb12", text:"You picture your life exactly ten years from now, as honestly as you can.", options:[
-      { text:"Ambitious, busy, and clearly further along than today", d:{drive:2,optimism:1} },
-      { text:"Calmer and more settled than today, and that's the actual goal", d:{optimism:1,discipline:1} },
-      { text:"Genuinely hard to picture, and that's fine with you", d:{adaptability:1,openMindedness:1} } ]},
-    { id:"amb13", text:"Someone with far less experience than you gets picked for an opportunity you wanted badly.", options:[
-      { text:"Ask directly what you can improve for next time", d:{selfAwareness:1,confidence:1,drive:1} },
-      { text:"Let the disappointment sit before deciding what's next", d:{emotionalStability:2,patience:1} },
-      { text:"Compete harder for the next one that comes along", d:{competitiveness:2,persistence:1} } ]},
-    { id:"amb14", text:"You've achieved something you worked toward for years, and it feels smaller than you expected.", options:[
-      { text:"Set the next goal almost immediately", d:{drive:2,persistence:1} },
-      { text:"Sit with the anticlimax and figure out what that means", d:{selfAwareness:2,emotionalStability:2} },
-      { text:"Make sure to actually celebrate it properly first", d:{optimism:2,kindness:1} } ]},
-    { id:"amb15", text:"Building the life you actually want will take a lot longer than you'd like it to.", options:[
-      { text:"That's fine, you're playing a long game anyway", d:{persistence:2,patience:1,optimism:1} },
-      { text:"It's frustrating, but you'll find ways to speed it up", d:{drive:2,logic:1} },
-      { text:"You'd rather redefine the goal to fit a shorter timeline", d:{adaptability:2,logic:1} } ]},
-
-    { id:"amb16", text:"Pursuing music or art seriously would mean walking away from a far more stable path.", options:[
-      { text:"Walk away from stability, this is the one life you get", d:{risk:2,drive:2,confidence:1} },
-      { text:"Build the stable path first, then transition once it's safer", d:{planning:2,discipline:1} },
-      { text:"Keep both running in parallel as long as you possibly can", d:{persistence:2,discipline:1} } ]},
-    { id:"amb17", text:"You're within reach of being ranked at the very top of something you compete in.", options:[
-      { text:"Push everything else aside until you get there", d:{drive:2,competitiveness:2} },
-      { text:"Keep pursuing it, but not at the cost of everything else", d:{planning:1,discipline:1,competitiveness:1} },
-      { text:"Notice the chase mattered more to you than the rank itself", d:{selfAwareness:2,optimism:1} } ]},
-    { id:"amb18", text:"Your goal is to visit every country in the world, and right now that looks genuinely far off.", options:[
-      { text:"Start planning the logistics of an actual timeline", d:{planning:2,drive:1} },
-      { text:"Let it stay a loose, long-term dream instead of a strict plan", d:{optimism:1,adaptability:1} },
-      { text:"Reassess whether it's really the goal, or just a nice idea", d:{selfAwareness:2,logic:1} } ]},
-    { id:"amb19", text:"Going further in school or college would cost real time and money you'd rather not spend.", options:[
-      { text:"Do it anyway, the long-term payoff is worth the cost", d:{drive:2,persistence:1} },
-      { text:"Find a cheaper or faster way to the same outcome", d:{logic:2,creativity:1} },
-      { text:"Skip it and build the same skills a different way", d:{independence:2,confidence:1} } ]},
-    { id:"amb20", text:"AI and new technology are reshaping your entire field faster than you expected.", options:[
-      { text:"Get ahead of it, learn the new tools before you have to", d:{drive:2,curiosity:1,adaptability:1} },
-      { text:"Focus on the human skills that won't get automated", d:{empathy:1,creativity:1,confidence:1} },
-      { text:"Wait and see how it actually shakes out before reacting", d:{patience:2,logic:1} } ]},
-
+  weird: [
+  { id:"c09", text:"You can only ever keep one memory for the rest of your life. Every other one will fade completely.", illustration:"hourglass", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Forces a value ranking (identity vs. connection vs. achievement) with no real-world escape.", measures:["selfAwareness","kindness","openMindedness"], validates:null,
+    options:[
+      { text:"A memory of the person you love most", d:{kindness:2,trust:1,emotionalStability:1}, reason:"Choosing connection as the one thing worth preserving over everything else you've ever done says relationships anchor your sense of self.", tradeoff:"Gains goodwill, at the cost of the conviction the other path here would have offered instead.", reveals:["Chooses someone else's comfort over their own convenience", "Extends trust before it's fully earned", "Stays steady under pressure"], tags:["warm","loyal"] },
+      { text:"The memory of the moment you were proudest of yourself", d:{confidence:2,drive:1,persistence:1}, reason:"Preserving self-earned achievement over any relationship or comfort points to identity being built primarily on your own record.", tradeoff:"Gains conviction, at the cost of the goodwill the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Pushes toward the outcome even under resistance", "Keeps going after the initial effort stops paying off"], tags:["competitive","independent"] },
+      { text:"A completely ordinary, quiet moment that meant nothing to anyone else", d:{selfAwareness:2,openMindedness:1,creativity:1}, reason:"Choosing the unremarkable over the impressive or the beloved reveals meaning-making that runs against convention entirely.", tradeoff:"Gains self-knowledge, at the cost of the goodwill the other path here would have offered instead.", reveals:["Names an uncomfortable truth about themselves", "Stays open to being wrong", "Builds a new option instead of picking a given one"], tags:["reflective","curious"] } ]},
+  { id:"w01", text:"Tomorrow, everyone who knows you wakes up having completely forgotten who you are. You remember everything.", illustration:"masks", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Tests identity: is selfhood built from relationships or held independently of them.", measures:["independence","socialEnergy","resilience"], validates:"independence", unlockConditions:{anyTags:["reflective","independent"]},
+    options:[
+      { text:"Try to rebuild the closest relationships from scratch, one at a time", d:{persistence:2,kindness:1,socialEnergy:1}, reason:"Choosing to reconstruct specific bonds rather than start entirely fresh shows those relationships matter more than the ease of a clean slate.", tradeoff:"Gains follow-through, at the cost of the room to be wrong the other path here would have offered instead.", reveals:["Keeps going after the initial effort stops paying off", "Chooses someone else's comfort over their own convenience", "Draws energy from engaging with others"], tags:["loyal","idealist"] },
+      { text:"Take it as a strange kind of freedom and start over as someone slightly different", d:{openMindedness:2,curiosity:1,independence:1}, reason:"Treating a forced reset as opportunity rather than loss suggests identity feels more fluid than fixed for you.", tradeoff:"Gains room to be wrong, at the cost of the follow-through the other path here would have offered instead.", reveals:["Stays open to being wrong", "Follows a question rather than letting it go", "Chooses self-reliance over relying on others"], tags:["adventurous","independent"] },
+      { text:"Feel the loss more than anything else, even knowing you'd survive it", d:{emotionalStability:-1,selfAwareness:1,resilience:1}, reason:"Letting the grief register fully, rather than immediately reframing it, shows how much being known actually anchors you.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Notices their own patterns in real time", "Recovers forward rather than dwelling"], tags:["intense","reflective"] } ]},
+  { id:"w02", text:"You're offered the chance to permanently remove exactly one emotion from your life, forever.", illustration:"heart", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Forces a real ranking of which emotional capacity is most expendable.", measures:["emotionalStability","openMindedness","resilience"], validates:null, unlockConditions:{anyTags:["intense","analytical"]},
+    options:[
+      { text:"Fear, it's cost you more chances than it's ever actually protected you from", d:{risk:2,confidence:1,resilience:1}, reason:"Naming fear specifically, with a clear cost-benefit reasoning, shows a deliberate, examined relationship with your own caution.", tradeoff:"Gains upside, at the cost of the room to be wrong the other path here would have offered instead.", reveals:["Chooses the less certain, more interesting path", "Acts before being fully sure", "Treats a setback as temporary"], tags:["adventurous","bold"] },
+      { text:"Nothing, even the painful ones are doing something you'd miss", d:{openMindedness:2,resilience:1,emotionalStability:1}, reason:"Refusing the offer entirely shows a belief that emotional range itself, including its costs, is worth preserving whole.", tradeoff:"Gains room to be wrong, at the cost of the upside the other path here would have offered instead.", reveals:["Stays open to being wrong", "Treats a setback as temporary", "Keeps a level head when things get tense"], tags:["idealist","reflective"] },
+      { text:"Jealousy, it's the one that makes you feel worst about who you are", d:{selfAwareness:2,kindness:1,confidence:-1}, reason:"Naming a specifically shame-inducing emotion, rather than a merely unpleasant one, is a more vulnerable and specific disclosure.", tradeoff:"Gains self-knowledge, at the cost of conviction.", reveals:["Notices their own patterns in real time", "Chooses someone else's comfort over their own convenience", "Second-guesses their own read of a situation"], tags:["reflective","intense"] } ]},
+  { id:"w03", text:"You're offered true immortality, but everyone you'll ever love will still age and die on a normal timeline.", illustration:"hourglass", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Separates the appeal of endless time from the cost of endless outliving.", measures:["emotionalStability","optimism","independence"], validates:null, unlockConditions:{anyTags:["intense","independent"]},
+    options:[
+      { text:"Take it, more time to matter to more people across more lifetimes outweighs the losses", d:{optimism:2,independence:1,resilience:1}, reason:"Accepting repeated loss as the price of expanded impact shows a specific, high-tolerance relationship with grief.", tradeoff:"Gains ease, at the cost of the goodwill the other path here would have offered instead.", reveals:["Frames setbacks as temporary", "Trusts their own judgment over consensus", "Recovers forward rather than dwelling"], tags:["idealist","adventurous"] },
+      { text:"Refuse, outliving everyone you love isn't immortality, it's a different kind of ending", d:{kindness:1,emotionalStability:1,independence:-1}, reason:"Rejecting a genuinely tempting offer because of relational cost, not fear of death itself, reveals where meaning is actually located.", tradeoff:"Gains goodwill, at the cost of autonomy.", reveals:["Chooses someone else's comfort over their own convenience", "Stays steady under pressure", "Chooses connection or reliance over going it alone"], tags:["loyal","warm"] },
+      { text:"Take it, but you already know it'll change who you let yourself get close to", d:{selfAwareness:2,trust:-1,resilience:1}, reason:"Accepting the offer while honestly forecasting how it will reshape your future relationships shows unusual self-prediction under a hypothetical.", tradeoff:"Gains self-knowledge, at the cost of closeness.", reveals:["Notices their own patterns in real time", "Withholds trust until it's proven", "Recovers forward rather than dwelling"], tags:["reflective","cautious"] } ]},
+  { id:"w04", text:"You can know the exact date of your own death, with complete certainty, right now.", illustration:"hourglass", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Tests appetite for certainty even when the information could only ever be a burden or a compass.", measures:["curiosity","emotionalStability","planning"], validates:"curiosity", unlockConditions:{anyTags:["analytical","cautious"]},
+    options:[
+      { text:"Yes, you'd rather plan your life around the truth than guess forever", d:{planning:2,curiosity:1,logic:1}, reason:"Choosing certainty specifically to enable better planning shows a preference for control over comfortable ambiguity.", tradeoff:"Gains preparedness, at the cost of the room to be wrong the other path here would have offered instead.", reveals:["Structures uncertainty before acting", "Chooses exploration over certainty", "Relies on logic over instinct"], tags:["analytical","pragmatist"] },
+      { text:"No, some uncertainty is what actually makes life feel open", d:{openMindedness:2,optimism:1,curiosity:-1}, reason:"Declining guaranteed knowledge to preserve a sense of open possibility is a specific, deliberate choice about how you want to live.", tradeoff:"Gains room to be wrong, at the cost of insight.", reveals:["Reconsiders a position when given a reason to", "Frames setbacks as temporary", "Prefers the familiar over the unknown"], tags:["idealist","independent"] },
+      { text:"You'd want to know, but you're honestly not sure you could handle it well", d:{selfAwareness:2,emotionalStability:-1,curiosity:1}, reason:"Wanting the information while openly doubting your own capacity to carry it is an unusually honest, self-aware answer.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Follows a question rather than letting it go"], tags:["reflective","intense"] } ]},
+  { id:"w05", text:"You discover that everyone around you might be a simulation, but there's no way to ever prove it either way.", illustration:"maze", type:"weird", tone:"philosophical", difficulty:"medium", purpose:"Tests reaction to genuinely unfalsifiable uncertainty about the nature of reality itself.", measures:["curiosity","emotionalStability","openMindedness"], validates:null, unlockConditions:{anyTags:["curious","analytical"]},
+    options:[
+      { text:"Keep living exactly as you were, unprovable things aren't worth reorganizing your life around", d:{discipline:2,logic:1,emotionalStability:1}, reason:"Treating unfalsifiable uncertainty as practically irrelevant shows a strong preference for actionable reality over abstract doubt.", tradeoff:"Gains consistency, at the cost of the insight the other path here would have offered instead.", reveals:["Follows through on principle rather than convenience", "Reasons through a situation before acting", "Keeps a level head when things get tense"], tags:["pragmatist","analytical"] },
+      { text:"Feel a real, lingering unease about it, even knowing there's nothing to do with that feeling", d:{emotionalStability:-1,curiosity:1,openMindedness:1}, reason:"Letting an unresolvable question genuinely unsettle you, rather than filing it away, shows real engagement with existential uncertainty.", tradeoff:"Gains insight, at the cost of composure.", reveals:["Lets the moment's weight actually register", "Chooses exploration over certainty", "Reconsiders a position when given a reason to"], tags:["reflective","intense"] },
+      { text:"Find it kind of freeing, if nothing can be proven, nothing has to be feared too much either", d:{optimism:2,openMindedness:1,independence:1}, reason:"Converting radical uncertainty into permission rather than dread shows a distinct, low-anxiety relationship with the unknown.", tradeoff:"Gains ease, at the cost of the consistency the other path here would have offered instead.", reveals:["Expects things to work out", "Stays open to being wrong", "Chooses self-reliance over relying on others"], tags:["independent","curious"] } ]},
+  { id:"w06", text:"You can permanently guarantee you'll never be misunderstood again, but only by giving up the ability to be truly surprised by anyone.", illustration:"puzzle", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Trades certainty about others against the openness that makes people worth discovering.", measures:["trust","curiosity","openMindedness"], validates:null, unlockConditions:{anyTags:["curious","analytical"]},
+    options:[
+      { text:"Take it, being understood correctly, always, is worth losing the surprises", d:{trust:2,emotionalStability:1,curiosity:-1}, reason:"Prioritizing certainty about being understood over the pleasure of surprise shows a strong need for relational clarity.", tradeoff:"Gains closeness, at the cost of insight.", reveals:["Extends trust before it's fully earned", "Stays steady under pressure", "Prefers the familiar over the unknown"], tags:["analytical","idealist"] },
+      { text:"Refuse, the surprises are half of what makes people worth knowing", d:{curiosity:2,openMindedness:1,trust:-1}, reason:"Protecting the capacity for surprise, even at the cost of ongoing misunderstanding, shows curiosity about people outranks certainty about them.", tradeoff:"Gains insight, at the cost of closeness.", reveals:["Follows a question rather than letting it go", "Stays open to being wrong", "Stays guarded rather than assuming good faith"], tags:["curious","independent"] },
+      { text:"Refuse, being occasionally misunderstood keeps you a little more honest about explaining yourself", d:{selfAwareness:1,discipline:1}, reason:"Framing misunderstanding as functionally useful, not just tolerable, shows an unusually reframed relationship with a normally unwanted cost.", tradeoff:"Gains self-knowledge, at the cost of the closeness the other path here would have offered instead.", reveals:["Names an uncomfortable truth about themselves", "Follows through on principle rather than convenience", "Notices their own patterns in real time"], tags:["reflective","idealist"] } ]},
+  { id:"w07", text:"You wake up one day fluent in the thoughts of everyone nearby, but they can hear yours too, all the time, with no way to turn it off.", illustration:"mirror", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Forces confrontation with total, permanent transparency, no privacy in either direction.", measures:["trust","selfAwareness","socialEnergy"], validates:"trust", unlockConditions:{anyTags:["independent","intense"]},
+    options:[
+      { text:"Try to make peace with it, most of what's in your head isn't actually that bad", d:{confidence:2,openMindedness:1,trust:1}, reason:"Assuming your inner life can withstand full exposure shows real confidence in your own private self.", tradeoff:"Gains conviction, at the cost of the self-knowledge the other path here would have offered instead.", reveals:["Backs their own judgment under pressure", "Reconsiders a position when given a reason to", "Extends trust before it's fully earned"], tags:["idealist","independent"] },
+      { text:"Panic a little, there's a version of your thoughts you never meant for anyone to hear", d:{selfAwareness:2,emotionalStability:-1,trust:-1}, reason:"Admitting real unfiltered thought would be damaging if exposed is an unusually honest confession under a hypothetical.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Names an uncomfortable truth about themselves", "Feels the disruption rather than absorbing it quietly", "Stays guarded rather than assuming good faith"], tags:["reflective","intense"] },
+      { text:"Try to isolate yourself until you can figure out how to live with it", d:{independence:2,socialEnergy:-2,planning:1}, reason:"Choosing withdrawal as the first response to involuntary exposure shows a strong instinct to control access to yourself.", tradeoff:"Gains autonomy, at the cost of engagement.", reveals:["Trusts their own judgment over consensus", "Draws energy from stepping back", "Structures uncertainty before acting"], tags:["independent","cautious"] } ]},
+  { id:"w08", text:"You're told that one, and only one, of your core memories is actually false, implanted, but you can never find out which.", illustration:"mirror", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Tests tolerance for irreducible uncertainty about the reliability of your own past.", measures:["emotionalStability","curiosity","openMindedness"], validates:null, unlockConditions:{anyTags:["reflective","curious"]},
+    options:[
+      { text:"Try to figure out which one anyway, even knowing you'll never really know", d:{curiosity:2,persistence:1,emotionalStability:-1}, reason:"Pursuing an explicitly unresolvable question anyway shows a real discomfort with unexamined uncertainty.", tradeoff:"Gains insight, at the cost of composure.", reveals:["Follows a question rather than letting it go", "Sees something through past the easy stopping point", "Feels the disruption rather than absorbing it quietly"], tags:["curious","intense"] },
+      { text:"Let it go, all of them still feel like yours either way", d:{emotionalStability:2,openMindedness:1,independence:1}, reason:"Treating authenticity of feeling as more important than provable authenticity of origin shows a specific, settled philosophy of self.", tradeoff:"Gains composure, at the cost of the insight the other path here would have offered instead.", reveals:["Keeps a level head when things get tense", "Stays open to being wrong", "Chooses self-reliance over relying on others"], tags:["independent","idealist"] },
+      { text:"Quietly hope it's the hardest one, that would almost be a relief", d:{selfAwareness:1,resilience:1,optimism:-1}, reason:"Wishing the false memory is specifically the most painful one reveals which part of your past you'd most want to not be real.", tradeoff:"Gains self-knowledge, at the cost of ease.", reveals:["Notices their own patterns in real time", "Recovers forward rather than dwelling", "Names the real cost rather than softening it"], tags:["reflective","intense"] } ]},
+  { id:"w09", text:"Every choice you've ever made turns out to have been genuinely, provably the only one you could have made, no free will at all.", illustration:"puzzle", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Tests emotional and moral reaction to determinism made suddenly, personally certain.", measures:["responsibility","emotionalStability","openMindedness"], validates:null, unlockConditions:{anyTags:["analytical","reflective"]},
+    options:[
+      { text:"It changes very little, you'd still make the same choices the same way", d:{discipline:2,independence:1,emotionalStability:1}, reason:"Treating the metaphysical fact as practically irrelevant to how you live shows a grounded, function-over-theory disposition.", tradeoff:"Gains consistency, at the cost of the ease the other path here would have offered instead.", reveals:["Holds a personal standard even without anyone watching", "Trusts their own judgment over consensus", "Stays steady under pressure"], tags:["pragmatist","analytical"] },
+      { text:"It's oddly comforting, less pressure if it was never really a choice anyway", d:{optimism:1,patience:1,responsibility:-1}, reason:"Finding relief in reduced personal responsibility, rather than existential dread, shows a specific, self-protective relationship with blame.", tradeoff:"Gains ease, at the cost of accountability.", reveals:["Expects things to work out", "Lets a situation play out before intervening", "Lets responsibility sit with someone else"], tags:["independent","cautious"] },
+      { text:"It genuinely unsettles you more than you'd expect", d:{emotionalStability:-2,selfAwareness:1,curiosity:1}, reason:"Letting an abstract philosophical fact actually disturb you shows how much personal agency matters to your sense of self.", tradeoff:"Gains self-knowledge, at the cost of composure.", reveals:["Feels the disruption rather than absorbing it quietly", "Names an uncomfortable truth about themselves", "Follows a question rather than letting it go"], tags:["reflective","intense"] } ]},
+  { id:"w10", text:"You can permanently trade the ability to feel regret for the ability to never again feel truly lost.", illustration:"compass", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Trades one uncomfortable but functional emotion for another, testing which discomfort is seen as more useful.", measures:["resilience","planning","openMindedness"], validates:null, unlockConditions:{anyTags:["reflective","cautious"]},
+    options:[
+      { text:"Take it, never feeling lost sounds like real, permanent stability", d:{planning:2,emotionalStability:1,confidence:1}, reason:"Choosing certainty of direction over the corrective sting of regret shows stability ranked above self-correction.", tradeoff:"Gains preparedness, at the cost of the follow-through the other path here would have offered instead.", reveals:["Prepares rather than improvising", "Keeps a level head when things get tense", "Acts before being fully sure"], tags:["analytical","cautious"] },
+      { text:"Refuse, regret is uncomfortable but it's how you actually learn anything", d:{persistence:1,discipline:1,resilience:1}, reason:"Keeping a genuinely painful emotion specifically for its instructive value shows discomfort tolerated in service of growth.", tradeoff:"Gains follow-through, at the cost of the preparedness the other path here would have offered instead.", reveals:["Keeps going after the initial effort stops paying off", "Holds a personal standard even without anyone watching", "Recovers forward rather than dwelling"], tags:["idealist","independent"] },
+      { text:"Refuse, feeling lost sometimes is what pushes you to actually change direction", d:{adaptability:2,curiosity:1,openMindedness:1}, reason:"Valuing disorientation as a catalyst rather than a problem to eliminate shows a distinct, growth-oriented relationship with confusion.", tradeoff:"Gains flexibility, at the cost of the preparedness the other path here would have offered instead.", reveals:["Adjusts course rather than forcing a plan through", "Chooses exploration over certainty", "Reconsiders a position when given a reason to"], tags:["adventurous","curious"] } ]},
+  { id:"w11", text:"You learn that after you die, you'll be remembered accurately, in full, by exactly one person, forever, and forgotten completely by everyone else.", illustration:"star", type:"weird", tone:"philosophical", difficulty:"heavy", purpose:"Forces a choice between depth and breadth of legacy, the final version of a recurring theme.", measures:["socialEnergy","independence","kindness"], validates:null, unlockConditions:{anyTags:["independent","warm"]},
+    options:[
+      { text:"That's genuinely enough, one real, full memory beats a thousand partial ones", d:{independence:2,kindness:1,confidence:1}, reason:"Finding depth alone sufficient, without needing broader legacy, shows real contentment with intimate, not wide, significance.", tradeoff:"Gains autonomy, at the cost of the engagement the other path here would have offered instead.", reveals:["Trusts their own judgment over consensus", "Chooses someone else's comfort over their own convenience", "Backs their own judgment under pressure"], tags:["independent","idealist"] },
+      { text:"It stings a little, you'd have liked to matter to more people than that", d:{socialEnergy:1,selfAwareness:1,confidence:-1}, reason:"Admitting the narrowness bothers you, even while accepting it, is an honest, less flattering but specific disclosure.", tradeoff:"Gains engagement, at the cost of conviction.", reveals:["Leans toward people rather than away from them", "Names an uncomfortable truth about themselves", "Lets doubt slow down a decision"], tags:["reflective","intense"] },
+      { text:"You mostly just hope it's someone who actually understood you, not just loved you", d:{trust:1,empathy:1,selfAwareness:1}, reason:"Prioritizing accurate understanding over affection alone as the thing worth being remembered by reveals what you actually value in being known.", tradeoff:"Gains closeness, at the cost of the autonomy the other path here would have offered instead.", reveals:["Gives someone the benefit of the doubt", "Reads the emotional stakes before acting", "Names an uncomfortable truth about themselves"], tags:["idealist","reflective"] } ]},
   ],
 };
 
-/* Flatten with cluster tag attached */
+/* Flatten with cluster tag attached (cluster == the pacing category above) */
 const QUESTIONS = Object.entries(QUESTION_BANK).flatMap(([cluster, qs]) =>
   qs.map(q => ({ ...q, cluster }))
 );
+
+/* ---- Question illustrations (v2.0) --------------------------------------
+   One clean line-art icon per scenario, reused across many questions
+   rather than one bespoke drawing each. Every icon is drawn on the same
+   0-100 viewBox with the same stroke rules (see quiz.js's renderer), so
+   they read as one consistent set rather than 20 different styles.
+   currentColor + no fill means they theme automatically (dark/light,
+   and the archetype accent once a result exists). Deliberately abstract
+   shapes (a fork in a road, a paired mask, a compass) so the icon sets
+   a mood for the scenario without hinting at which answer is "right". */
+const QUESTION_ILLUSTRATIONS = {
+  compass: `<circle cx="50" cy="50" r="34"/><polygon points="50,26 58,50 50,58 42,50" fill="currentColor" stroke="none"/><circle cx="50" cy="50" r="3" fill="currentColor" stroke="none"/>`,
+  mountain: `<path d="M12 72 L38 34 L52 54 L64 38 L88 72 Z"/><circle cx="38" cy="28" r="4"/>`,
+  puzzle: `<path d="M30 30 h20 a6 6 0 0 1 0 12 a6 6 0 1 0 0 16 h-20 z"/><path d="M50 30 h20 v28 h-8 a6 6 0 1 1 0 -12"/>`,
+  bridge: `<path d="M14 62 Q50 30 86 62"/><line x1="26" y1="62" x2="26" y2="76"/><line x1="74" y1="62" x2="74" y2="76"/><line x1="14" y1="76" x2="86" y2="76"/>`,
+  handshake: `<path d="M16 46 L38 46 L50 58 L62 46 L84 46"/><path d="M38 46 L46 38 L58 38 L62 46"/><path d="M40 58 L46 64 L54 64 L60 58"/>`,
+  storm: `<path d="M28 46 a16 16 0 0 1 4 -31 a20 20 0 0 1 38 6 a14 14 0 0 1 -2 25 z"/><polyline points="52,52 44,68 54,68 46,84"/>`,
+  lantern: `<rect x="36" y="34" width="28" height="36" rx="6"/><line x1="50" y1="20" x2="50" y2="34"/><path d="M40 20 h20"/><circle cx="50" cy="52" r="5" fill="currentColor" stroke="none"/><line x1="50" y1="70" x2="50" y2="80"/>`,
+  chess: `<path d="M42 78 h16 l-3 -10 h-10 z"/><rect x="40" y="68" width="20" height="6" rx="2"/><path d="M45 58 h10 l4 10 h-18 z"/><circle cx="50" cy="42" r="10"/><path d="M46 32 h8 M50 28 v8"/>`,
+  tree: `<line x1="50" y1="52" x2="50" y2="82"/><circle cx="50" cy="34" r="20"/>`,
+  doorway: `<rect x="32" y="18" width="36" height="64" rx="2"/><path d="M68 20 L84 26 L84 78 L68 82"/><circle cx="60" cy="52" r="2.5" fill="currentColor" stroke="none"/>`,
+  roadsplit: `<line x1="50" y1="84" x2="50" y2="56"/><line x1="50" y1="56" x2="26" y2="18"/><line x1="50" y1="56" x2="74" y2="18"/>`,
+  clock: `<circle cx="50" cy="50" r="34"/><line x1="50" y1="50" x2="50" y2="28"/><line x1="50" y1="50" x2="66" y2="58"/>`,
+  lightbulb: `<circle cx="50" cy="42" r="20"/><path d="M42 60 h16 v10 a8 8 0 0 1 -16 0 z"/><line x1="46" y1="80" x2="54" y2="80"/><line x1="50" y1="8" x2="50" y2="16"/><line x1="24" y1="42" x2="16" y2="42"/><line x1="84" y1="42" x2="76" y2="42"/>`,
+  maze: `<rect x="16" y="16" width="68" height="68"/><path d="M16 34 h34 v18 h-18 M84 66 h-34 v-18 h18"/>`,
+  masks: `<ellipse cx="38" cy="50" rx="20" ry="26" transform="rotate(-8 38 50)"/><ellipse cx="62" cy="50" rx="20" ry="26" transform="rotate(8 62 50)"/><circle cx="33" cy="44" r="2.5" fill="currentColor" stroke="none"/><circle cx="67" cy="44" r="2.5" fill="currentColor" stroke="none"/>`,
+  mirror: `<ellipse cx="50" cy="40" rx="22" ry="28"/><line x1="50" y1="68" x2="50" y2="82"/><line x1="38" y1="82" x2="62" y2="82"/>`,
+  key: `<circle cx="30" cy="50" r="14"/><line x1="44" y1="50" x2="80" y2="50"/><line x1="70" y1="50" x2="70" y2="60"/><line x1="78" y1="50" x2="78" y2="58"/>`,
+  conversation: `<path d="M14 26 h44 a6 6 0 0 1 6 6 v22 a6 6 0 0 1 -6 6 h-14 l-10 10 v-10 h-14 a6 6 0 0 1 -6 -6 v-22 a6 6 0 0 1 6 -6 z"/><path d="M56 44 h24 a6 6 0 0 1 6 6 v16 a6 6 0 0 1 -6 6 h-4 l0 8 l-9 -8 h-11 a6 6 0 0 1 -6 -6 v-6" opacity="0.6"/>`,
+  scales: `<line x1="50" y1="14" x2="50" y2="70" /><line x1="24" y1="30" x2="76" y2="30"/><path d="M24 30 l-10 22 h20 z"/><path d="M76 30 l-10 22 h20 z"/><line x1="38" y1="82" x2="62" y2="82"/><line x1="50" y1="70" x2="50" y2="82"/>`,
+  hourglass: `<path d="M28 16 h44 M28 84 h44 M32 16 v14 l16 20 l16 -20 v-14 M32 84 v-14 l16 -20 l16 20 v14"/>`,
+  heart: `<path d="M50 82 C20 60 10 40 10 26 a16 16 0 0 1 30 -8 a16 16 0 0 1 30 8 c0 14 -10 34 -40 56 z"/>`,
+  star: `<polygon points="50,14 61,40 89,42 66,60 74,88 50,72 26,88 34,60 11,42 39,40"/>`,
+  anchor: `<circle cx="50" cy="20" r="7"/><line x1="50" y1="27" x2="50" y2="78"/><line x1="34" y1="40" x2="66" y2="40"/><path d="M22 56 a28 28 0 0 0 56 0" /><line x1="22" y1="56" x2="22" y2="48"/><line x1="78" y1="56" x2="78" y2="48"/>`,
+};
+
 
 /* ---- The 12 core archetypes ---------------------------------------- */
 /* Each archetype carries a small "signature" of {dim, weight} pairs used
@@ -1802,25 +1626,77 @@ const CHESS_PIECES = [
    check whether the chosen answers pulled in the same direction on their
    shared dimension. This reuses real content rather than needing a
    second, secretly-duplicated question bank. */
+// Every "a" here is a question the bank itself tags validates:"dim" - it
+// was authored specifically to re-measure a dimension some other question
+// already covers, in a deliberately different scenario. "b" is that
+// bank's own strongest other question for the same dimension. Generated
+// from the bank's own validates tags and per-dimension weights rather
+// than hand-picked a second time, so there's exactly one place ("dim"
+// coverage in the question bank) this can drift out of sync with.
 const CONSISTENCY_PAIRS = [
-  { a:"soc1", b:"imp1", dim:"risk" },
-  { a:"soc2", b:"lea2", dim:"planning" },
-  { a:"ana1", b:"cau2", dim:"risk" },
-  { a:"cre1", b:"pla1", dim:"creativity" },
-  { a:"cre3", b:"lea3", dim:"leadership" },
-  { a:"imp2", b:"cau1", dim:"risk" },
-  { a:"imp3", b:"phi2", dim:"optimism" },
-  { a:"emp1", b:"lea1", dim:"leadership" },
-  { a:"emp2", b:"imp1", dim:"empathy" },
-  { a:"emp3", b:"soc3", dim:"kindness" },
-  { a:"phi1", b:"amb3", dim:"drive" },
-  { a:"phi3", b:"lea2", dim:"adaptability" },
-  { a:"pla2", b:"cre2", dim:"humor" },
-  { a:"pla3", b:"soc1", dim:"socialEnergy" },
-  { a:"cau1", b:"ana2", dim:"logic" },
-  { a:"cau3", b:"amb1", dim:"planning" },
-  { a:"amb2", b:"phi2", dim:"risk" },
-  { a:"ana3", b:"cau1", dim:"discipline" },
+  { a:"c01", b:"r22", dim:"socialEnergy" },
+  { a:"c03", b:"c09", dim:"selfAwareness" },
+  { a:"c05", b:"f01", dim:"emotionalStability" },
+  { a:"c08", b:"c12", dim:"patience" },
+  { a:"c11", b:"c13", dim:"empathy" },
+  { a:"c15", b:"c02", dim:"kindness" },
+  { a:"f07", b:"f04", dim:"persistence" },
+  { a:"f10", b:"c04", dim:"trust" },
+  { a:"f15", b:"c09", dim:"confidence" },
+  { a:"f18", b:"c09", dim:"confidence" },
+  { a:"f20", b:"c02", dim:"risk" },
+  { a:"e01", b:"c07", dim:"responsibility" },
+  { a:"e02", b:"c08", dim:"patience" },
+  { a:"e03", b:"c09", dim:"confidence" },
+  { a:"e05", b:"c05", dim:"adaptability" },
+  { a:"e07", b:"c08", dim:"patience" },
+  { a:"e08", b:"f21", dim:"resilience" },
+  { a:"e09", b:"c02", dim:"kindness" },
+  { a:"e12", b:"c04", dim:"trust" },
+  { a:"e13", b:"c03", dim:"selfAwareness" },
+  { a:"e15", b:"c08", dim:"patience" },
+  { a:"e20", b:"f07", dim:"drive" },
+  { a:"e21", b:"c11", dim:"empathy" },
+  { a:"e22", b:"c07", dim:"responsibility" },
+  { a:"e23", b:"c09", dim:"confidence" },
+  { a:"e25", b:"f04", dim:"persistence" },
+  { a:"e26", b:"c02", dim:"kindness" },
+  { a:"e28", b:"c07", dim:"responsibility" },
+  { a:"e30", b:"c07", dim:"responsibility" },
+  { a:"r01", b:"c03", dim:"selfAwareness" },
+  { a:"r02", b:"c01", dim:"independence" },
+  { a:"r03", b:"c03", dim:"selfAwareness" },
+  { a:"r06", b:"f01", dim:"emotionalStability" },
+  { a:"r07", b:"c01", dim:"independence" },
+  { a:"r09", b:"c01", dim:"independence" },
+  { a:"r10", b:"c14", dim:"openMindedness" },
+  { a:"r12", b:"c12", dim:"logic" },
+  { a:"r13", b:"c01", dim:"independence" },
+  { a:"r15", b:"f07", dim:"drive" },
+  { a:"r16", b:"c02", dim:"kindness" },
+  { a:"r17", b:"f13", dim:"humor" },
+  { a:"r18", b:"c01", dim:"independence" },
+  { a:"r20", b:"f04", dim:"persistence" },
+  { a:"r21", b:"c03", dim:"selfAwareness" },
+  { a:"m01", b:"c04", dim:"trust" },
+  { a:"m02", b:"c07", dim:"responsibility" },
+  { a:"m03", b:"c04", dim:"trust" },
+  { a:"m05", b:"c07", dim:"responsibility" },
+  { a:"m06", b:"c04", dim:"trust" },
+  { a:"m07", b:"c14", dim:"discipline" },
+  { a:"m08", b:"c01", dim:"independence" },
+  { a:"m10", b:"c14", dim:"competitiveness" },
+  { a:"em01", b:"c02", dim:"risk" },
+  { a:"em03", b:"f01", dim:"emotionalStability" },
+  { a:"em04", b:"c04", dim:"trust" },
+  { a:"em06", b:"f01", dim:"emotionalStability" },
+  { a:"em08", b:"c04", dim:"trust" },
+  { a:"em09", b:"c01", dim:"independence" },
+  { a:"em10", b:"c02", dim:"kindness" },
+  { a:"em11", b:"c04", dim:"trust" },
+  { a:"w01", b:"c01", dim:"independence" },
+  { a:"w04", b:"c01", dim:"curiosity" },
+  { a:"w07", b:"c04", dim:"trust" },
 ];
 
 /* ---- Framework approximations (Update: Personality System) ---------------
@@ -2032,32 +1908,15 @@ const COFFEE_ORDERS = [
    ========================================================================= */
 
 const CLUSTERS = Object.keys(QUESTION_BANK);
-const MIN_QUESTIONS = 35;          // Stages 1-3 always run to exactly this many (15 fixed + 20 adaptive) -- "Balanced"'s early-stop point
-const MAX_QUESTIONS = 50;          // never exceeds this many (35 baseline + at most 15 extra) -- "Balanced"'s ceiling and "Deep Dive"'s fixed length
-// Empirically calibrated against the original 45-question ceiling: a
-// per-step greedy search that simulates every candidate option at every
-// question and always picks whichever maximizes
-// computeAssessmentConfidence().overall right now — i.e. the best any
-// answering strategy can realistically do — still only reached ~81-85
-// overall by Q35-45 across dozens of trialed target archetypes. 95 was
-// consequently unreachable by any answer pattern, silently turning "stop
-// early once confident" into dead code (every adaptive session ran to
-// the cap regardless of how clear the profile was). 80 sits just under
-// that empirical ceiling: a genuinely clear, consistent profile can
-// still cross it and stop at 35, while a noisy/inconsistent one
-// (measured ~73-78 in the same testing) correctly does not and keeps
-// extending. Raising the cap from 45 to 50 (to match Deep Dive's fixed
-// length) only gives a low-confidence profile more room to climb before
-// hitting it, so 80 stays a valid, still-below-ceiling target.
-const CONFIDENCE_TARGET = 80;      // stop early once this confident
+// v2.0: one single adaptive flow, no more Quick Read/Balanced/Deep Dive
+// choice - the whole point of a continuously-adaptive engine is that it
+// already stops as soon as it's confident, so a person no longer needs to
+// pre-commit to a depth that a fixed-length quiz would have required.
+const CORE_LENGTH = 15;            // everyone answers exactly these 15 first, always
+const MIN_ADAPTIVE_QUESTIONS = 20; // never stops before this many total, even if confident earlier - one clean read of the core 15 isn't enough evidence on its own to end an assessment
+const MAX_QUESTIONS = 50;          // hard ceiling, never exceeded, no matter how uncertain
+const CONFIDENCE_TARGET = 80;      // stop as soon as this confident, any time after MIN_ADAPTIVE_QUESTIONS
 const CONFIDENCE_SCALE = 7;        // score-gap that counts as "fully confident", tuned against real score distributions
-// NOTE ON SCALING: the question bank holds 200 questions across 10
-// clusters (20 each). Stages 1-3 (see below) always run to exactly
-// MIN_QUESTIONS: a fixed 15-question baseline (Stage 1) plus 20
-// adaptively-selected questions (Stages 2-3, 10 each). From there,
-// Stage 4/5 re-checks confidence after every answer and keeps going
-// only if the top two archetype candidates are still close, up to
-// MAX_QUESTIONS (at most 15 more beyond the 35 baseline).
 
 /* ---- Which dimensions matter most to the framework projections ---------
    Same idea as the old cluster-weight table, but for MBTI/Big
@@ -2080,93 +1939,64 @@ const FRAMEWORK_DIMENSION_WEIGHTS = computeFrameworkDimensionWeights();
 const QUESTIONS_BY_ID = {};
 QUESTIONS.forEach(q => { QUESTIONS_BY_ID[q.id] = q; });
 
-/* ---- Stage 1: the fixed core set ----------------------------------------
-   Every user gets exactly these 15 questions, in this order, first. No
-   seed, no shuffle. Chosen offline by a greedy set-cover pass over the
-   full question bank: together they touch all 25 dimensions at least
-   once and all 10 clusters at least once, in as few questions as
-   possible, so Stage 1 is a genuine broad foundation rather than an
-   arbitrary first slice of the bank. */
-// ana8 and pla4 were swapped for phi8 and pla15: the original 15 left
-// emotionalStability/trust/responsibility/optimism/humor/competitiveness/
-// resilience at a fraction of the coverage of the rest of the bank, and
-// since Quick Read never asks anything beyond these 15, that permanently
-// starved Sentinel/Luminary/Catalyst of any real signal in that mode
-// specifically (confirmed dead/near-dead in Quick Read-only simulation,
-// while healthy in Balanced/Deep Dive). phi8 and pla15 stay in the same
-// spirit (philosophical and playful were already represented, just less
-// so) while covering the starved dims.
-const CORE_QUESTION_IDS = ["ana6","phi8","pla15","amb13","cre18","soc3","phi17","cau2","emp3","imp4","lea12","pla1","amb16","ana1","cre5"];
+/* ---- The fixed core set --------------------------------------------------
+   Every user gets exactly these 15 questions, in this order, first - no
+   seed, no shuffle. Hand-sequenced (v2.1) to mix all six pacing categories
+   -- everyday, fun, reflective, moral, emotional, weird -- so the first
+   read of someone never leans on just one register, and to establish an
+   initial "tags" set (see QuizSession.tags below) before the adaptive
+   pool's unlockConditions ever need to be checked. */
+const CORE_QUESTION_IDS = ["c01","c02","c03","c04","c05","c06","c07","c08","c09","c10","c11","c12","c13","c14","c15"];
 
 /* -------------------------------------------------------------------------
-   ALGORITHM: Deterministic staged adaptive question selection
-   Five stages, replacing the old seed-shuffled baseline. The engine now
-   depends only on accumulated answers, never on wall-clock time, so two
-   people who answer identically get identical questions at every stage.
+   ALGORITHM: Continuous adaptive question selection (v2.0)
 
-   Stage 1 (Q1-15): CORE_QUESTION_IDS, fixed, identical for every user —
-     no randomness, no seed, so everyone's baseline starts from the same
-     15 questions.
-   Stage 2 (Q16-25): one batch of 10, picked by _pickInformativeBatch()
-     against the state after Q15. Same first 15 answers -> same 16-25.
-   Stage 3 (Q26-35): another batch of 10, against the state after Q25.
-     Same first 25 answers -> same 26-35. Stages 2+3 together are the
-     "20 adaptive questions": selected purely from the running answer
-     history (dimension confidence, archetype-candidate separation,
-     framework relevance), never from the clock or a session seed, so
-     two people with identical first-15 answers always get an identical
-     16-35 too.
-   Stage 4 (after Q35): confidence check using the evidence-based
-     computeAssessmentConfidence(). Stops here if the target is met —
-     this is the common "35 was enough" exit.
-   Stage 5 (Q36-50): only if Stage 4 wasn't confident enough. Unlike
-     Stages 2-3, this re-checks confidence after every single answer
-     (not in batches of 5) and stops the instant the target is reached,
-     since minimizing extra questions matters most this late in the
-     quiz — a profile that becomes confident at, say, Q39 never gets
-     asked Q40-50 just because it started down this path. Hard-capped
-     at MAX_QUESTIONS (50) either way.
+   Replaces the old fixed-batch staging (15 fixed, then two blocks of 10,
+   then a single confidence checkpoint at 35) with a genuinely continuous
+   loop: after the 15 fixed core questions, ONE question is chosen at a
+   time, and confidence is recalculated after every single answer, not in
+   batches. As soon as the assessment is confident enough (and at least
+   MIN_ADAPTIVE_QUESTIONS have been asked), it stops - anywhere from 20 to
+   50, not a fixed set of possible lengths.
 
-   Question selection itself (_pickInformativeBatch) ranks every unused
-   question by computeQuestionInfoValue(): how much it addresses
-   currently-uncertain dimensions, how well it separates the current
-   top-2 archetype candidates, how relevant it is to the framework
-   projections, minus a penalty for overlapping dimensions already
-   asked about. All four signals are computed from data the app already
-   has (archetype signatures, framework dimension maps, running answer
-   history), nothing was hand-tagged onto the question bank.
+   Every answer after the core 15 re-evaluates, from scratch, which
+   dimension the engine still has the least evidence for, which two
+   archetypes/souls are currently closest (and so most worth separating),
+   and whether any dimension the bank calls a "validation" pair has just
+   disagreed with itself. Nothing here is randomized or branches by which
+   specific answer was picked - two people who answer identically get
+   identical questions at every step, because the ranking is a pure
+   function of the running answer history.
 
-   this.clusterAffinity/clusterAsked are still tracked on every answer,
-   the same running per-cluster signal the old cluster-ranked picker
-   used, since encouragement() and save/resume format both read them and
-   there's no reason to discard a working, harmless signal.
-------------------------------------------------------------------------- */
+   computeQuestionInfoValue() is unchanged from the old engine (it never
+   depended on the specific question bank, only on dimensions/signatures/
+   running history), so the same four signals - uncertainty, archetype
+   separation, soul separation, framework relevance, minus overlap
+   redundancy - still drive which single question gets asked next.
 
-/* Every signal here is derived from data that already exists (question
-   deltas, archetype/soul signatures, framework dimension maps, running
-   answer history) - nothing new was authored onto the question bank.
-     - uncertainty:      favors dimensions this session has the least
-                         evidence for yet (getDimensionConfidence),
-                         weighted by how strongly this question would
-                         move that dimension
-     - separation:       favors questions whose dimension profile lines
-                         up with what currently separates the top-2
-                         archetype candidates (same signature-diff idea
-                         the old disambiguation boost used, applied per
-                         question)
-     - soulSeparation:   the same idea, for the top-2 soul type
-                         candidates — archetype and soul are meant to be
-                         determined together from the same answers, so
-                         the picker should narrow down both at once
-                         rather than only ever chasing archetype
-                         clarity and leaving soul type to chance
-     - framework:        favors dimensions that matter to MBTI/Big
-                         Five/DISC/Enneagram, a small signal so
-                         framework confidence improves alongside
-                         archetype confidence
-     - redundancy:       penalizes overlap with dimensions already
-                         answered about a lot, so the same ground isn't
-                         covered twice */
+   VALIDATION QUESTIONS: a question tagged validates:"dim" is one the bank
+   author already knows re-measures a dimension some earlier, differently-
+   themed question also touched. When one is answered, _checkValidation()
+   compares the direction this answer nudges that dimension against the
+   dimension's running sign so far. Agreement is invisible (that's the
+   expected case); disagreement increments session.contradictions, which
+   computeAssessmentConfidence() reads as a real, if modest, certainty
+   penalty - the same "I said two different things about myself" signal a
+   psychologist would actually notice. */
+
+// Deterministic per-(seed, questionId, position) jitter in roughly [-0.8, 0.8].
+// Same seed always produces the same run (still fully reproducible/testable),
+// but different people no longer converge on an identical "magnet" question.
+function seededJitter(seed, questionId, position){
+  let h = (seed || 0) * 2654435761 + position * 40503;
+  for (let i = 0; i < questionId.length; i++){
+    h = (h * 33 + questionId.charCodeAt(i)) | 0;
+  }
+  h = h ^ (h >>> 16);
+  const frac = ((h >>> 0) % 1000) / 1000; // 0..0.999
+  return (frac - 0.5) * 1.6; // -0.8 .. 0.8
+}
+
 function computeQuestionInfoValue(q, session, top, second, soulTop, soulSecond){
   const dimSet = new Set();
   q.options.forEach(opt => Object.keys(opt.d).forEach(d => dimSet.add(d)));
@@ -2197,35 +2027,87 @@ function computeQuestionInfoValue(q, session, top, second, soulTop, soulSecond){
   let framework = 0;
   dimSet.forEach(d => { framework += (FRAMEWORK_DIMENSION_WEIGHTS[d] || 0) * 0.3; });
 
+  // PF4 fix (audit Priority 2): this used to sum uncapped across every
+  // prior answer, so a "generalist" dimension like confidence or
+  // selfAwareness -- touched by dozens of questions across the whole
+  // bank -- would rack up an ever-growing redundancy penalty with no
+  // ceiling, while the matching uncertainty *benefit* above saturates
+  // at 4 touches. By round 25 that made redundancy alone outweigh the
+  // question's entire score by ~8 points regardless of content quality,
+  // which is what was silently burying w11/em06/em04/w07 the whole run,
+  // not just at one position. Capping each dimension's contribution at
+  // the same saturation point as its uncertainty benefit (still using
+  // real evidence, just no longer unbounded) fixes the asymmetry.
   let redundancy = 0;
+  const dimTouchTotals = {};
   session.answers.forEach(a => {
     if (!a) return;
-    dimSet.forEach(d => { if (d in a.d) redundancy += Math.min(Math.abs(a.d[d]), 1); });
+    dimSet.forEach(d => { if (d in a.d) dimTouchTotals[d] = (dimTouchTotals[d] || 0) + Math.min(Math.abs(a.d[d]), 1); });
   });
+  dimSet.forEach(d => { redundancy += Math.min(dimTouchTotals[d] || 0, 4); });
 
-  return uncertainty * 1.0 + separation * 0.65 + soulSeparation * 0.5 + framework * 0.15 - redundancy * 0.35;
+  // A tied-dimension bonus: if this question's dims include two of the
+  // *current* top archetype's or soul's own signature dims and those two
+  // are themselves close in normalized value for this session so far
+  // (a real tie, not just "both unmeasured"), a question that moves them
+  // apart is worth more than the generic separation score above already
+  // captures, since separation there only looks at inter-archetype
+  // differences, not intra-session ties between the dims themselves.
+  let tieBreak = 0;
+  if (session && session.dims){
+    dimSet.forEach(d1 => dimSet.forEach(d2 => {
+      if (d1 >= d2) return;
+      const v1 = session.dims[d1] || 0, v2 = session.dims[d2] || 0;
+      if (Math.abs(v1 - v2) < 2) tieBreak += avgMag(d1) + avgMag(d2);
+    }));
+  }
+
+  // Emotional pacing (PF4): information gain still dominates the score
+  // (it ranges roughly -5..+8 with tight gaps near the top; these nudges
+  // are sized to flip a close tie, not override a real informational
+  // lead). Two adjustments, both read off the actual answer history:
+  // (1) a heavier discount the closer a *second* heavy question in a row
+  // would land -- this alone rarely eliminates a heavy candidate, it's
+  // the hard filter in _pickNextQuestion that stops a third; (2) a small
+  // bonus for a lighter category (fun/everyday) right after a moral or
+  // emotional question, so the quiz gets a breath rather than stacking
+  // two heavy registers back to back even when the categories differ.
+  let pacing = 0;
+  const answered = session.answers.filter(Boolean);
+  const prev = answered[answered.length - 1];
+  const prevQ = prev && QUESTIONS_BY_ID[prev.questionId];
+  if (prevQ){
+    if (q.difficulty === "heavy" && prevQ.difficulty === "heavy") pacing -= 1.5;
+    if ((prevQ.type === "moral" || prevQ.type === "emotional") && (q.type === "fun" || q.type === "everyday")) pacing += 1.0;
+  }
+
+  return uncertainty * 1.0 + separation * 0.65 + soulSeparation * 0.5 + framework * 0.15 + tieBreak * 0.2 - redundancy * 0.35 + pacing;
 }
 
+// "pace" is the one visible choice onboarding still offers (Quick Read /
+// Balanced / Deep Dive) - it no longer selects between three different
+// engines, since there's only the one continuous adaptive engine now. It
+// just narrows or widens the [min, max] range that engine is allowed to
+// stop within: Quick Read biases toward stopping as early as that range
+// permits, Deep Dive raises the floor so it always asks nearly the full
+// range regardless of how confident it gets, Balanced (the default) uses
+// the full 20-50 range on its own merits.
+const PACE_BOUNDS = {
+  quick: { min: 15, max: 25 },
+  balanced: { min: MIN_ADAPTIVE_QUESTIONS, max: MAX_QUESTIONS },
+  deep: { min: 45, max: MAX_QUESTIONS },
+};
 class QuizSession {
-  // questionMode comes from the "Your Experience" onboarding step's one
-  // depth choice: "15" (Quick Read) and "50" (Deep Dive) pin the
-  // assessment to exactly that many questions, never extended. "adaptive"
-  // is "Balanced": starts at MIN_QUESTIONS (35 = the 15 fixed + 20
-  // adaptive questions) and lets _maybeAdjustLength() extend up to
-  // MAX_QUESTIONS only if confidence is still low there — see that
-  // method's own guard for the mechanics. "adaptive" is also the fallback
-  // for someone who skipped onboarding entirely (the name screen's "Skip
-  // for now"), so it never needs its own separate default. "35" is kept
-  // as a valid fixed-length value at this layer for backward
-  // compatibility (old in-progress saves, direct construction) even
-  // though no onboarding screen offers it anymore.
-  constructor(seed = Date.now() % 100000, name = "", questionMode = "adaptive"){
+  constructor(seed = Date.now() % 100000, name = "", pace = "balanced"){
     // seed is kept only for the save/resume payload shape (harmless,
-    // unused for question selection now) so older in-progress saves in
-    // a person's browser still deserialize without a format change.
+    // unused for question selection, which is purely a function of the
+    // running answer history now).
     this.seed = seed;
     this.name = name;
-    this.questionMode = questionMode || "adaptive";
+    this.pace = PACE_BOUNDS[pace] ? pace : "balanced";
+    const bounds = PACE_BOUNDS[this.pace];
+    this.minAdaptive = bounds.min;
+    this.maxQuestions = bounds.max;
     this.dims = emptyDims();
     this.answers = [];              // sparse: index-aligned with this.plan, entries or null
     this.clusterAffinity = {};
@@ -2233,28 +2115,36 @@ class QuizSession {
     this.clusterAsked = {};
     CLUSTERS.forEach(c => this.clusterAsked[c] = 0);
     this.usedIds = new Set();
-    this.order = [...CLUSTERS];
     this.plan = CORE_QUESTION_IDS.map(id => QUESTIONS_BY_ID[id]).filter(Boolean);
     this.cursor = 0;
-    this.targetLength = this.questionMode === "15" ? 15
-      : this.questionMode === "35" ? 35
-      : this.questionMode === "50" ? 50
-      : MIN_QUESTIONS;
+    // dimSign/dimEvidenceCount track, per dimension, the running direction
+    // and how many separate questions have touched it - what
+    // _checkValidation() compares a later validates:dim answer against.
+    this.dimSign = {};
+    this.contradictions = 0;
     this.confidencePct = 0;
-    this.justExtended = false;
+    this.justExtended = false; // kept for encouragement()'s message, set once minAdaptive is crossed without stopping yet
+    // v2.1: the branching-unlock mechanism. Every option carries "tags"
+    // (bold, warm, curious, ...); once chosen, its tags are added here
+    // permanently (never removed, even if the answer is later edited -
+    // a door someone opened doesn't quietly close again). A pool question
+    // with unlockConditions.anyTags is only a real candidate for
+    // _pickNextQuestion once at least one of those tags is present, so
+    // two people who answer the core 15 differently genuinely see
+    // different slices of the remaining 105 become reachable, on top of
+    // the existing info-gain ranking choosing the best among them.
+    this.tags = new Set();
   }
 
-  totalLength(){ return this.targetLength; }
-  maxLength(){ return MAX_QUESTIONS; }
+  totalLength(){ return Math.max(this.cursor, this.minAdaptive); }
+  maxLength(){ return this.maxQuestions; }
 
   current(){
-    if (this.cursor >= this.targetLength) return null;
+    if (this.cursor >= this.maxQuestions) return null;
     if (this.cursor >= this.plan.length){
-      if (this.plan.length === 15 || this.plan.length === 25){
-        this.plan.push(...this._pickInformativeBatch(10));
-      } else {
-        this.plan.push(...this._pickInformativeBatch(1));
-      }
+      const next = this._pickNextQuestion();
+      if (!next) return null;
+      this.plan.push(next);
     }
     return this.plan[this.cursor];
   }
@@ -2263,47 +2153,104 @@ class QuizSession {
     return this.answers[this.cursor] || null;
   }
 
-  /* Stage 2/3/5 selection: rank every not-yet-used, not-already-planned
-     question by information value against the state right now, take the
-     top `count`. Deterministic given the running answer history, since
-     nothing here reads the clock or the seed. */
-  _pickInformativeBatch(count){
+  /* Ranks every not-yet-used, not-already-planned question by information
+     value against the state right now, and returns the single best one.
+     Deterministic given the running answer history - nothing here reads
+     the clock or the seed, so two people with identical answers so far
+     always get an identical next question too. */
+  _pickNextQuestion(){
+    const planned0 = new Set(this.plan.map(p => p.id));
+    const unusedPlanned0 = q => !this.usedIds.has(q.id) && !planned0.has(q.id);
+    // PF4 (audit Priority 2): even after capping the redundancy penalty,
+    // w11/em06/em04/w07 measure dimensions (confidence, trust,
+    // selfAwareness, kindness, emotionalStability, socialEnergy) that the
+    // fixed core 15 already covers so thoroughly that these four never
+    // win on pure information gain, no matter the persona - their
+    // deficit is real, not a formula bug, and forcing them to win the
+    // normal ranking would mean overriding genuine info gain, which the
+    // brief explicitly rules out. Since these were independently flagged
+    // as some of the strongest-written content in the bank, they get one
+    // narrow, explicit guarantee instead: a single reserved checkpoint
+    // partway through the adaptive run (still gated by the normal unlock
+    // tags, just not by the info-gain race), the same kind of
+    // "bypass the ranking on purpose" exception CORE_QUESTION_IDS already
+    // uses for the fixed 15, just for one slot instead of fifteen.
+    const FLAGSHIP_POOL_IDS = ["w11", "em06", "em04", "w07"];
+    // Must land BEFORE minAdaptive, the earliest point isComplete() can
+    // ever end the quiz, or a confident persona could finish before this
+    // checkpoint is ever reached and the guarantee would silently do
+    // nothing for them. (For "quick" pace, minAdaptive === CORE_LENGTH,
+    // so there's no room for this guarantee at all - by design, a quick
+    // read may ask zero adaptive questions.)
+    const flagshipCheckpoint = Math.max(CORE_LENGTH, this.minAdaptive - 1);
+    if (this.cursor === flagshipCheckpoint){
+      const unlocked0 = q => !q.unlockConditions || q.unlockConditions.anyTags.some(t => this.tags.has(t));
+      const available = FLAGSHIP_POOL_IDS.map(id => QUESTIONS_BY_ID[id]).filter(q => q && unusedPlanned0(q) && unlocked0(q));
+      if (available.length){
+        const pick = available[Math.abs(this.seed || 0) % available.length];
+        return pick;
+      }
+    }
     const nd = this.normalizedDims();
     const match = matchArchetype(nd);
     const top = match.ranked[0].archetype, second = match.ranked[1].archetype;
     const soulRanked = scoreSoulTypes(nd);
     const soulTop = soulRanked[0].item, soulSecond = soulRanked[1].item;
     const planned = new Set(this.plan.map(p => p.id));
-    const candidates = QUESTIONS.filter(q => !this.usedIds.has(q.id) && !planned.has(q.id));
-    const scored = candidates.map(q => ({ q, score: computeQuestionInfoValue(q, this, top, second, soulTop, soulSecond) }));
-    scored.sort((a, b) => b.score - a.score);
-    return scored.slice(0, count).map(x => x.q);
+    const unusedPlanned = q => !this.usedIds.has(q.id) && !planned.has(q.id);
+    const unlocked = q => !q.unlockConditions || q.unlockConditions.anyTags.some(t => this.tags.has(t));
+    let candidates = QUESTIONS.filter(q => unusedPlanned(q) && unlocked(q));
+    // Falling back to every not-yet-used question if tags haven't unlocked
+    // anything yet (shouldn't happen once the core 15 have run, but this
+    // guarantees the engine can never stall with real dimensions still
+    // unread just because nothing happens to be unlocked).
+    if (!candidates.length) candidates = QUESTIONS.filter(unusedPlanned);
+    if (!candidates.length) return null;
+    // Emotional pacing (PF4), hard rule: never let a THIRD consecutive
+    // "heavy" question through at all, on top of the soft discount
+    // computeQuestionInfoValue already applies against a second one.
+    // Falls back to the unfiltered list if that would empty the
+    // candidate pool, so this can never stall the assessment.
+    const answered = this.answers.filter(Boolean);
+    const last2 = answered.slice(-2).map(a => QUESTIONS_BY_ID[a.questionId]);
+    if (last2.length === 2 && last2.every(q => q && q.difficulty === "heavy")){
+      const nonHeavy = candidates.filter(q => q.difficulty !== "heavy");
+      if (nonHeavy.length) candidates = nonHeavy;
+    }
+    // PF4 magnet-question fix (audit Priority 2): the root cause traced
+    // for f07/f08/e25 dominating ~90-95% of every run isn't a broken
+    // formula, it's that the fixed core 15 leaves persistence/planning/
+    // logic/drive completely or almost completely untouched, so every
+    // persona's uncertainty term ranks the same 2-3 questions highest
+    // right at position 16, regardless of their actual answers - a real
+    // near-tie that just always resolves the same way. A small
+    // session-seeded jitter (deterministic per seed, so a given person's
+    // run is still fully reproducible) only flips genuinely close scores;
+    // a question with a real informational lead still always wins.
+    let best = candidates[0], bestScore = -Infinity;
+    candidates.forEach(q => {
+      const score = computeQuestionInfoValue(q, this, top, second, soulTop, soulSecond) + seededJitter(this.seed, q.id, this.cursor);
+      if (score > bestScore){ bestScore = score; best = q; }
+    });
+    return best;
   }
 
-  /* ---- Stage 4: the single Balanced-mode confidence checkpoint ---------
-     Stages 1-3 (questions 1-35) always run to completion regardless of
-     confidence, per the fixed/batch design above. Exactly once, right at
-     question 35, this checks computeAssessmentConfidence(): confident
-     enough and the assessment stops there (the "35 was enough" exit);
-     not confident and it commits to the full remaining stretch in one
-     jump, straight to MAX_QUESTIONS (50), with no further re-checks in
-     between — a deliberately binary outcome (35 or 50, nothing in
-     between) rather than the finer-grained "stop the instant confidence
-     is reached at 36, 37, 38..." this used to do, so "Balanced" reads as
-     a simple two-outcome choice, not an unpredictable in-between length. */
-  _maybeAdjustLength(){
-    // Fixed-length modes ("15"/"50") never extend past their chosen
-    // length regardless of confidence — only "adaptive" does, and only
-    // at the one checkpoint (question 35).
-    if (this.questionMode !== "adaptive") return;
-    if (this.cursor !== MIN_QUESTIONS) return;
-    const nd = this.normalizedDims();
-    const match = matchArchetype(nd);
-    const conf = computeAssessmentConfidence(match.ranked, nd, this, false);
-    this.confidencePct = conf.overall;
-    if (conf.overall >= CONFIDENCE_TARGET){ this.targetLength = this.cursor; return; }
-    this.targetLength = MAX_QUESTIONS;
-    this.justExtended = true;
+  /* A validates:dim question deliberately re-measures a dimension some
+     earlier, differently-themed question already touched. Comparing this
+     answer's direction against that dimension's running sign so far is a
+     real (if simple) test of self-consistency: two very differently-
+     framed scenarios pointing the same way is good evidence; pointing
+     opposite ways means at least one of them doesn't reflect how this
+     person actually tends to act, which is exactly the kind of thing that
+     should cost some confidence rather than being silently averaged away. */
+  _checkValidation(q, delta){
+    if (!q.validates) return;
+    const dim = q.validates;
+    const priorSign = this.dimSign[dim];
+    const newSign = Math.sign(delta[dim] || 0);
+    if (priorSign && newSign && priorSign !== newSign){
+      this.contradictions++;
+    }
   }
 
   /* Editing an already-answered question first reverts its dimension and
@@ -2330,17 +2277,36 @@ class QuizSession {
       this.usedIds.add(q.id);
       this.clusterAsked[q.cluster] = (this.clusterAsked[q.cluster] || 0) + 1;
     }
+    this._checkValidation(q, opt.d);
     let magnitude = 0;
     Object.entries(opt.d).forEach(([dim, val]) => {
       this.dims[dim] = (this.dims[dim] || 0) + val;
       magnitude += Math.abs(val);
+      const sign = Math.sign(this.dims[dim]);
+      if (sign) this.dimSign[dim] = sign;
     });
     this.clusterAffinity[q.cluster] += magnitude;
-    this.answers[this.cursor] = { questionId: q.id, cluster: q.cluster, optionIndex, text: opt.text, d: opt.d };
+    (opt.tags || []).forEach(t => this.tags.add(t));
+    this.answers[this.cursor] = { questionId: q.id, cluster: q.cluster, optionIndex, text: opt.text, d: opt.d, reveals: opt.reveals || [], questionType: q.type };
     this.cursor++;
     this.justExtended = false;
     if (editing) this._recalculateFutureQuestions();
-    else this._maybeAdjustLength();
+    else this._updateConfidence();
+  }
+
+  /* The one continuous confidence check, run after every new answer past
+     the fixed core (not just at one fixed checkpoint): recompute where
+     things stand, and if MIN_ADAPTIVE_QUESTIONS have been asked and
+     confidence has crossed CONFIDENCE_TARGET, the assessment can end
+     right here - anywhere from 20 to 50 questions, whichever the evidence
+     actually supports, rather than one of a small fixed set of lengths. */
+  _updateConfidence(){
+    const nd = this.normalizedDims();
+    const match = matchArchetype(nd);
+    const conf = computeAssessmentConfidence(match.ranked, nd, this, false);
+    this.confidencePct = conf.overall;
+    if (this.cursor >= this.minAdaptive) this.justExtended = false;
+    else if (this.cursor >= CORE_LENGTH) this.justExtended = true;
   }
 
   /* Changing an earlier answer shifts the running dimension totals, which
@@ -2349,13 +2315,14 @@ class QuizSession {
      already answered (which would silently discard real answers), this
      only drops the still-blank tail beyond the furthest answered
      question, so the very next unanswered question gets freshly chosen
-     against the updated cluster affinities instead of a stale plan. */
+     against the updated state instead of a stale plan. */
   _recalculateFutureQuestions(){
     let highest = -1;
     for (let i = 0; i < this.answers.length; i++){ if (this.answers[i]) highest = i; }
     if (this.plan.length > highest + 1){
       this.plan.length = highest + 1;
     }
+    this._updateConfidence();
   }
 
   goBack(){
@@ -2371,19 +2338,29 @@ class QuizSession {
   canGoBack(){ return this.cursor > 0; }
   canSkipForward(){ return !!this.answers[this.cursor]; }
 
-  progress(){ return { current: this.cursor, total: this.targetLength, max: MAX_QUESTIONS }; }
-  isComplete(){ return this.cursor >= this.targetLength; }
+  /* current/total/max for the progress bar: total is an honest *estimate*
+     (MIN_ADAPTIVE_QUESTIONS while still building the core evidence, or the
+     stop point once confidence has actually been reached), not a promise -
+     see "Estimated remaining questions" in the quiz UI, which is worded to
+     match: a continuously-adaptive length genuinely doesn't know its own
+     final size in advance the way a fixed-length quiz does. */
+  progress(){
+    return { current: this.cursor, total: this.totalLength(), max: this.maxQuestions };
+  }
+  isComplete(){
+    if (this.cursor >= this.maxQuestions) return true;
+    if (this.cursor < this.minAdaptive) return false;
+    return this.confidencePct >= CONFIDENCE_TARGET;
+  }
 
   encouragement(){
-    const remaining = this.targetLength - this.cursor;
-    if (remaining <= 0) return "That's everything I need.";
-    if (this.justExtended) return "Two strong matches are close, digging a little deeper.";
+    if (this.isComplete()) return "That's everything I need.";
     if (this.cursor === 0) return "Let's start.";
-    if (remaining <= 3) return "Almost there, just a couple more.";
-    if (remaining <= 5) return "A few more and I'll have a clear read.";
-    if (this.cursor >= 15 && this.cursor < 18) return "I'm starting to get a sense of you.";
-    if (remaining <= this.targetLength * 0.5) return "Good pace, keep going.";
-    return "Just getting started here.";
+    if (this.cursor < CORE_LENGTH) return "Just getting started here.";
+    if (this.cursor >= CORE_LENGTH && this.cursor < CORE_LENGTH + 3) return "I'm starting to get a sense of you.";
+    if (this.confidencePct >= CONFIDENCE_TARGET - 15) return "Two strong matches are close, digging a little deeper.";
+    if (this.cursor >= this.maxQuestions - 5) return "Almost there, just a couple more.";
+    return "Good pace, keep going.";
   }
 
   normalizedDims(){
@@ -2405,18 +2382,18 @@ class QuizSession {
     return {
       seed: this.seed,
       name: this.name,
-      questionMode: this.questionMode,
-      meta: this.meta || {},
+      pace: this.pace,
       dims: this.dims,
       answers: this.answers,
       clusterAffinity: this.clusterAffinity,
       clusterAsked: this.clusterAsked,
       usedIds: Array.from(this.usedIds),
-      order: this.order,
       plan: this.plan,
       cursor: this.cursor,
-      targetLength: this.targetLength,
+      dimSign: this.dimSign,
+      contradictions: this.contradictions,
       confidencePct: this.confidencePct,
+      tags: Array.from(this.tags),
       savedAt: Date.now(),
     };
   }
@@ -2426,21 +2403,25 @@ function restoreQuizSession(saved){
   const s = Object.create(QuizSession.prototype);
   s.seed = saved.seed;
   s.name = saved.name || "";
-  s.questionMode = saved.questionMode || "adaptive";
-  s.meta = saved.meta || {};
+  s.pace = PACE_BOUNDS[saved.pace] ? saved.pace : "balanced";
+  const bounds = PACE_BOUNDS[s.pace];
+  s.minAdaptive = bounds.min;
+  s.maxQuestions = bounds.max;
   s.dims = saved.dims;
   s.answers = saved.answers;
   s.clusterAffinity = saved.clusterAffinity;
   s.clusterAsked = saved.clusterAsked;
   s.usedIds = new Set(saved.usedIds);
-  s.order = saved.order;
   s.plan = saved.plan;
   s.cursor = saved.cursor;
-  s.targetLength = saved.targetLength;
+  s.dimSign = saved.dimSign || {};
+  s.contradictions = saved.contradictions || 0;
   s.confidencePct = saved.confidencePct || 0;
+  s.tags = new Set(saved.tags || []);
   s.justExtended = false;
   return s;
 }
+
 
 /* -------------------------------------------------------------------------
    ALGORITHM: Archetype matching
@@ -2677,14 +2658,18 @@ function computeRelationshipStyles(normDims){
 /* -------------------------------------------------------------------------
    ALGORITHM: Personality code encode/decode (versioned)
    Format:  [Name-]PF<version>-<archetypeIndex base36>-<N dims base36>-<checksum>
-   PF1 codes (the original release) carry the first 20 dimensions.
-   PF2 codes carry all 25. The dimension order never changes for the first
-   20 slots, only new slots were appended, so a PF1 code can always be
-   read: its 20 known dimensions are recovered exactly, and the 5 added in
-   v2 are set to a neutral 0 since they were never asked about. This is why
-   old codes never break. decodeCode() always returns a full 25-dimension
-   profile regardless of which version it was given, with an `upgraded`
-   flag set to true when it had to backfill newer dimensions.
+
+   PF4: this is a complete redesign (new question bank, new adaptive
+   engine, new scoring model), and PF1/PF2/PF3 codes are permanently
+   obsolete as of this version. Earlier versions of this file used to
+   backfill old codes into the current dimension layout so they'd never
+   break; PF4 deliberately does NOT do that anymore (no compatibility
+   layer, no conversion, no reused scoring) - a code from an earlier
+   version is recognized only well enough to say so. decodeCode()
+   returns `{ obsolete: true, version }` for any version below the
+   current one; every page that shows a decoded profile must check that
+   flag first and show the "please retake the assessment" message
+   instead of attempting to render a profile from it.
    Every dimension is clamped to -10..10, shifted to 0..20 so it always
    encodes as a single base36 digit. The checksum is a simple mod-36 sum of
    all digit values plus the archetype index, guarding against typos.
@@ -2693,8 +2678,7 @@ function computeRelationshipStyles(normDims){
 ------------------------------------------------------------------------- */
 
 const B36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const CODE_VERSION = 2;
-const V1_DIMENSION_COUNT = 20; // the original release's dimension count
+const CODE_VERSION = 4;
 
 function sanitizeName(name){
   return (name || "").trim().replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
@@ -2732,7 +2716,13 @@ function decodeCode(code){
     const versionMatch = /^PF(\d+)$/.exec(versionTag);
     if (!versionMatch) return null;
     const version = parseInt(versionMatch[1], 10);
-    const expectedDigitCount = version <= 1 ? V1_DIMENSION_COUNT : DIMENSIONS.length;
+    if (version < CODE_VERSION){
+      // PF1/PF2/PF3: recognized only as "obsolete", never decoded or
+      // migrated. No archetype/normDims are returned - there is nothing
+      // safe to render from an old scoring model.
+      return { obsolete: true, version, name };
+    }
+    const expectedDigitCount = DIMENSIONS.length;
     const archIdx = B36.indexOf(archDigit);
     if (archIdx < 0 || !ARCHETYPES[archIdx]) return null;
     if (digits.length !== expectedDigitCount) return null;
@@ -2752,7 +2742,7 @@ function decodeCode(code){
       normDims,
       name,
       version,
-      upgraded: version < CODE_VERSION,
+      upgraded: false,
     };
   } catch (e){
     return null;
@@ -2768,9 +2758,15 @@ function decodeCode(code){
 // them can show a different archetype than the same person's own Result/
 // Profile/Growth pages, which already recompute fresh.
 function freshenDecoded(decoded){
-  if (!decoded) return decoded;
+  if (!decoded || decoded.obsolete) return decoded;
   return { ...decoded, archetype: matchArchetype(decoded.normDims).primary };
 }
+
+// The exact message PF4 shows anywhere an obsolete PF1/PF2/PF3 code was
+// entered or loaded, instead of attempting to render (or migrate) a
+// profile from it. Centralized so every call site shows identical
+// wording, per the "do not attempt automatic migration" requirement.
+const OBSOLETE_CODE_MESSAGE = "This result was created with an earlier generation of PersonaForge. PersonaForge 4 is a complete redesign with a new adaptive engine, new question bank, new scoring model, and improved psychological interpretation. To receive an accurate result, please retake the assessment.";
 
 /* -------------------------------------------------------------------------
    ALGORITHM: Compatibility (Compare page)
@@ -3151,25 +3147,36 @@ function computeAssessmentConfidence(ranked, normDims, session, upgradedFromV1){
   const consistencyResult = computeConsistency(session);
   const consistency = consistencyResult.pct;
 
-  // Tie-breakers only mean something for Balanced ("adaptive") runs, where
-  // going past the 35-question checkpoint means the checkpoint genuinely
-  // wasn't confident yet. Quick Read and Deep Dive always run a fixed
-  // length regardless of confidence, so the concept doesn't apply to them.
+  // v2.0: one continuous adaptive flow rather than a fixed-mode checkpoint,
+  // so "needed extra questions beyond the baseline" is itself a signal
+  // regardless of which pace was chosen - going past this session's own
+  // minAdaptive (pace-specific: Quick Read's floor is lower than Deep
+  // Dive's) means confidence genuinely wasn't there yet at the earliest
+  // point this session was allowed to stop.
+  const sessionMin = session.minAdaptive || MIN_ADAPTIVE_QUESTIONS, sessionMax = session.maxQuestions || MAX_QUESTIONS;
   let tieBreakerScore = 100;
-  if (session.questionMode === "adaptive" && session.cursor > MIN_QUESTIONS){
-    const extra = Math.min(session.cursor - MIN_QUESTIONS, MAX_QUESTIONS - MIN_QUESTIONS);
-    tieBreakerScore = Math.round(100 - (extra / (MAX_QUESTIONS - MIN_QUESTIONS)) * 40);
+  if (session.cursor > sessionMin && sessionMax > sessionMin){
+    const extra = Math.min(session.cursor - sessionMin, sessionMax - sessionMin);
+    tieBreakerScore = Math.round(100 - (extra / (sessionMax - sessionMin)) * 40);
   }
+
+  // A validates:dim question disagreeing with the dimension's own earlier
+  // running direction is real evidence the person's answers aren't fully
+  // self-consistent on that trait - a plain, if small, certainty cost per
+  // contradiction, capped so a couple of genuinely ambivalent traits don't
+  // sink the whole read.
+  const contradictionPenalty = Math.min(20, (session.contradictions || 0) * 6);
 
   const overall = Math.max(0, Math.min(100, Math.round(
     archetypeSeparation * 0.30 + consistency * 0.20 + soulCertainty * 0.20 +
-    sinVirtueCertainty * 0.15 + tieBreakerScore * 0.15 - versionPenalty
+    sinVirtueCertainty * 0.15 + tieBreakerScore * 0.15 - versionPenalty - contradictionPenalty
   )));
 
   return {
     confidencePct: overall, // kept as the headline field existing UI already reads
     stabilityPct,
     overall, consistency, archetypeSeparation, soulCertainty, sinVirtueCertainty, tieBreakerScore, versionPenalty,
+    contradictions: session.contradictions || 0, contradictionPenalty,
     note: null,
   };
 }
@@ -3614,6 +3621,119 @@ function computeCompareLayers(profileA, archA, profileB, archB, nameA, nameB){
 }
 
 /* =========================================================================
+   PF4 ADDITIONS: Pattern Memory & Cross-Dimension Insights (Priorities 6-7)
+
+   The result engine should explain a person by the THEMES that recurred
+   across many unrelated situations, not by grading individual answers.
+   Every option already carries reveals[]: 3 short, present-tense
+   behavioral-pattern phrases drawn from a shared ~84-phrase vocabulary
+   (see the DIM_REVEALS table used to author them), specifically so the
+   SAME phrase can legitimately recur across totally different questions
+   -- a moral dilemma and a fun hypothetical can both reveal "chooses the
+   less certain, more interesting path" without that being a coincidence.
+   computeBehavioralPatterns() tallies which phrases actually recurred
+   for THIS person's real answers, requires at least 3 different
+   questions from at least 2 different categories to agree (so it's a
+   real cross-situation theme, not one heavy question's phrasing quirk),
+   and turns the survivors into natural "across several situations, you
+   repeatedly..." sentences via REVEAL_PAST_TENSE below. ------------------ */
+
+// Only the ~50 first words that actually appear in the reveals vocabulary
+// need converting; everything else in a phrase is left untouched other
+// than the pronoun swaps applied globally below.
+const VERB_PAST_TENSE = {
+  Accepts:"Accepted", Acts:"Acted", Adjusts:"Adjusted", Backs:"Backed", Builds:"Built",
+  Changes:"Changed", Chooses:"Chose", "Doesn't":"Didn't", Draws:"Drew", Expects:"Expected",
+  Extends:"Extended", Feels:"Felt", Finds:"Found", Follows:"Followed", Frames:"Framed",
+  Gives:"Gave", Holds:"Held", Improvises:"Improvised", Keeps:"Kept", Knows:"Knew",
+  Leans:"Leaned", Lets:"Let", Measures:"Measured", Moves:"Moved", Names:"Named",
+  Notices:"Noticed", Prefers:"Preferred", Prepares:"Prepared", Prioritizes:"Prioritized",
+  Protects:"Protected", Pushes:"Pushed", Reaches:"Reached", Reads:"Read", Reasons:"Reasoned",
+  Reconsiders:"Reconsidered", Recovers:"Recovered", Relies:"Relied",
+  "Second-guesses":"Second-guessed", Sees:"Saw", Softens:"Softened", Stays:"Stayed",
+  Steps:"Stepped", Structures:"Structured", Takes:"Took", Tolerates:"Tolerated",
+  Treats:"Treated", Trusts:"Trusted", Uses:"Used", Withholds:"Withheld",
+};
+
+// Converts one reveals phrase (present-tense, third-person, e.g. "Backs
+// their own judgment under pressure") into a past-tense, second-person
+// clause fit for "Across several situations, you repeatedly ___"
+// ("backed your own judgment under pressure").
+function revealToPastTenseClause(phrase){
+  const words = phrase.split(" ");
+  const verb = VERB_PAST_TENSE[words[0]] || words[0];
+  words[0] = verb;
+  let s = words.join(" ");
+  s = s.replace(/\btheir own\b/g, "your own")
+       .replace(/\bthemselves\b/g, "yourself")
+       .replace(/\bthey're\b/g, "you're");
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
+/* Finds reveals phrases that recurred across at least 3 different
+   answers spanning at least 2 different question categories -- a real,
+   repeated theme rather than one question's specific framing. Returns
+   up to 4, ranked by how often they recurred, each as a ready-to-display
+   sentence plus the raw phrase/count for anything that wants the data
+   instead of the prose. */
+function computeBehavioralPatterns(session){
+  if (!session || !session.answers) return [];
+  const counts = new Map(); // phrase -> { count, categories:Set, questionIds:Set }
+  session.answers.forEach(a => {
+    if (!a || !a.reveals) return;
+    a.reveals.forEach(phrase => {
+      if (!counts.has(phrase)) counts.set(phrase, { count:0, categories:new Set(), questionIds:new Set() });
+      const entry = counts.get(phrase);
+      entry.count++;
+      entry.categories.add(a.questionType || a.cluster);
+      entry.questionIds.add(a.questionId);
+    });
+  });
+  const patterns = [];
+  counts.forEach((entry, phrase) => {
+    if (entry.questionIds.size >= 3 && entry.categories.size >= 2){
+      patterns.push({ phrase, count: entry.questionIds.size, categories: entry.categories.size,
+        sentence: `Across ${entry.questionIds.size} different, mostly unrelated situations, you repeatedly ${revealToPastTenseClause(phrase)}.` });
+    }
+  });
+  patterns.sort((a,b) => b.count - a.count || b.categories - a.categories);
+  return patterns.slice(0, 4);
+}
+
+/* ---- Cross-dimension insights (Priority 7) -------------------------------
+   Some of the most interesting things about a person aren't a single
+   high or low score, it's two traits that don't usually travel together
+   showing up at once. Each rule below names a real tension using the
+   session's own normalized dims, only firing when both sides are
+   genuinely present (not just "not opposite"), so these read as
+   observations earned by the actual answers, not a fixed list applied
+   to everyone. */
+const CROSS_DIMENSION_INSIGHTS = [
+  { a:"empathy", b:"trust", dir:[1,-1], text:"You read other people's feelings closely, but that doesn't automatically translate into trusting them, you extend understanding and caution at the same time." },
+  { a:"confidence", b:"emotionalStability", dir:[1,-1], text:"You back your own judgment readily, but that confidence doesn't come with an unshakeable calm underneath it, the two run on separate tracks for you." },
+  { a:"curiosity", b:"risk", dir:[1,-1], text:"You're genuinely pulled toward the unknown, but not toward the danger that sometimes comes with it, your curiosity and your caution have learned to coexist." },
+  { a:"kindness", b:"trust", dir:[1,-1], text:"You extend real warmth to people even when you haven't fully decided to trust them, kindness for you isn't conditional on certainty." },
+  { a:"independence", b:"kindness", dir:[1,1], text:"You value self-reliance and warmth toward others at the same time, in you, independence isn't the same thing as distance." },
+  { a:"openMindedness", b:"discipline", dir:[1,1], text:"You hold real personal standards while staying genuinely open to being wrong, conviction and flexibility aren't in tension for you the way they are for most people." },
+  { a:"leadership", b:"patience", dir:[1,1], text:"You're willing to take charge, but not in a hurry to, your leadership comes with more patience than the stereotype usually allows." },
+  { a:"competitiveness", b:"kindness", dir:[1,1], text:"You track whether you're winning and still lead with warmth toward the people you're winning against, those two rarely sit together this comfortably." },
+  { a:"resilience", b:"emotionalStability", dir:[1,-1], text:"You recover from setbacks quickly, but that doesn't mean they don't land hard on the way through, your resilience is earned, not automatic." },
+  { a:"planning", b:"adaptability", dir:[1,1], text:"You like real structure and you change course easily when the structure stops fitting, for you those aren't opposites." },
+];
+
+function computeCrossDimensionInsights(normDims){
+  const THRESHOLD = 3; // normDims run roughly -10..10; needs a real lean, not noise
+  const insights = [];
+  CROSS_DIMENSION_INSIGHTS.forEach(rule => {
+    const av = normDims[rule.a] || 0, bv = normDims[rule.b] || 0;
+    const aOk = rule.dir[0] > 0 ? av >= THRESHOLD : av <= -THRESHOLD;
+    const bOk = rule.dir[1] > 0 ? bv >= THRESHOLD : bv <= -THRESHOLD;
+    if (aOk && bOk) insights.push({ a:rule.a, b:rule.b, text:rule.text });
+  });
+  return insights.slice(0, 3);
+}
+
+/* =========================================================================
    V4 ADDITIONS
    Consistency check, framework approximations, duo titles, PF1 upgrade
    path, and the remaining fantasy/fun profile extras.
@@ -4028,6 +4148,8 @@ function buildProfileExtras(normDims, archetype, ranked, session, upgradedFromV1
     gemstone: computeGemstone(normDims),
     weather: computeWeather(normDims),
     coffeeOrder: computeCoffeeOrder(normDims),
+    behavioralPatterns: computeBehavioralPatterns(session),
+    crossDimensionInsights: computeCrossDimensionInsights(normDims),
   };
 }
 
@@ -4069,17 +4191,65 @@ function computeResult(session){
    A retake just updates it in place with the newest read; name/avatar are
    the only fields a person edits directly, from the Profile page. */
 const PF_PROFILE_KEY = "pf_local_profile";
+
+function generateProfileId(){
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback for environments without crypto.randomUUID (older browsers,
+  // or a non-secure context) -- still unique enough for a local-only id.
+  return "pf-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
+
+// PF4: fills in any of the profile's required fields that are missing,
+// on whatever profile object is passed in (a brand new one or an
+// existing one being read back). Lazy-migration, same pattern as
+// getFullTimeline()'s legacy tagging: an existing profile from before
+// PF4 just quietly gains profileId/assessmentHistory/preferences/
+// statistics/pfVersion the next time it's touched, nothing is ever
+// dropped or reset.
+function ensureProfileSchema(p){
+  if (!p.profileId) p.profileId = generateProfileId();
+  if (!p.createdAt) p.createdAt = Date.now();
+  if (!p.name) p.name = "";
+  if (p.avatar === undefined) p.avatar = null;
+  if (!p.assessmentHistory) p.assessmentHistory = [];
+  if (!p.preferences) p.preferences = {};
+  if (!p.statistics) p.statistics = { totalAssessments: 0, firstAssessmentAt: null, lastAssessmentAt: null };
+  p.pfVersion = "PF4";
+  p.lastOpened = Date.now();
+  return p;
+}
+
 function getLocalProfile(){
-  try{ return JSON.parse(localStorage.getItem(PF_PROFILE_KEY) || "null"); }
+  try{
+    const raw = JSON.parse(localStorage.getItem(PF_PROFILE_KEY) || "null");
+    if (!raw) return null;
+    const p = ensureProfileSchema(raw);
+    saveLocalProfile(p);
+    return p;
+  }
   catch(e){ return null; }
 }
 function saveLocalProfile(p){
   try{ localStorage.setItem(PF_PROFILE_KEY, JSON.stringify(p)); } catch(e){ /* storage unavailable, skip silently */ }
 }
+
+// The PF4 onboarding Step 04 ("Begin PF4 Assessment") calls this before
+// ever starting the quiz: "check if a profile exists, use it if so,
+// create one automatically if not" -- a person should never need to
+// take a separate action to have a profile. Anonymous by default
+// (name stays "" until a real result or a typed name attaches one).
+function createLocalProfileIfMissing(name){
+  const existing = getLocalProfile();
+  if (existing) return existing;
+  const p = ensureProfileSchema({ createdAt: Date.now(), avatar: null, name: name || "" });
+  saveLocalProfile(p);
+  return p;
+}
+
 function ensureLocalProfile(result){
   try{
     const existing = getLocalProfile();
-    const p = existing || { createdAt: Date.now(), avatar: null, name: "" };
+    const p = existing || ensureProfileSchema({ createdAt: Date.now(), avatar: null, name: "" });
     // Only overwrite the name from a fresh result if the person hasn't
     // already set a custom one on the Profile page — a retake taken
     // anonymously ("Skip for now") shouldn't blank out a name they typed
@@ -4093,12 +4263,23 @@ function ensureLocalProfile(result){
     p.soulHex = result.soul.hex;
     p.confidencePct = result.confidence ? result.confidence.confidencePct : null;
     p.updatedAt = Date.now();
+    // Keep assessmentHistory/statistics in sync with the active (PF4-only)
+    // timeline every time a result is saved, rather than a second,
+    // independently-drifting store -- pf_history via getActiveTimeline()
+    // stays the one detailed source of truth.
+    const active = getActiveTimeline();
+    p.assessmentHistory = active.map(h => ({ code: h.code, archetype: h.archetype, timestamp: h.timestamp }));
+    p.statistics = {
+      totalAssessments: active.length,
+      firstAssessmentAt: active.length ? active[0].timestamp : null,
+      lastAssessmentAt: active.length ? active[active.length - 1].timestamp : null,
+    };
     saveLocalProfile(p);
     return p;
   } catch(e){ return null; }
 }
 function updateLocalProfile(fields){
-  const p = getLocalProfile() || { createdAt: Date.now(), avatar: null, name: "" };
+  const p = getLocalProfile() || ensureProfileSchema({ createdAt: Date.now(), avatar: null, name: "" });
   Object.assign(p, fields, { updatedAt: Date.now() });
   saveLocalProfile(p);
   return p;
@@ -4432,7 +4613,7 @@ const PROGRESS_LEVELS = [
   { level: 10, minXp: 1260, title: "Forge Veteran" },
 ];
 function computeProgress(normDims){
-  const retakeCount = getFullTimeline().length;
+  const retakeCount = getActiveTimeline().length;
   const journalCount = getJournalEntries().length;
   const achievementCount = normDims ? computeAchievements(normDims).length : 0;
   const xp = retakeCount * 30 + journalCount * 8 + achievementCount * 15;
@@ -4502,14 +4683,35 @@ function saveToTimeline(result){
   } catch(e){ /* storage unavailable, skip silently */ }
 }
 function getPreviousTimelineEntry(){
+  const history = getActiveTimeline();
+  return history.length >= 2 ? history[history.length - 2] : null;
+}
+// PF4: any entry saved by an earlier CODE_VERSION is lazily tagged
+// `legacy: true` the first time it's read (written back once, so this
+// only runs one time per old entry) rather than deleted or migrated --
+// "archive, don't delete" per the PF4 versioning requirement. Every
+// consumer that feeds history/growth/comparisons/statistics should read
+// getActiveTimeline() instead, so a PF1/2/3 result never gets compared
+// against PF4's different scoring model; getFullTimeline() itself still
+// returns everything, including legacy entries, for the Privacy & Data
+// page and for "delete archived legacy results" specifically.
+function getFullTimeline(){
   try{
     const history = JSON.parse(localStorage.getItem("pf_history") || "[]");
-    return history.length >= 2 ? history[history.length - 2] : null;
-  } catch(e){ return null; }
-}
-function getFullTimeline(){
-  try{ return JSON.parse(localStorage.getItem("pf_history") || "[]"); }
+    let changed = false;
+    history.forEach(h => {
+      if (h.legacy === undefined){
+        const isLegacy = (h.version || 1) < CODE_VERSION;
+        if (isLegacy){ h.legacy = true; changed = true; }
+      }
+    });
+    if (changed){ try{ localStorage.setItem("pf_history", JSON.stringify(history)); } catch(e){ /* ignore */ } }
+    return history;
+  }
   catch(e){ return []; }
+}
+function getActiveTimeline(){
+  return getFullTimeline().filter(h => !h.legacy);
 }
 
 // Without a live session, computeAssessmentConfidence() falls back to a
@@ -4540,11 +4742,15 @@ function applyStoredConfidence(extras, code){
 // copy-pasted into each of those files with a per-page suffix; centralized
 // here so there's exactly one version to keep correct.
 function buildResultFromLatestTimeline(){
-  const history = getFullTimeline();
+  const history = getActiveTimeline();
   if (!history.length) return null;
   const entry = history[history.length - 1];
   const decoded = decodeCode(entry.code);
-  if (!decoded) return null;
+  // PF4: an obsolete PF1/PF2/PF3 timeline entry is treated the same as
+  // "no result yet" here rather than crashing every page that calls this
+  // -- those pages already have a graceful empty state, and there is no
+  // safe profile to reconstruct from an old code anyway.
+  if (!decoded || decoded.obsolete) return null;
   const match = matchArchetype(decoded.normDims);
   const extras = applyStoredConfidence(
     buildProfileExtras(decoded.normDims, match.primary, match.ranked, null, decoded.upgraded),
@@ -4560,7 +4766,7 @@ function buildResultFromLatestTimeline(){
 const GROWTH_CODED_DIMS = ["resilience","confidence","discipline","optimism","selfAwareness","persistence","emotionalStability","responsibility"];
 
 function computeGrowthTimeline(result){
-  const history = getFullTimeline();
+  const history = getActiveTimeline();
   const retakeCount = history.length;
   const previous = getPreviousTimelineEntry();
   const entries = history.map(h => ({ ...h, dateLabel: new Date(h.timestamp).toLocaleDateString() }));

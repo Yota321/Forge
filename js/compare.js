@@ -48,6 +48,10 @@ function runCompare(){
     out.innerHTML = `<p class="center-note" style="text-align:left">One or both codes look off. Double check for typos and try again.</p>`;
     return;
   }
+  if (a.obsolete || b.obsolete){
+    out.innerHTML = `<p class="center-note" style="text-align:left">${obEsc(OBSOLETE_CODE_MESSAGE)}</p>`;
+    return;
+  }
   compareCategoriesExpanded = false;
   // Escaped once here, at the source, matching runPartyCompare()'s
   // pattern — renderCompareResult() and everything it hands nameA/nameB
@@ -174,6 +178,10 @@ function runPartyCompare(){
   const decoded = raw.map(c => freshenDecoded(decodeCode(c)));
   if (decoded.some(d => !d)){
     out.innerHTML = `<p class="center-note" style="text-align:left">One or more codes look off. Double check each one for typos and try again.</p>`;
+    return;
+  }
+  if (decoded.some(d => d.obsolete)){
+    out.innerHTML = `<p class="center-note" style="text-align:left">${obEsc(OBSOLETE_CODE_MESSAGE)}</p>`;
     return;
   }
   // Escaped once here, at the source: every name below (decoded from

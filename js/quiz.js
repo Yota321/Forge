@@ -12,21 +12,27 @@
    Step 2 ("about you") and step 3's result-depth choice collect only
    presentation preferences: nothing there touches personality scoring.
    Assessment length (also step 3) is the one choice that actually
-   drives the quiz engine (QuizSession's questionMode, see startQuiz()).
+   drives the quiz engine (QuizSession's pace, see startQuiz()).
    pendingName/pendingMeta accumulate across all three steps so going
    back and forth never loses an earlier answer.
    ========================================================================= */
 let pendingMeta = {};
 
-// Shared "01 —— 02 —— 03" wayfinding header for all three onboarding
+// Shared "01 —— 02 —— 03 —— 04" wayfinding header for all four onboarding
 // screens: steps before `step` read as done, `step` itself as active,
 // anything after stays dim.
+const OB_STEP_COUNT = 4;
 function obStepIndicator(step){
   const node = (n) => `<span class="ns-step-node ${n < step ? "ns-step-done" : n === step ? "ns-step-active" : "ns-step-dim"}">${String(n).padStart(2, "0")}</span>`;
   const line = (done) => `<span class="ns-step-line${done ? " ns-step-line-done" : ""}"></span>`;
+  let nodes = "";
+  for (let n = 1; n <= OB_STEP_COUNT; n++){
+    nodes += node(n);
+    if (n < OB_STEP_COUNT) nodes += line(step > n);
+  }
   return `
-    <span class="sr-only">Step ${step} of 3</span>
-    <div class="ns-steps" aria-hidden="true">${node(1)}${line(step > 1)}${node(2)}${line(step > 2)}${node(3)}</div>
+    <span class="sr-only">Step ${step} of ${OB_STEP_COUNT}</span>
+    <div class="ns-steps" aria-hidden="true">${nodes}</div>
   `;
 }
 // Single-select chip row (age group, gender, "why are you here"): a
@@ -75,6 +81,7 @@ function obSelectCard(el){
 // can autosave under the right step number without threading it through
 // every call site.
 function obCurrentStep(){
+  if (document.getElementById("confirmScreen")) return 4;
   if (document.getElementById("experienceScreen")) return 3;
   if (document.getElementById("aboutScreen")) return 2;
   return 1;
@@ -175,8 +182,8 @@ function autosaveOnboarding(step){
   if (document.querySelector('.ob-chip[data-group="gender"]')) pendingMeta.gender = obChipValue("gender");
   if (document.querySelector('.ob-chip[data-group="reason"]')) pendingMeta.reason = obChipValue("reason");
   if (document.querySelector('.ob-card[data-group="length"]')){
-    pendingMeta.questionMode = obCardValue("length", pendingMeta.questionMode || "adaptive");
-    pendingMeta.resultDepth = obDepthForLength(pendingMeta.questionMode);
+    pendingMeta.pace = obCardValue("length", pendingMeta.pace || "balanced");
+    pendingMeta.resultDepth = obDepthForLength(pendingMeta.pace);
   }
   saveOnboardingProgress(step, pendingName, pendingMeta);
 }
@@ -259,18 +266,19 @@ function confirmAbout(goBack){
 
 /* ---------------- STEP 3: YOUR EXPERIENCE ------------------------------
    A single choice, framed as depth ("how deep do you want to go?") not
-   a technical question-count picker — each option's copy deliberately
-   never states 15/35/50 out loud. That number, and the result page's
-   presentation depth (see renderResult()'s isLightReport/resultDepth
-   branch in result.js, and the "Want to dive deeper?" unlock CTA it
-   renders for anything short of "deep"), both ride along invisibly on
-   the same choice via `depth`/`value` below; question count is the one
-   part of this that actually drives the quiz engine (QuizSession's
-   questionMode), everything else is presentation only. */
+   a technical question-count picker. There's one continuous adaptive
+   engine now (see QuizSession in engine.js), not three separate ones -
+   this choice narrows or widens the [min, max] question-count range that
+   same engine is allowed to stop within (QuizSession's `pace`, via
+   PACE_BOUNDS), rather than switching between fixed-length and adaptive
+   modes. The result page's presentation depth (see renderResult()'s
+   isLightReport/resultDepth branch in result.js) rides along on the same
+   choice via `depth` below; `value` is the one part that actually drives
+   the engine (QuizSession's pace param). */
 const OB_LENGTH_OPTIONS = [
-  { value: "15", depth: "short", title: "Quick Read", desc: "A fast, lighter pass that hits the highlights without digging deep." },
-  { value: "adaptive", depth: "balanced", badge: "Recommended", title: "Balanced", desc: "The full Forge experience, thorough without dragging. Keeps asking a little longer if your answers are hard to pin down." },
-  { value: "50", depth: "deep", title: "Deep Dive", desc: "Every angle explored, for the most complete and confident read Forge can give." },
+  { value: "quick", depth: "short", title: "Quick Read", desc: "A fast, lighter pass that hits the highlights without digging deep." },
+  { value: "balanced", depth: "balanced", badge: "Recommended", title: "Balanced", desc: "The full Forge experience, thorough without dragging. Keeps asking a little longer if your answers are hard to pin down." },
+  { value: "deep", depth: "deep", title: "Deep Dive", desc: "Every angle explored, for the most complete and confident read Forge can give." },
 ];
 function renderExperienceScreen(){
   setAccentColors();
@@ -289,7 +297,7 @@ function renderExperienceScreen(){
 
           <div class="ob-section">
             <span class="ns-label">How deep do you want to go?</span>
-            ${obCardGroup("length", OB_LENGTH_OPTIONS, pendingMeta.questionMode || "adaptive")}
+            ${obCardGroup("length", OB_LENGTH_OPTIONS, pendingMeta.pace || "balanced")}
           </div>
 
           <div class="qz-nav2">
@@ -306,22 +314,91 @@ function renderExperienceScreen(){
 // Question count and result-page presentation depth are two faces of
 // the one visible choice — this is the only place that maps between
 // them, so OB_LENGTH_OPTIONS stays the single source of truth.
-function obDepthForLength(questionMode){
-  return (OB_LENGTH_OPTIONS.find(o => o.value === questionMode) || {}).depth || "balanced";
+function obDepthForLength(pace){
+  return (OB_LENGTH_OPTIONS.find(o => o.value === pace) || {}).depth || "balanced";
 }
 function backFromExperience(){
   if (!document.getElementById("experienceScreen")) return;
-  pendingMeta.questionMode = obCardValue("length", "adaptive");
-  pendingMeta.resultDepth = obDepthForLength(pendingMeta.questionMode);
+  pendingMeta.pace = obCardValue("length", "balanced");
+  pendingMeta.resultDepth = obDepthForLength(pendingMeta.pace);
   renderAboutScreen();
 }
 function confirmExperience(){
   if (!document.getElementById("experienceScreen")) return;
-  const questionMode = obCardValue("length", "adaptive");
-  pendingMeta.questionMode = questionMode;
-  pendingMeta.resultDepth = obDepthForLength(questionMode);
+  const pace = obCardValue("length", "balanced");
+  pendingMeta.pace = pace;
+  pendingMeta.resultDepth = obDepthForLength(pace);
   click(520);
-  startQuiz(pendingName, pendingMeta, questionMode);
+  renderConfirmScreen();
+}
+
+/* ---------------- STEP 4: READY TO BEGIN --------------------------------
+   Final confirmation before the assessment actually starts. Nothing
+   here touches scoring; it exists so a person sees, once, exactly what
+   "local profile" means before it's created on their device, and so the
+   moment a legacy (pre-PF4) result is on this device, they're told
+   before starting rather than discovering it after. */
+function renderConfirmScreen(){
+  setAccentColors();
+  setPageTitle("Assessment");
+  const hasLegacy = getFullTimeline().some(h => h.legacy);
+  root.innerHTML = `
+    <div class="container lp-topbar-wrap">${topBar(true)}</div>
+    <div class="ns-wrap">
+      <div class="ns-panel glass ns-pre" id="confirmScreen">
+        <div class="ns-panel-top">
+          <div class="eyebrow accent">ONE LAST THING</div>
+          ${obStepIndicator(4)}
+        </div>
+        <div class="ns-panel-body ns-panel-body--wide">
+          <h2>Ready to <span class="accent-text">begin.</span></h2>
+          <p>One last thing before we start.</p>
+
+          <p style="margin-top:14px">PersonaForge stores your assessment locally on this device so your progress, personality history, and future comparisons are available even without an account.</p>
+          <p style="margin-top:8px">Nothing is uploaded automatically. Everything stays on this device unless you choose to export or sync it later.</p>
+
+          ${hasLegacy ? `
+          <div class="card" style="margin-top:14px;border-color:var(--accent)">
+            <p style="font-size:13.5px">This version of PersonaForge uses a completely redesigned assessment engine. Older personality results can't be compared directly with PF4. You'll need to complete the new assessment once to generate your new PF4 profile. Your earlier results aren't lost, they're kept as Legacy.</p>
+          </div>
+          ` : ""}
+
+          <div class="ob-section" style="margin-top:18px">
+            <ul class="ob-confirm-list">
+              <li>&check; Local profile will be created automatically</li>
+              <li>&check; Progress will be saved automatically</li>
+              <li>&check; PF4 results will be stored here</li>
+              <li>&check; You can delete everything later from Profile &rarr; Privacy</li>
+            </ul>
+          </div>
+          <p class="ns-skip-note">No online account is required.</p>
+
+          <div class="qz-nav2">
+            <button class="btn btn-ghost" onclick="click(300);backFromConfirm()">&larr; Back</button>
+            <button class="btn btn-primary" onclick="confirmBegin()">Begin PF4 Assessment &rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  spawnAmbience();
+  const screen = document.getElementById("confirmScreen");
+  requestAnimationFrame(() => requestAnimationFrame(() => screen.classList.remove("ns-pre")));
+  autosaveOnboarding(4);
+}
+function backFromConfirm(){
+  if (!document.getElementById("confirmScreen")) return;
+  renderExperienceScreen();
+}
+function confirmBegin(){
+  if (!document.getElementById("confirmScreen")) return;
+  // "Check if a local profile exists; use it if so, create one
+  // automatically if not" -- a person never takes a separate action to
+  // have a profile, completing the assessment (about to happen) always
+  // implies one exists first.
+  createLocalProfileIfMissing(pendingName);
+  click(520);
+  startQuiz(pendingName, pendingMeta, pendingMeta.pace || "balanced");
 }
 
 /* =========================================================================
@@ -335,18 +412,18 @@ let session = null;
 let pendingName = "";
 
 /* ---------------- QUIZ --------------------------------------------------*/
-// questionMode ("15" | "adaptive" | "50") comes from the "Your
-// Experience" onboarding step (undefined when it was skipped entirely,
-// e.g. the name screen's own "Skip for now") and is the one onboarding
-// preference that actually changes what the quiz engine does — see
-// QuizSession's constructor/_maybeAdjustLength(). Everything else in
-// `meta` (age group, gender, reason, result depth, ...) is presentation
-// only and just rides along to the result page via session.meta.
-function startQuiz(name, meta, questionMode){
+// pace ("quick" | "balanced" | "deep") comes from the "Your Experience"
+// onboarding step (undefined when it was skipped entirely, e.g. the name
+// screen's own "Skip for now") and is the one onboarding preference that
+// actually changes what the quiz engine does — see QuizSession's
+// constructor/PACE_BOUNDS. Everything else in `meta` (age group, gender,
+// reason, result depth, ...) is presentation only and just rides along
+// to the result page via session.meta.
+function startQuiz(name, meta, pace){
   pendingName = name || "";
   clearQuizProgress();
   clearOnboardingProgress();
-  session = new QuizSession(Date.now() % 100000, pendingName, questionMode);
+  session = new QuizSession(Date.now() % 100000, pendingName, pace);
   session.meta = meta || {};
   renderQuiz();
 }
@@ -361,7 +438,8 @@ function restoreOnboardingStep(saved){
   pendingName = saved.name || "";
   pendingMeta = saved.meta || {};
   const step = saved.step || 1;
-  if (step >= 3) renderExperienceScreen();
+  if (step >= 4) renderConfirmScreen();
+  else if (step === 3) renderExperienceScreen();
   else if (step === 2) renderAboutScreen();
   else renderNameScreen();
 }
@@ -377,7 +455,7 @@ function renderResumeQuizPrompt(saved){
         </div>
         <div class="ns-panel-body">
           <h2>Resume your <span class="accent-text">assessment?</span></h2>
-          <p>${saved.name ? obEsc(saved.name) + ", y" : "Y"}ou answered ${saved.cursor} of ${saved.targetLength}. Pick up on question ${saved.cursor + 1}, or start over from scratch.</p>
+          <p>${saved.name ? obEsc(saved.name) + ", y" : "Y"}ou answered ${saved.cursor} of ${Math.max(saved.cursor, (PACE_BOUNDS[saved.pace] || PACE_BOUNDS.balanced).min)}. Pick up on question ${saved.cursor + 1}, or start over from scratch.</p>
           <button class="btn btn-primary" onclick="acceptResumeQuiz()">Resume &rarr;</button>
           <div class="ns-divider">OR</div>
           <button class="btn btn-ghost" onclick="declineResumeQuiz()">Start over</button>
@@ -480,6 +558,17 @@ function qzIconForOption(opt, idx, used){
 function qzIconSvg(key){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${QZ_ICONS[key] || QZ_ICONS.compass}</svg>`;
 }
+// The large per-question illustration (see QUESTION_ILLUSTRATIONS in
+// engine.js) - a different, wider 0-100 viewBox than the small per-option
+// icons above, since this one is the visual centerpiece of the card, not
+// a small marker next to a line of text. Deliberately not shown as an
+// answer hint: the same handful of icons cover many differently-answered
+// questions, so it sets a mood for the scenario without pointing at any
+// option.
+function qzQuestionIllustration(q){
+  const inner = QUESTION_ILLUSTRATIONS[q.illustration] || QUESTION_ILLUSTRATIONS.compass;
+  return `<svg class="qz-illustration" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+}
 // Animates the current question's cards/heading out (mirroring their own
 // entrance direction) before handing off to whatever actually advances
 // the session — used for Back/Next Question, which (unlike selecting an
@@ -505,16 +594,14 @@ function renderQuiz(){
   const q = session.current();
   if (!q){ renderForging(); return; }
   const { current, total, max } = session.progress();
-  // Adaptive mode measures progress against the absolute ceiling (max,
-  // MAX_QUESTIONS) rather than the current target, since that target
-  // itself can extend mid-quiz — basing the percentage on it would make
-  // it visibly jump backward the instant confidence comes up short and
-  // the assessment grows by one question. Fixed modes ("15"/"50" — Quick
-  // Read/Deep Dive) never extend, so measuring against their own total
-  // instead reads more naturally as "how far through your chosen length."
-  const modeLabel = session.questionMode === "15" ? "Quick Read" : session.questionMode === "50" ? "Deep Dive" : "Balanced";
-  const pctDenom = session.questionMode === "adaptive" ? max : total;
-  const pctDone = Math.round((current / pctDenom) * 100);
+  // Every pace is the same continuously-adaptive engine now, just with a
+  // narrower or wider [min, max] range (see PACE_BOUNDS) - "total" itself
+  // can extend at any point as confidence evolves, for every pace, so
+  // the percentage is always measured against this session's own fixed
+  // ceiling (max) rather than the current estimate, which would otherwise
+  // visibly jump backward the instant the assessment grows by a question.
+  const modeLabel = session.pace === "quick" ? "Quick Read" : session.pace === "deep" ? "Deep Dive" : "Balanced";
+  const pctDone = Math.round((current / max) * 100);
   const existing = session.currentAnswer();
   // Answers always come in threes (see the question data). A/B/C map
   // straight to the three entrance directions: a=left, b=bottom, c=right.
@@ -527,6 +614,7 @@ function renderQuiz(){
         <span class="qz-progress2-num"><span class="accent">${String(current + 1).padStart(2, "0")}</span> <span class="dim">/ ${total}</span></span>
       </div>
       <div class="qz-progress2-meta" style="text-align:center; margin-bottom:8px;">${modeLabel} &bull; <span class="count-up" data-target="${pctDone}" data-suffix="%">0%</span></div>
+      <div class="qz-illustration-wrap" aria-hidden="true">${qzQuestionIllustration(q)}</div>
       <div class="qz-question2" id="qzQuestion">${q.text}</div>
       <div class="qz-cards" id="answerRow" role="listbox" aria-label="Answer options">
         ${q.options.map((opt, i) => `

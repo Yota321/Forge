@@ -261,7 +261,7 @@ function resultDetailCard(id, iconKey, title, subtitle, highlights, detailHtml, 
   // no explicit tint and silently auto-cycle to a different color than
   // the overview tile showed.
   const tint = opts.tint || nextResultTint();
-  resultDetailRegistry[id] = { iconKey, title, tint, html: detailHtml, onOpen: opts.onOpen };
+  resultDetailRegistry[id] = { iconKey, title, tint, html: detailHtml, onOpen: opts.onOpen, wide: !!opts.wide };
   const span = opts.span ? ` card-span-${opts.span}` : "";
   const extraClass = opts.className ? ` ${opts.className}` : "";
   const i = resultCardIdx++;
@@ -361,6 +361,7 @@ function openResultDetail(id){
   document.getElementById("detailHeadTitle").textContent = entry.title;
   const body = document.getElementById("resultDetailBody");
   body.innerHTML = entry.html;
+  document.querySelector("#resultDetailOverlay .detail-panel").classList.toggle("detail-panel-wide", !!entry.wide);
   overlay.classList.add("open");
   document.documentElement.classList.add("detail-lock-scroll");
   document.querySelectorAll(".ov-card.active").forEach(c => c.classList.remove("active"));
@@ -537,11 +538,11 @@ function renderResult(){
 
       ${resultDetailCard("mindmap", "radar", "Mind Map", "A visual view of your key dimensions.", topDims,
         `
-        <canvas id="radar" width="520" height="520" role="img" aria-label="Radar chart of 25 hidden personality dimensions"></canvas>
+        <div id="radarFingerprint" class="radar-fingerprint"></div>
         <div class="radar-legend">25 dimensions, measured from your answers, never shown to you during the test</div>
         <p style="margin-top:14px">Your strongest reads are ${topDims.slice(0,3).join(", ")}. The full shape (not just the top few points) is what actually separates ${a.name} from a similar-looking type.</p>
         `,
-        { span: "3of12", className: "hero-map", onOpen: () => drawRadar(document.getElementById("radar"), r.normDims, a.colors[0]) })}
+        { span: "3of12", className: "hero-map", wide: true, onOpen: () => renderRadarFingerprint(document.getElementById("radarFingerprint"), r.normDims, a.colors[0]) })}
 
       ${resultDetailCard("emotions", "heart", "Emotions", "Understand your emotional patterns and responses.",
         [`Steadiness ${r.traits["Emotional Steadiness"]}%`, `Trust ${r.relationship.trustLevel}%`, `Under stress: ${r.stress[0].name}`],
@@ -587,6 +588,23 @@ function renderResult(){
         <p style="color:var(--text-muted)">${buildSoulInsight(r.soul, dominantSins, dominantVirtues)}</p>
         `,
         { tint: "sky", className: "secondary-expansion", onOpen: () => { sinVirtueMode = "sin"; drawSinVirtueRadar(document.getElementById("sinVirtueRadar"), r.sinVirtue, sinVirtueMode, a.colors[0]); } })}
+
+      ${(r.behavioralPatterns && r.behavioralPatterns.length) || (r.crossDimensionInsights && r.crossDimensionInsights.length) ? resultDetailCard("patterns", "quote", "Patterns We Noticed", "Themes that showed up again and again, not one answer graded on its own.",
+        (r.behavioralPatterns || []).slice(0, 3).map(p => p.phrase),
+        `
+        <p style="color:var(--text-muted)">This isn't a summary of what you picked question by question. It's what kept showing up, unprompted, across situations that had nothing else in common.</p>
+        ${(r.behavioralPatterns || []).length ? `
+        <div class="expansion-divider"></div>
+        <h4 style="margin-bottom:8px">Recurring themes</h4>
+        ${r.behavioralPatterns.map(p => `<p style="margin-top:8px">${p.sentence}</p>`).join("")}
+        ` : ""}
+        ${(r.crossDimensionInsights || []).length ? `
+        <div class="expansion-divider"></div>
+        <h4 style="margin-bottom:8px">Worth sitting with</h4>
+        ${r.crossDimensionInsights.map(i => `<p style="margin-top:8px">${i.text}</p>`).join("")}
+        ` : ""}
+        `,
+        { span: "2of12", tint: "accent" }) : ""}
 
       <div class="section-heading">
         <div>
@@ -1088,6 +1106,10 @@ function runInlineCompare(){
     out.innerHTML = `<p class="center-note" style="text-align:left">That code doesn't look right. Check for typos and try again.</p>`;
     return;
   }
+  if (other.obsolete){
+    out.innerHTML = `<p class="center-note" style="text-align:left">${obEsc(OBSOLETE_CODE_MESSAGE)}</p>`;
+    return;
+  }
   const mine = { normDims: lastResult.normDims };
   compareCategoriesExpanded = false;
   // See compare.js's runCompare() — nameA/nameB are escaped at the source
@@ -1108,161 +1130,253 @@ function hexToRgba(hex, alpha){
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function drawRadar(canvas, normDims, accentColor){
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const dpr = window.devicePixelRatio || 1;
-  const dims = DIMENSIONS;
-  const n = dims.length;
-  const labels = dims.map(d => RADAR_LABELS[d] || d);
-  const color = accentColor || "#A78BFA";
-
-  // Sized off the canvas's own bento card, not the whole page (root) —
-  // this chart now lives in one grid cell among many, so its own
-  // container's width is what actually constrains it.
-  const containerWidth = (canvas.parentElement && canvas.parentElement.clientWidth) || root.clientWidth;
-  // Measure the widest label at the font size we intend to use, so the
-  // margin is always exactly as big as it needs to be, on any screen.
-  // Floor dropped 9->8: one more px of breathing room specifically for
-  // the smallest phone widths, where 25 tightly-packed labels need every
-  // bit of margin they can get (see LABEL_STAGGER below).
-  const fontSize = Math.max(8, Math.min(11, containerWidth / 42));
-  ctx.font = `${fontSize}px Manrope, sans-serif`;
-  let maxLabelWidth = 0;
-  labels.forEach(l => { maxLabelWidth = Math.max(maxLabelWidth, ctx.measureText(l).width); });
-
-  const available = Math.min(420, containerWidth - 8);
-  // +28 on top of the usual text-width buffer: labels now stagger across
-  // three radial offsets (see the 3-way stagger below), so the margin
-  // has to cover the farthest tier or those labels clip at the edge.
-  const margin = Math.min(available * 0.34, maxLabelWidth + 22 + 28);
-  const size = available;
-  canvas.width = size * dpr; canvas.height = size * dpr;
-  canvas.style.width = size + "px"; canvas.style.height = size + "px";
-  ctx.scale(dpr, dpr);
-  const cx = size/2, cy = size/2, R = Math.max(60, size/2 - margin);
-  ctx.clearRect(0,0,size,size);
-  // With 25 axes only 14.4° apart, several consecutive labels near the
-  // top/bottom vertices land close enough (both angularly and radially)
-  // to visually merge — e.g. "Kindness"/"Discipline" at indices 12/13
-  // used to read as one run-together word at a single fixed radius.
-  // Staggering across three radial tiers (i % 3) mostly fixes that, but
-  // 24 % 3 === 0 === 0 % 3, so the wrap seam (index 24 <-> index 0,
-  // genuine angular neighbors) still shares a tier and "Open-Minded"
-  // touches "Confidence" — confirmed by rendering both labels to an
-  // offscreen canvas and diffing actual glyph pixels, not just bounding
-  // boxes. Bumping index 24 to tier 2 (verified pixel-clean against both
-  // of its neighbors, at container widths from 300px to 720px+) closes
-  // that seam. A single sub-pixel touch between "Self-Aware"/"Planning"
-  // remains on the narrowest phones (~300-390px) — real but far below
-  // anything perceptible, and short of the original merge bug.
-  const labelOffset = (i) => {
-    const tier = (i === 24 && i % 3 === 0) ? 2 : i % 3;
-    return 14 + tier * 14;
-  };
-
-  const isLight = document.documentElement.dataset.theme === "light";
-  const gridColor = isLight ? "rgba(15,23,42,0.10)" : "rgba(255,255,255,0.08)";
-  const spokeColor = isLight ? "rgba(15,23,42,0.07)" : "rgba(255,255,255,0.06)";
-  const labelColor = isLight ? "rgba(15,23,42,0.68)" : "rgba(248,250,252,0.62)";
-  const dotColor = isLight ? "#0F172A" : "#F8FAFC";
-
-  ctx.strokeStyle = gridColor;
-  ctx.lineWidth = 1;
-  for (let ring = 1; ring <= 4; ring++){
-    ctx.beginPath();
-    for (let i = 0; i <= n; i++){
-      const angle = (i / n) * Math.PI * 2 - Math.PI/2;
-      const r = (R * ring)/4;
-      const x = cx + Math.cos(angle) * r, y = cy + Math.sin(angle) * r;
-      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  }
-  ctx.fillStyle = labelColor;
-  ctx.font = `${fontSize}px Manrope, sans-serif`;
-  ctx.textBaseline = "middle";
-  dims.forEach((d, i) => {
-    const angle = (i / n) * Math.PI * 2 - Math.PI/2;
-    const x = cx + Math.cos(angle) * R, y = cy + Math.sin(angle) * R;
-    ctx.strokeStyle = spokeColor;
-    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
-    const cosA = Math.cos(angle);
-    const off = labelOffset(i);
-    const lx = cx + cosA * (R + off), ly = cy + Math.sin(angle) * (R + off);
-    ctx.textAlign = cosA > 0.15 ? "left" : cosA < -0.15 ? "right" : "center";
-    ctx.fillText(labels[i], lx, ly);
+/* ---------------- MIND MAP: personality fingerprint ----------------------
+   Replaced the old always-labeled canvas radar (25 labels crammed around
+   a circle, however carefully staggered, still reads as clutter) with a
+   larger SVG radar plus a ranked dimension panel: same 25 axes, same
+   normDims values, same circular grid, just labeled in a list instead of
+   on the chart, with that list able to highlight its own dimension back
+   on the chart. SVG instead of canvas specifically because the
+   interaction (a list row driving a chart highlight) wants individually
+   targetable, CSS-transitionable elements — trying to hit-test and
+   redraw a canvas per hover would fight the "smooth 150-250ms, no
+   unnecessary DOM work" goal instead of fitting it naturally. */
+function radarFingerprintPoints(normDims){
+  const n = DIMENSIONS.length;
+  return DIMENSIONS.map((d, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    const val = Math.max(0, Math.min(1, (normDims[d] + 10) / 20));
+    return { dim: d, i, angle, val, pct: pct(normDims[d]) };
   });
+}
+function renderRadarFingerprint(container, normDims, accentColor){
+  if (!container) return;
+  const color = accentColor || "#A78BFA";
+  const n = DIMENSIONS.length;
+  const size = 600, cx = size / 2, cy = size / 2, R = 240;
+  const pts = radarFingerprintPoints(normDims);
+  const vertex = (p, val) => ({ x: cx + Math.cos(p.angle) * R * val, y: cy + Math.sin(p.angle) * R * val });
 
-  // The data polygon draws itself: growing outward from the center over
-  // ~750ms instead of appearing instantly, so the personality visibly
-  // emerges rather than just showing up.
-  const drawPolygon = (progress) => {
-    ctx.save();
-    ctx.beginPath();
-    dims.forEach((d, i) => {
-      const angle = (i / n) * Math.PI * 2 - Math.PI/2;
-      const val = Math.max(0, Math.min(1, (normDims[d] + 10) / 20)) * progress;
-      const r = R * val;
-      const x = cx + Math.cos(angle) * r, y = cy + Math.sin(angle) * r;
-      i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  const ringPolys = [1, 2, 3, 4].map(ring => {
+    const r = (R * ring) / 4;
+    return pts.map(p => `${cx + Math.cos(p.angle) * r},${cy + Math.sin(p.angle) * r}`).join(" ");
+  });
+  const spokes = pts.map(p => {
+    const v = vertex(p, 1);
+    return `<line class="rf-spoke" data-dim="${p.dim}" x1="${cx}" y1="${cy}" x2="${v.x.toFixed(1)}" y2="${v.y.toFixed(1)}" />`;
+  }).join("");
+  const vertices = pts.map(p => {
+    const v = vertex(p, p.val);
+    return `<circle class="rf-vertex" data-dim="${p.dim}" cx="${v.x.toFixed(1)}" cy="${v.y.toFixed(1)}" r="4" />`;
+  }).join("");
+  // Invisible, larger hit targets layered on top of the visible 4px dots —
+  // matching the actual dot exactly would make hovering/tapping a point
+  // require pixel-perfect aim. Real, focusable elements (not just a CSS
+  // pseudo-element) so keyboard Tab can reach every point on the radar
+  // itself, not just the panel rows.
+  const hitTargets = pts.map(p => {
+    const v = vertex(p, p.val);
+    return `<circle class="rf-hit" data-dim="${p.dim}" cx="${v.x.toFixed(1)}" cy="${v.y.toFixed(1)}" r="17" tabindex="0" role="button" aria-label="${RADAR_LABELS[p.dim] || p.dim}: ${p.pct} out of 100" />`;
+  }).join("");
+  // Edges drawn twice on purpose: fillPoly is the single always-visible
+  // shape (one path, so its fill/stroke never has seams); the 25 rf-edge
+  // lines sit exactly on top of it, individually targetable but invisible
+  // until their dimension is active, purely so hover/focus can light up
+  // just the two edges touching one vertex without re-drawing the shape.
+  const fillPoly = pts.map(p => { const v = vertex(p, p.val); return `${v.x.toFixed(1)},${v.y.toFixed(1)}`; }).join(" ");
+  const edges = pts.map((p, i) => {
+    const a = vertex(p, p.val), b = vertex(pts[(i + 1) % n], pts[(i + 1) % n].val);
+    return `<line class="rf-edge" data-a="${p.dim}" data-b="${pts[(i + 1) % n].dim}" x1="${a.x.toFixed(1)}" y1="${a.y.toFixed(1)}" x2="${b.x.toFixed(1)}" y2="${b.y.toFixed(1)}" />`;
+  }).join("");
+
+  container.innerHTML = `
+    <div class="rf-layout">
+      <div class="rf-chart-wrap" style="--rf-color:${color}">
+        <svg class="rf-svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="Radar chart of your 25 personality dimensions">
+          ${ringPolys.map(pts2 => `<polygon class="rf-ring" points="${pts2}" />`).join("")}
+          ${spokes}
+          <polygon class="rf-fill" points="${fillPoly}" />
+          ${edges}
+          ${vertices}
+          ${hitTargets}
+        </svg>
+        <div class="rf-tooltip" id="rfTooltip" role="status" aria-live="polite"></div>
+      </div>
+      <div class="rf-panel" id="rfPanel">
+        <div class="rf-section">
+          <h4 class="rf-section-title">Top Strengths</h4>
+          <div class="rf-rows">${radarPanelRows(pts.slice().sort((a,b)=>b.pct-a.pct).slice(0,5), "strength")}</div>
+        </div>
+        <div class="rf-section">
+          <h4 class="rf-section-title">Full Ranking</h4>
+          <div class="rf-rows rf-rows-full">${radarPanelRows(pts.slice().sort((a,b)=>b.pct-a.pct), "full")}</div>
+        </div>
+        <div class="rf-section">
+          <h4 class="rf-section-title">Growth Areas</h4>
+          <p class="rf-growth-note">Not weaknesses, just where there's the most room to grow.</p>
+          <div class="rf-rows">${radarPanelRows(pts.slice().sort((a,b)=>a.pct-b.pct).slice(0,3), "growth")}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  initRadarFingerprintInteraction(container, pts);
+  if (!reducedMotion()) requestAnimationFrame(() => container.querySelector(".rf-fill").classList.add("rf-fill-in"));
+}
+function radarPanelRows(list, kind){
+  return list.map(p => `
+    <button type="button" class="rf-row rf-row-${kind}" data-dim="${p.dim}">
+      ${kind === "strength" ? `<span class="rf-star" aria-hidden="true">★</span>` : kind === "growth" ? `<span class="rf-dot" aria-hidden="true"></span>` : ""}
+      <span class="rf-row-label">${RADAR_LABELS[p.dim] || p.dim}</span>
+      <span class="rf-row-track"><span class="rf-row-fill" style="width:${p.pct}%"></span></span>
+      <span class="rf-row-pct">${p.pct}</span>
+    </button>`).join("");
+}
+// Scrolls the hovered/focused dimension's row to the vertical center of
+// the Full Ranking list — and ONLY that list's own scrollTop. Deliberately
+// not Element.scrollIntoView(): it walks up and scrolls every scrollable
+// ancestor it finds, which here meant the detail modal's body (and with it
+// the radar SVG sitting beside the list) moved along with the list on
+// every hover. rowsFull.scrollTo() can't touch anything outside itself, so
+// the radar chart stays a fixed anchor no matter how the ranking scrolls —
+// scrollIntoView is the wrong tool for a split-view layout like this one.
+function scrollRankingRowToCenter(rowsFull, row){
+  // Below the 900px breakpoint .rf-rows-full goes overflow:visible (see
+  // pages.css) and stops being its own scroll container — the page/modal
+  // would have to scroll instead, which is exactly the "radar moves"
+  // problem this function exists to avoid. Skip rather than fall back to
+  // a different scroller.
+  if (!rowsFull || rowsFull.scrollHeight <= rowsFull.clientHeight) return;
+  // getBoundingClientRect diff instead of row.offsetTop: .rf-rows-full
+  // isn't a positioned element, so offsetTop would resolve against
+  // whichever ancestor IS positioned (the detail panel) rather than
+  // against the scroll container itself.
+  const rowTop = row.getBoundingClientRect().top - rowsFull.getBoundingClientRect().top + rowsFull.scrollTop;
+  const alreadyCentered = rowTop >= rowsFull.scrollTop && rowTop + row.offsetHeight <= rowsFull.scrollTop + rowsFull.clientHeight;
+  if (alreadyCentered) return;
+  const maxScroll = rowsFull.scrollHeight - rowsFull.clientHeight;
+  const target = Math.max(0, Math.min(maxScroll, rowTop - rowsFull.clientHeight / 2 + row.offsetHeight / 2));
+  // Hovering between two nearby vertices shouldn't keep restarting a long
+  // smooth-scroll animation for a few pixels of difference.
+  if (Math.abs(target - rowsFull.scrollTop) < 4) return;
+  rowsFull.scrollTo({ top: target, behavior: reducedMotion() ? "auto" : "smooth" });
+}
+function initRadarFingerprintInteraction(container, pts){
+  const svg = container.querySelector(".rf-svg");
+  const chartWrap = container.querySelector(".rf-chart-wrap");
+  const tooltip = container.querySelector("#rfTooltip");
+  const rows = container.querySelectorAll(".rf-row");
+  const hits = container.querySelectorAll(".rf-hit");
+  const byDim = {};
+  pts.forEach(p => { byDim[p.dim] = p; });
+  // Only the Full Ranking list has every one of the 25 dimensions (Top
+  // Strengths/Growth Areas are 5/3-row excerpts), so that's the one row
+  // scrollIntoView cares about landing on.
+  let touchActiveDim = null;
+
+  const positionTooltip = (dim) => {
+    const vertexEl = svg.querySelector(`.rf-vertex[data-dim="${dim}"]`);
+    const p = byDim[dim];
+    if (!vertexEl || !p) return;
+    const vcx = parseFloat(vertexEl.getAttribute("cx")), vcy = parseFloat(vertexEl.getAttribute("cy"));
+    const wrapBox = chartWrap.getBoundingClientRect();
+    const scale = wrapBox.width / 600;
+    // Where the point sits within the chart, as a 0..1 fraction, decides
+    // which side of it the tooltip grows toward -- so it reads naturally
+    // ("beside the point") instead of always centered above, which runs
+    // off the top for points near the very top of the circle.
+    const fx = vcx / 600, fy = vcy / 600;
+    const vertical = fy < 0.28 ? "below" : "above";
+    const horizontal = fx < 0.28 ? "left" : fx > 0.72 ? "right" : "center";
+    tooltip.textContent = `${RADAR_LABELS[dim] || dim} — ${p.pct}`;
+    tooltip.dataset.v = vertical;
+    tooltip.dataset.h = horizontal;
+    tooltip.style.left = (vcx * scale) + "px";
+    tooltip.style.top = (vcy * scale) + "px";
+    tooltip.classList.add("rf-tooltip-visible");
+    // Placed first by the point's own position, then nudged back inside
+    // the modal if it would still overflow -- e.g. a point near the edge
+    // of a narrow mobile chart, where the quadrant heuristic alone isn't
+    // always enough room.
+    requestAnimationFrame(() => {
+      const panel = container.closest(".detail-panel") || container;
+      const panelBox = panel.getBoundingClientRect();
+      const tipBox = tooltip.getBoundingClientRect();
+      let dx = 0, dy = 0;
+      if (tipBox.left < panelBox.left) dx = panelBox.left - tipBox.left + 6;
+      if (tipBox.right > panelBox.right) dx = panelBox.right - tipBox.right - 6;
+      if (tipBox.top < panelBox.top) dy = panelBox.top - tipBox.top + 6;
+      if (tipBox.bottom > panelBox.bottom) dy = panelBox.bottom - tipBox.bottom - 6;
+      if (dx || dy) tooltip.style.transform += ` translate(${dx}px, ${dy}px)`;
     });
-    ctx.closePath();
-    ctx.fillStyle = hexToRgba(color, 0.18 * progress);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.8;
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = dotColor;
-    dims.forEach((d, i) => {
-      const angle = (i / n) * Math.PI * 2 - Math.PI/2;
-      const val = Math.max(0, Math.min(1, (normDims[d] + 10) / 20)) * progress;
-      const r = R * val;
-      const x = cx + Math.cos(angle) * r, y = cy + Math.sin(angle) * r;
-      ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
-    });
-    ctx.restore();
   };
 
-  if (reducedMotion()){
-    drawPolygon(1);
-    return;
-  }
-  const start = performance.now();
-  const duration = 750;
-  function tick(now){
-    const t = Math.min(1, (now - start) / duration);
-    const eased = 1 - Math.pow(1 - t, 3);
-    ctx.clearRect(0,0,size,size);
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 1;
-    for (let ring = 1; ring <= 4; ring++){
-      ctx.beginPath();
-      for (let i = 0; i <= n; i++){
-        const angle = (i / n) * Math.PI * 2 - Math.PI/2;
-        const r = (R * ring)/4;
-        const x = cx + Math.cos(angle) * r, y = cy + Math.sin(angle) * r;
-        i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-      }
-      ctx.stroke();
+  // Single shared entry point for every trigger (radar hover/focus/touch,
+  // list hover/focus) — this is the only place any of the rf-active /
+  // rf-dimmed / rf-row-active classes get toggled, so radar and list can
+  // never drift out of sync or duplicate each other's highlighting.
+  const setActive = (dim) => {
+    svg.querySelectorAll("[data-dim]").forEach(el => el.classList.toggle("rf-active", el.dataset.dim === dim));
+    svg.querySelectorAll(".rf-spoke, .rf-vertex").forEach(el => el.classList.toggle("rf-dimmed", !!dim && el.dataset.dim !== dim));
+    svg.querySelectorAll(".rf-edge").forEach(el => el.classList.toggle("rf-active", !!dim && (el.dataset.a === dim || el.dataset.b === dim)));
+    rows.forEach(el => el.classList.toggle("rf-row-active", el.dataset.dim === dim));
+    if (dim){
+      tooltip.style.transform = "";
+      positionTooltip(dim);
+      const rowsFull = container.querySelector(".rf-rows-full");
+      const row = rowsFull && rowsFull.querySelector(`.rf-row[data-dim="${dim}"]`);
+      if (row) scrollRankingRowToCenter(rowsFull, row);
+    } else {
+      tooltip.classList.remove("rf-tooltip-visible");
     }
-    ctx.fillStyle = labelColor;
-    ctx.font = `${fontSize}px Manrope, sans-serif`;
-    ctx.textBaseline = "middle";
-    dims.forEach((d, i) => {
-      const angle = (i / n) * Math.PI * 2 - Math.PI/2;
-      const x = cx + Math.cos(angle) * R, y = cy + Math.sin(angle) * R;
-      ctx.strokeStyle = spokeColor;
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x,y); ctx.stroke();
-      const cosA = Math.cos(angle);
-      const off = labelOffset(i);
-      const lx = cx + cosA * (R + off), ly = cy + Math.sin(angle) * (R + off);
-      ctx.textAlign = cosA > 0.15 ? "left" : cosA < -0.15 ? "right" : "center";
-      ctx.fillText(labels[i], lx, ly);
-    });
-    drawPolygon(eased);
-    if (t < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
+  };
+  rows.forEach(row => {
+    const dim = row.dataset.dim;
+    row.addEventListener("mouseenter", () => setActive(dim));
+    row.addEventListener("mouseleave", () => setActive(null));
+    row.addEventListener("focus", () => setActive(dim));
+    row.addEventListener("blur", () => setActive(null));
+  });
+  hits.forEach(hit => {
+    const dim = hit.dataset.dim;
+    hit.addEventListener("mouseenter", () => setActive(dim));
+    hit.addEventListener("mouseleave", () => setActive(null));
+    hit.addEventListener("focus", () => setActive(dim));
+    hit.addEventListener("blur", () => setActive(null));
+    // Touch has no hover, so a tap has to stand in for both enter and
+    // leave: first tap selects and scrolls the list to it, a second tap
+    // on the same vertex (or the document-level listener below, for a tap
+    // anywhere else) clears it. preventDefault suppresses the ~300ms-later
+    // synthetic mouseenter/click Mobile Safari/Chrome still fire after a
+    // touch, which would otherwise immediately re-trigger setActive and
+    // fight the toggle.
+    hit.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      if (touchActiveDim === dim){
+        touchActiveDim = null;
+        hit.blur();
+        setActive(null);
+      } else {
+        touchActiveDim = dim;
+        hit.focus();
+        setActive(dim);
+      }
+    }, { passive: false });
+  });
+  // Tapping anywhere that isn't a radar vertex or a list row clears a
+  // touch-locked selection. Bound to `container` (not `document`) and
+  // swapped out on every re-render via the stored reference, since this
+  // function runs again each time the Mind Map card reopens (innerHTML is
+  // torn down and rebuilt, but `container` itself persists) — without the
+  // remove-before-add here, listeners would stack up on document across
+  // repeated opens instead of just replacing themselves.
+  if (container._rfOutsideTapHandler) document.removeEventListener("touchstart", container._rfOutsideTapHandler);
+  container._rfOutsideTapHandler = (e) => {
+    if (!touchActiveDim) return;
+    if (e.target.closest && (e.target.closest(".rf-hit") || e.target.closest(".rf-row"))) return;
+    touchActiveDim = null;
+    setActive(null);
+  };
+  document.addEventListener("touchstart", container._rfOutsideTapHandler, { passive: true });
 }
 
 /* ---------------- Seven Sins / Heavenly Virtues (fun, flippable) ---------

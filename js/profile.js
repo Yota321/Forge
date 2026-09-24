@@ -109,9 +109,11 @@ function renderProfile(){
     return;
   }
 
-  const history = getFullTimeline();
+  const history = getActiveTimeline();
+  const legacyHistory = getFullTimeline().filter(h => h.legacy);
   const retakeCount = history.length;
-  const decoded = profile.code ? decodeCode(profile.code) : null;
+  const decoded0 = profile.code ? decodeCode(profile.code) : null;
+  const decoded = decoded0 && !decoded0.obsolete ? decoded0 : null;
   const hasResult = !!decoded;
   // decoded.archetype and profile.soul are both stale the moment the
   // engine's scoring changes: decoded.archetype is whatever archIdx was
@@ -212,6 +214,24 @@ function renderProfile(){
       </div>
 
       <div class="card glass" style="margin-top:12px">
+        <h4>Privacy &amp; Data</h4>
+        <p style="color:var(--text-muted)">Everything below acts only on this device. ${legacyHistory.length ? `${legacyHistory.length} legacy result${legacyHistory.length===1?"":"s"} archived from an earlier PersonaForge.` : "No legacy results on this device."}</p>
+        <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="exportProfile()">Export Local Profile</button>
+          <button class="btn btn-ghost btn-sm" onclick="importProfile()">Import Local Profile</button>
+          <button class="btn btn-ghost btn-sm" onclick="confirmResetOnboarding()">Reset Onboarding</button>
+        </div>
+        <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm danger" onclick="confirmDeletePF4History()">Delete PF4 Assessment History</button>
+          <button class="btn btn-ghost btn-sm danger" onclick="confirmDeleteLegacyResults()">Delete Archived Legacy Results</button>
+        </div>
+        <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm danger" onclick="confirmDeleteLocalProfile()">Delete Local Profile</button>
+          <button class="btn btn-primary btn-sm danger" onclick="confirmDeleteEverything()">Delete Everything</button>
+        </div>
+      </div>
+
+      <div class="card glass" style="margin-top:12px">
         <h4>Settings</h4>
         <div class="mini-bar-row"><span>Theme</span><button class="btn btn-ghost btn-sm" onclick="toggleTheme();renderProfile()">${currentTheme === "light" ? "Switch to dark" : "Switch to light"}</button></div>
         <div class="mini-bar-row"><span>Sound</span><button class="btn btn-ghost btn-sm" onclick="toggleSound();renderProfile()">${soundOn ? "Turn off" : "Turn on"}</button></div>
@@ -228,4 +248,120 @@ function renderProfile(){
     </div>
   `;
   initCountUps(root);
+}
+
+/* =========================================================================
+   PRIVACY & DATA (Profile page)
+   Every action below is local-only (no account, nothing to sync), but
+   several are destructive and irreversible, so each one confirms first
+   through one shared modal rather than a bare browser confirm() dialog —
+   same .modal-overlay/.modal-card chrome showPrivacyModal() already uses,
+   just with a destructive-styled confirm button instead of "Got it".
+   ========================================================================= */
+function showDangerConfirm(title, message, onConfirm){
+  click(460);
+  if (document.getElementById("dangerModal")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "dangerModal";
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal-card glass" role="dialog" aria-modal="true" aria-labelledby="dangerModalTitle">
+      <button class="icon-btn modal-close" onclick="closeDangerConfirm()" aria-label="Close">${ICONS.close}</button>
+      <div class="eyebrow accent">ARE YOU SURE?</div>
+      <h3 id="dangerModalTitle">${obEsc(title)}</h3>
+      <p>${obEsc(message)}</p>
+      <div class="cta-row" style="margin-top:6px">
+        <button class="btn btn-ghost" onclick="closeDangerConfirm()">Cancel</button>
+        <button class="btn btn-primary danger" id="dangerModalConfirmBtn">Yes, do it</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add("open"));
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeDangerConfirm(); });
+  document.addEventListener("keydown", onDangerModalKey);
+  document.getElementById("dangerModalConfirmBtn").onclick = () => { closeDangerConfirm(); onConfirm(); };
+}
+function onDangerModalKey(e){ if (e.key === "Escape") closeDangerConfirm(); }
+function closeDangerConfirm(){
+  const el = document.getElementById("dangerModal");
+  if (el) el.remove();
+  document.removeEventListener("keydown", onDangerModalKey);
+}
+
+function confirmDeletePF4History(){
+  showDangerConfirm(
+    "Delete PF4 assessment history?",
+    "Removes every PF4 result on this device (history, growth, and comparisons). Your local profile and any archived legacy results are kept. This can't be undone.",
+    deletePF4History
+  );
+}
+function deletePF4History(){
+  try{
+    const history = getFullTimeline();
+    const legacyOnly = history.filter(h => h.legacy);
+    localStorage.setItem("pf_history", JSON.stringify(legacyOnly));
+    const p = getLocalProfile();
+    if (p){ updateLocalProfile({ code: null, archetypeId: null, archetypeName: null, archetypeIcon: null, soul: null, soulHex: null, confidencePct: null, assessmentHistory: [], statistics: { totalAssessments: 0, firstAssessmentAt: null, lastAssessmentAt: null } }); }
+    localStorage.removeItem("pf_last_code");
+  } catch(e){ /* ignore */ }
+  showToast("PF4 assessment history deleted.");
+  renderProfile();
+}
+
+function confirmDeleteLegacyResults(){
+  showDangerConfirm(
+    "Delete archived legacy results?",
+    "Permanently removes results from an earlier PersonaForge that were kept as Legacy. Your current PF4 history is not affected. This can't be undone.",
+    deleteLegacyResults
+  );
+}
+function deleteLegacyResults(){
+  try{
+    const active = getActiveTimeline();
+    localStorage.setItem("pf_history", JSON.stringify(active));
+  } catch(e){ /* ignore */ }
+  showToast("Archived legacy results deleted.");
+  renderProfile();
+}
+
+function confirmDeleteLocalProfile(){
+  showDangerConfirm(
+    "Delete local profile?",
+    "Removes your name, avatar, and profile settings from this device. Your assessment history is kept, and a new anonymous profile will be created automatically next time it's needed. This can't be undone.",
+    deleteLocalProfileOnly
+  );
+}
+function deleteLocalProfileOnly(){
+  try{ localStorage.removeItem(PF_PROFILE_KEY); } catch(e){ /* ignore */ }
+  showToast("Local profile deleted.");
+  navigate("home");
+}
+
+function confirmDeleteEverything(){
+  showDangerConfirm(
+    "Delete everything?",
+    "Permanently deletes your profile, all PF4 and legacy history, preferences, journal, saved groups, and any in-progress assessment. PersonaForge will restart as if it were just installed. This can't be undone.",
+    deleteEverything
+  );
+}
+function deleteEverything(){
+  try{
+    ["pf_local_profile","pf_history","pf_last_code","pf_quiz_progress","pf_onboarding_progress",
+     "pf_journal_entries","pf_groups","pf_suggestion_feedback","pf_improve_checkin",
+     "pf_theme","pf_sound"].forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch(e){ /* ignore */ }
+  location.href = "index.html";
+}
+
+function confirmResetOnboarding(){
+  showDangerConfirm(
+    "Reset onboarding?",
+    "Clears any in-progress name/about-you/depth setup so the next assessment starts fresh from step one. Your existing profile and history are not affected.",
+    resetOnboardingOnly
+  );
+}
+function resetOnboardingOnly(){
+  try{ clearOnboardingProgress(); clearQuizProgress(); } catch(e){ /* ignore */ }
+  showToast("Onboarding reset. Your next assessment starts fresh.");
 }
