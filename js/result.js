@@ -526,6 +526,16 @@ function renderResult(){
         `,
         { tint: "sky", className: "secondary-expansion", onOpen: () => { sinVirtueMode = "sin"; drawSinVirtueRadar(document.getElementById("sinVirtueRadar"), r.sinVirtue, sinVirtueMode, a.colors[0]); } })}
 
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">More to explore</p>
+          <h2>More ways to read your result.</h2>
+        </div>
+        <p>Every card below is a different lens on the same signal. Short reads first, tap any card for the deeper pattern.</p>
+      </div>
+
+      <div class="insight-bento">
+
       ${(r.behavioralPatterns && r.behavioralPatterns.length) || (r.crossDimensionInsights && r.crossDimensionInsights.length) ? resultDetailCard("patterns", "quote", "Patterns We Noticed", "Themes that showed up again and again, not one answer graded on its own.",
         (r.behavioralPatterns || []).slice(0, 3).map(p => p.phrase),
         `
@@ -541,17 +551,7 @@ function renderResult(){
         ${r.crossDimensionInsights.map(i => `<p style="margin-top:8px">${i.text}</p>`).join("")}
         ` : ""}
         `,
-        { span: "2of12", tint: "accent" }) : ""}
-
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">More to explore</p>
-          <h2>More ways to read your result.</h2>
-        </div>
-        <p>Every card below is a different lens on the same signal. Short reads first, tap any card for the deeper pattern.</p>
-      </div>
-
-      <div class="insight-bento">
+        { span: "3of12", tint: "accent", className: "insight-patterns" }) : ""}
 
       ${resultDetailCard("social", "messageCircle", "Social", r.social.category,
         [`${r.social.socialBattery}% battery`, r.social.groupSizePreference, r.friendship.type.name],

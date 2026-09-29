@@ -1934,7 +1934,13 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   display:grid; grid-template-columns:repeat(12,minmax(0,1fr));
   grid-template-rows:repeat(2,176px); gap: var(--bento-gap); min-width:0;
 }
-.insight-social{ grid-column:1 / span 6 !important; grid-row:1 !important; }
+/* Patterns and Social are left as plain span-3 auto-placed items (no
+   explicit grid-column/row) so they naturally fall into row 1, cols 1-6,
+   in document order -- Patterns first, Social beside it. On the rare
+   result with no behavioral patterns to show, Patterns doesn't render at
+   all and Social's auto-placement just lands at col 1 alone, leaving an
+   empty gap beside it rather than the overlap a hardcoded column would
+   cause. */
 .insight-motivation{ grid-column:1 / span 3 !important; grid-row:2 !important; }
 .insight-career{ grid-column:4 / span 3 !important; grid-row:2 !important; }
 .insight-relationships{ grid-column:7 / span 6 !important; grid-row:1 / span 2 !important; }
@@ -1983,12 +1989,16 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 
   .insight-bento{
     grid-template-columns:repeat(6,minmax(0,1fr));
-    grid-template-rows:repeat(2,minmax(190px,auto));
+    grid-template-rows:repeat(3,minmax(190px,auto));
   }
-  .insight-social{ grid-column:1 / span 3 !important; grid-row:1 !important; }
-  .insight-motivation{ grid-column:4 / span 3 !important; grid-row:1 !important; }
-  .insight-relationships{ grid-column:1 / span 4 !important; grid-row:2 !important; }
-  .insight-career{ grid-column:5 / span 2 !important; grid-row:2 !important; }
+  /* Patterns gets its own full-width row up top so it reads first, ahead
+     of the existing Social/Relationships mosaic below it -- everything
+     else keeps its exact prior size, just shifted down one row. */
+  .insight-patterns{ grid-column:1 / span 6 !important; grid-row:1 !important; }
+  .insight-social{ grid-column:1 / span 3 !important; grid-row:2 !important; }
+  .insight-motivation{ grid-column:4 / span 3 !important; grid-row:2 !important; }
+  .insight-relationships{ grid-column:1 / span 4 !important; grid-row:3 !important; }
+  .insight-career{ grid-column:5 / span 2 !important; grid-row:3 !important; }
 }
 
 /* Phone layouts are re-authored as a reading sequence, not compressed. */
