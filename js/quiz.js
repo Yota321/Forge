@@ -352,14 +352,14 @@ function renderConfirmScreen(){
         </div>
         <div class="ns-panel-body ns-panel-body--wide">
           <h2>Ready to <span class="accent-text">begin.</span></h2>
-          <p>One last thing before we start.</p>
+          <p>One last thing.</p>
 
           <p style="margin-top:14px">PersonaForge stores your assessment locally on this device so your progress, personality history, and future comparisons are available even without an account.</p>
           <p style="margin-top:8px">Nothing is uploaded automatically. Everything stays on this device unless you choose to export or sync it later.</p>
 
           ${hasLegacy ? `
           <div class="card" style="margin-top:14px;border-color:var(--accent)">
-            <p style="font-size:13.5px">This version of PersonaForge uses a completely redesigned assessment engine. Older personality results can't be compared directly with PF4. You'll need to complete the new assessment once to generate your new PF4 profile. Your earlier results aren't lost, they're kept as Legacy.</p>
+            <p style="font-size:13.5px">PF4 is a redesigned engine, so it can't compare directly with older results. Yours aren't lost, just kept as Legacy until you retake it.</p>
           </div>
           ` : ""}
 
@@ -375,7 +375,7 @@ function renderConfirmScreen(){
 
           <div class="qz-nav2">
             <button class="btn btn-ghost" onclick="click(300);backFromConfirm()">&larr; Back</button>
-            <button class="btn btn-primary" onclick="confirmBegin()">Begin PF4 Assessment &rarr;</button>
+            <button class="btn btn-primary" onclick="confirmBegin()">Begin &rarr;</button>
           </div>
         </div>
       </div>
@@ -620,7 +620,6 @@ function renderQuiz(){
         ${q.options.map((opt, i) => `
           <button class="qz-card ${existing && existing.optionIndex === i ? "selected" : ""}" role="option" data-pos="${posName(i)}" onclick="selectOption(${i})">
             <span class="qz-card-letter">${String.fromCharCode(65 + i)}</span>
-            <span class="qz-card-dot"></span>
             <span class="qz-card-icon">${qzIconSvg(qzIconForOption(opt, i, usedIcons))}</span>
             <span class="qz-card-text">${opt.text}</span>
           </button>`).join("")}

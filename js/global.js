@@ -660,6 +660,7 @@ const ICONS = {
   people: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.2" cy="7" r="2.6"/><path d="M2.5 16c.5-3 2.3-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="14.4" cy="7.4" r="2.1"/><path d="M13 11.6c2 .1 3.5 1.6 3.9 4"/></svg>`,
   trendUp: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l4.5-5 3.5 3L17 5"/><path d="M12.5 5H17v4.5"/></svg>`,
   spark: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5c.6 3 1.9 4.9 4.9 5.5-3 .6-4.3 1.9-4.9 4.9-.6-3-1.9-4.3-4.9-4.9 3-.6 4.3-2.5 4.9-5.5Z"/><path d="M15.5 13.5c.3 1.4.9 2.2 2.2 2.5-1.3.3-1.9.9-2.2 2.2-.3-1.3-.9-1.9-2.2-2.2 1.3-.3 1.9-1.1 2.2-2.5Z"/></svg>`,
+  restart: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-1.9-4.4"/><path d="M16 3.5v3.6h-3.6"/></svg>`,
 };
 
 // Once a local profile exists (the moment a first result exists — see
@@ -724,7 +725,7 @@ function topBar(showBack){
       <div class="nav-menu-sep"></div>
       <div class="nav-menu-code">
         <label for="quickCode">Have someone's code?</label>
-        <input type="text" id="quickCode" placeholder="Name-PF2-...">
+        <input type="text" id="quickCode" placeholder="Name-PF4-...">
         <div class="nav-menu-code-row">
           <button class="btn btn-ghost btn-sm" onclick="viewProfileFromCode()">View</button>
           <button class="btn btn-ghost btn-sm" onclick="quickCompareGo()">Compare</button>
@@ -893,7 +894,7 @@ function exportProfile(){
       extras = lastResult;
     } else if (decoded){
       const match = matchArchetype(decoded.normDims);
-      extras = { name: decoded.name, meta: {}, normDims: decoded.normDims, archetype: match.primary, ...applyStoredConfidence(buildProfileExtras(decoded.normDims, match.primary, match.ranked, null, decoded.upgraded), code) };
+      extras = { name: decoded.name, meta: {}, normDims: decoded.normDims, archetype: match.primary, ...applyStoredConfidence(buildProfileExtras(decoded.normDims, match.primary, match.ranked, null), code) };
     }
     if (extras){
       payload.name = extras.name;

@@ -210,8 +210,8 @@
 
       "." is resolved by the browser relative to the *current* (broken)
       URL. GitHub Pages serves this file's content at the original
-      requested address (e.g. ".../PersonaForge/Yota-PF2-abcd1234" or a
-      custom domain's ".../Name-PF2-abcd1234"), and for a URL with one
+      requested address (e.g. ".../PersonaForge/Yota-PF4-abcd1234" or a
+      custom domain's ".../Name-PF4-abcd1234"), and for a URL with one
       path segment past the app's base, "." resolves to exactly that
       base, no matter what it's called or how deep the domain root is.
       Query params and hash are lost in this no-JS path (there's no way
@@ -320,7 +320,7 @@
         var loc = window.location;
         var origin = loc.origin || (loc.protocol + "//" + loc.host);
 
-        // Whatever the server couldn't find — e.g. "<base>Yota-PF2-abcd1234"
+        // Whatever the server couldn't find — e.g. "<base>Yota-PF4-abcd1234"
         var pathname = loc.pathname || "/";
         var rest = pathname.indexOf(basePath) === 0
           ? pathname.slice(basePath.length)
@@ -343,15 +343,21 @@
         }
 
         // An explicit ?code=... on the broken URL always wins. Otherwise,
-        // if the trailing path segment looks like a PF1/PF2 code, restore
-        // it exactly the way a normal shared link would carry it — this
-        // mirrors index.html's own getProfileCodeFromURL() fallback. Any
-        // other, unrecognized segment is preserved too (as "path"), so
-        // route formats added to the app later still survive a 404 —
-        // this page doesn't need to know what they mean, only carry them.
+        // if the trailing path segment looks like a PF-code, restore it
+        // exactly the way a normal shared link would carry it — this
+        // mirrors index.html's own getProfileCodeFromURL() fallback.
+        // Version-agnostic on purpose (PF1/PF2/PF3/PF4/whatever comes
+        // next) rather than hardcoded to the versions that existed when
+        // this page was written — a real bug found in the PF4 QA pass:
+        // a literal /-PF[12]-/ here meant every PF4 shared link that
+        // happened to 404 (e.g. a stale bookmark's base path) silently
+        // failed to restore its code. Any other, unrecognized segment is
+        // preserved too (as "path"), so route formats added to the app
+        // later still survive a 404 — this page doesn't need to know
+        // what they mean, only carry them.
         if (!params.get("code") && segments.length) {
           var last = segments[segments.length - 1];
-          if (/-PF[12]-/.test(last)) {
+          if (/-PF\d+-/.test(last)) {
             params.set("code", decodeURIComponent(last));
           } else {
             params.set("path", segments.join("/"));

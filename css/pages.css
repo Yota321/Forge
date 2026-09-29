@@ -124,7 +124,6 @@
 .lp-status-card.lp-status-card .cta-row .btn-primary{ min-width: 0; }
 .lp-status-card{ max-width: 440px; padding: 18px 20px; }
 .lp-status-card p{ margin-top:8px; }
-.lp-reopen{ align-self:flex-start; margin-top:-14px; }
 /* Home page's post-result quick-links row: Profile/Growth/Improve, only
    shown once a result exists — home stays a plain two-button start
    screen until then (see renderLanding()'s `saved` gate). */
@@ -969,10 +968,14 @@ button.lp-card{ width:100%; }
   border:1px solid var(--border); background: var(--surface);
   transition: transform .35s var(--ease), border-color .25s var(--ease), background-color .25s var(--ease), box-shadow .35s var(--ease), opacity .3s var(--ease);
 }
-.qz-card-letter{ position:absolute; top:20px; left:22px; font-family: var(--font-mono); font-size:14px; color: var(--accent-soft); }
-.qz-card-dot{
-  position:absolute; top:22px; right:24px; width:8px; height:8px; border-radius:999px; background: var(--accent);
-  opacity:0; transform: scale(0); transition: opacity .25s var(--ease), transform .25s var(--ease);
+/* Fixed-size flex box (not raw positioned text) so the glyph centers on
+   its own box regardless of font baseline/metrics quirks — consistent
+   for every letter, at every size, rather than relying on top/left
+   offsets tuned to look right for one specific glyph. */
+.qz-card-letter{
+  position:absolute; top:20px; left:22px; width:20px; height:20px;
+  display:flex; align-items:center; justify-content:center; line-height:1;
+  font-family: var(--font-mono); font-size:14px; color: var(--accent-soft);
 }
 .qz-card-icon{ width:72px; height:72px; color: var(--text-muted); opacity:.55; transition: opacity .3s var(--ease), color .3s var(--ease), filter .3s var(--ease); }
 .qz-card-icon svg{ width:100%; height:100%; }
@@ -987,7 +990,6 @@ button.lp-card{ width:100%; }
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 30px -6px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .qz-card.selected .qz-card-icon{ opacity:1; color: var(--accent); }
-.qz-card.selected .qz-card-dot{ opacity:1; transform: scale(1); }
 /* Once a choice is locked in, the other two step back a little (lower
    opacity, not hidden) rather than staying visually equal to the
    selected one — "keep the others visible but less emphasized," which
@@ -1011,7 +1013,6 @@ button.lp-card{ width:100%; }
   .qz-card-letter{ position:static; flex-shrink:0; align-self:flex-start; margin-top:2px; }
   .qz-card-icon{ width:44px; height:44px; flex-shrink:0; }
   .qz-card-text{ max-width:none; }
-  .qz-card-dot{ top:18px; right:18px; }
   .qz-card:hover{ transform:none; } /* no hover lift on touch — avoids a "stuck" lifted state after a tap */
   .qz-card.selected{ transform:none; }
   .qz-nav2 .btn{ flex:1; }
@@ -1066,7 +1067,43 @@ button.lp-card{ width:100%; }
    itself. No new data, no new computation. */
 .ingot-confidence{ display:flex; flex-direction:column; align-items:flex-end; gap:1px; flex-shrink:0; }
 .ingot-confidence .val{ font-size:22px; font-weight:700; color: var(--user-accent-1); font-family: var(--font-display); line-height:1; }
-.ingot-confidence .lbl{ font-family: var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color: var(--text-dim); margin-top:4px; }
+.ingot-confidence .lbl{ font-family: var(--font-mono); font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color: var(--text-dim); margin-top:4px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+/* Subtle, accessible (?) tooltip beside "Result Confidence": hover OR
+   keyboard focus reveals the explanation, nothing shows until then. */
+.confidence-tip-btn{
+  position:relative; display:inline-flex; align-items:center; justify-content:center;
+  width:13px; height:13px; border-radius:50%; border:1px solid var(--border-strong);
+  background:transparent; color:var(--text-dim); font-size:9px; line-height:1; padding:0;
+  cursor:help; flex-shrink:0;
+}
+/* The visible dot stays a subtle 13px, but a 13px real tap target fails
+   accessible touch-size guidance -- this invisible ::before expands the
+   actual hit area to a comfortable ~28px square without changing how
+   anything looks. */
+.confidence-tip-btn::before{
+  content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:28px; height:28px;
+}
+.confidence-tip-btn:hover, .confidence-tip-btn:focus-visible{ color:var(--text); border-color:var(--text-dim); }
+.confidence-tip-bubble{
+  /* Opens downward, not upward: this badge normally sits near the very
+     top of the card/page, so an upward bubble has nowhere to go and
+     clips against the viewport edge. */
+  position:absolute; top:calc(100% + 8px); right:0; z-index:20;
+  width:210px; padding:10px 12px; border-radius:10px;
+  background:var(--surface-strong); border:1px solid var(--border-strong);
+  box-shadow:0 12px 30px -12px rgba(0,0,0,.5);
+  font-family:var(--font-body); font-size:12px; font-weight:400; letter-spacing:normal; text-transform:none;
+  line-height:1.45; color:var(--text-muted); text-align:left; white-space:normal;
+  opacity:0; visibility:hidden; transform:translateY(-4px); transition:opacity .16s var(--ease), transform .16s var(--ease);
+  pointer-events:none;
+}
+.confidence-tip-btn:hover .confidence-tip-bubble, .confidence-tip-btn:focus-visible .confidence-tip-bubble{
+  opacity:1; visibility:visible; transform:translateY(0);
+}
+.result-hero .confidence-tip-btn{ border-color:rgba(255,255,255,.32); color:rgba(255,255,255,.62); }
+.result-hero .confidence-tip-btn:hover, .result-hero .confidence-tip-btn:focus-visible{ color:#fff; border-color:rgba(255,255,255,.6); }
+@media (max-width:480px){ .confidence-tip-bubble{ width:170px; font-size:11.5px; } }
 .archetype-eyebrow{ font-family: var(--font-mono); font-size:11px; letter-spacing:0.2em; color: var(--text-dim); text-transform:uppercase; margin-top:18px; }
 .ingot-name{ font-size: clamp(28px, 3.2vw, 40px); margin-top:2px; }
 .ingot-title{ color: var(--text-muted); font-size:15px; margin-top:6px; font-style: italic; }
@@ -1536,11 +1573,6 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
    confetti, progressive reveal. Nothing above this line changes.
    ========================================================================= */
 
-
-/* PF1 upgrade banner */
-.upgrade-banner{ margin-top:18px; padding-top:16px; border-top:1px solid var(--border); text-align:center; }
-.upgrade-banner p{ font-size:13px; color: var(--text-muted); margin-top:4px; }
-.upgrade-banner p:first-child{ margin-top:0; color: var(--text); font-weight:600; }
 
 /* framework badges: the one place accent hues from the update spec show up */
 .framework-card h4{ margin-bottom:10px; }
@@ -2225,8 +2257,8 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 
 @media (max-width:720px){
   .hero-bento > .ingot{
-    height:700px;
-    min-height:700px;
+    height:740px;
+    min-height:740px;
   }
   .result-hero .ingot-content{
     justify-content:flex-end;
@@ -2237,7 +2269,17 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   .result-hero .ingot-confidence{ padding:9px 11px; }
   .result-hero .ingot-name{ max-width:8ch; font-size:clamp(45px,14.5vw,58px); }
   .result-hero .ingot-title{ font-size:16px; }
-  .result-hero .ingot-desc{ max-width:31ch; margin-top:13px; font-size:14.5px; line-height:1.5; }
+  /* Two stacked paragraphs share this class (main description +
+     blended-insight aside) -- each individually clamped so neither can
+     push the flex-end-anchored text block up into the absolutely-
+     positioned icon above it, on the shortest supported archetype-name
+     cards as well as the tallest. Fixed reproducible case that made
+     this necessary: "The Stormcaller" (2-line name) at 500px width
+     used to overlap the icon by 29px before this clamp + height fix. */
+  .result-hero .ingot-desc{
+    max-width:31ch; margin-top:13px; font-size:14.5px; line-height:1.5;
+    display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  }
   .result-hero .ingot-actions{
     left:22px;
     right:22px;
@@ -2249,13 +2291,8 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 }
 
 @media (max-width:390px){
-  .hero-bento > .ingot{ height:680px; min-height:680px; }
+  .hero-bento > .ingot{ height:720px; min-height:720px; }
   .result-hero .ingot-content{ padding-bottom:184px; }
   .result-hero .ingot-name{ font-size:44px; }
-  .result-hero .ingot-desc{
-    display:-webkit-box;
-    -webkit-line-clamp:4;
-    -webkit-box-orient:vertical;
-    overflow:hidden;
-  }
+  .result-hero .ingot-desc{ -webkit-line-clamp:3; }
 }

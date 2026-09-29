@@ -27,8 +27,8 @@ function renderCompare(){
       <h2 style="margin:10px 0 6px">Two Codes, One Read</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Paste two Forge codes to see how the two of you actually line up. Everything decodes locally, right here in the browser.</p>
       <div class="compare-inputs" style="margin-top:20px">
-        <div><label>Person A code</label><textarea id="codeA" placeholder="Name-PF1-...">${myCode}</textarea></div>
-        <div><label>Person B code</label><textarea id="codeB" placeholder="Name-PF1-...">${prefillB}</textarea></div>
+        <div><label>Person A code</label><textarea id="codeA" placeholder="Name-PF4-...">${myCode}</textarea></div>
+        <div><label>Person B code</label><textarea id="codeB" placeholder="Name-PF4-...">${prefillB}</textarea></div>
       </div>
       <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
         <button class="btn btn-primary" onclick="runCompare()">Compare</button>
@@ -81,14 +81,14 @@ function renderParty(){
       <h2 style="margin:10px 0 6px">The Whole Group</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Paste 3 to 5 Forge codes to see how the whole group lines up together, not just pair by pair.</p>
       <div class="compare-inputs party-inputs" style="margin-top:20px">
-        <div><label>Person 1</label><textarea id="partyCode0" placeholder="Name-PF2-...">${localStorage.getItem("pf_last_code") || ""}</textarea></div>
-        <div><label>Person 2</label><textarea id="partyCode1" placeholder="Name-PF2-..."></textarea></div>
-        <div><label>Person 3</label><textarea id="partyCode2" placeholder="Name-PF2-..."></textarea></div>
+        <div><label>Person 1</label><textarea id="partyCode0" placeholder="Name-PF4-...">${localStorage.getItem("pf_last_code") || ""}</textarea></div>
+        <div><label>Person 2</label><textarea id="partyCode1" placeholder="Name-PF4-..."></textarea></div>
+        <div><label>Person 3</label><textarea id="partyCode2" placeholder="Name-PF4-..."></textarea></div>
       </div>
       <button class="btn btn-ghost" style="margin-top:12px" onclick="toggleMorePartySlots()" id="partyToggleBtn">+ Add up to 2 more people</button>
       <div id="extraPartySlots" class="hidden compare-inputs party-extra-inputs" style="margin-top:12px">
-        <div><label>Person 4</label><textarea id="partyCode3" placeholder="Name-PF2-..."></textarea></div>
-        <div><label>Person 5</label><textarea id="partyCode4" placeholder="Name-PF2-..."></textarea></div>
+        <div><label>Person 4</label><textarea id="partyCode3" placeholder="Name-PF4-..."></textarea></div>
+        <div><label>Person 5</label><textarea id="partyCode4" placeholder="Name-PF4-..."></textarea></div>
       </div>
       <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
         <button class="btn btn-primary" onclick="runPartyCompare()">Compare Group</button>

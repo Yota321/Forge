@@ -1,75 +1,18 @@
 /* =========================================================================
    FORGE - RESULT (result.html)
    The bento card chrome (overview tiles + detail overlay), renderResult()
-   itself, the PF1 upgrade-quiz detour, radar/sin-virtue canvas drawing,
-   and PNG export. Loaded by result.html only, after engine.js + global.js
-   + compatibility.js.
+   itself, radar/sin-virtue canvas drawing, and PNG export. Loaded by
+   result.html only, after engine.js + global.js + compatibility.js.
    ========================================================================= */
 
 /* =========================================================================
    FORGE - RESULT
    result.html's own page: the result screen (radar/QR canvases, PNG
-   export, history timeline), plus the legacy PF1 upgrade-quiz detour
-   (still using the older .option/.options markup from question.css,
-   which is why this page also loads that file).
+   export, history timeline).
    ========================================================================= */
 
 let lastResult = null;
 let careersExpanded = false;
-
-/* ---------------- PF1 UPGRADE QUIZ ---------------------------------------
-   A short, fixed 9-question flow that only asks about the 5 dimensions
-   added since PF1, drawn from real existing content rather than anything
-   new. On completion, re-encodes as a full PF2 code. */
-let upgradeSession = null;
-function startUpgradeQuiz(){
-  if (!lastResult || !lastResult.decodedProfile) return;
-  upgradeSession = new UpgradeQuizSession(lastResult.decodedProfile);
-  click(500);
-  renderUpgradeQuiz();
-}
-function renderUpgradeQuiz(){
-  const q = upgradeSession.current();
-  if (!q){ finishUpgradeQuiz(); return; }
-  const { cursor } = upgradeSession;
-  const total = upgradeSession.totalLength();
-  root.innerHTML = `
-    <div class="container">
-      <div class="quiz-top">
-        ${topBar(true)}
-        <div class="progress-track"><div class="progress-fill" style="width:${Math.round((cursor/total)*100)}%"></div></div>
-        <div class="progress-meta">
-          <span>Upgrade question ${cursor + 1} of ${total}</span>
-          <span class="encourage">Unlocking the newer profile sections</span>
-        </div>
-      </div>
-      <div class="question-card glass">
-        <div class="q-num">UPGRADE ${String(cursor + 1).padStart(2,"0")}</div>
-        <div class="q-text">${q.text}</div>
-        <div class="options">
-          ${q.options.map((opt,i) => `<button class="option" onclick="selectUpgradeOption(${i})"><span class="opt-key">${String.fromCharCode(65+i)}</span><span>${opt.text}</span></button>`).join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-function selectUpgradeOption(idx){
-  click(420 + idx * 60);
-  upgradeSession.answer(idx);
-  showCalcOverlay(1, () => {
-    if (upgradeSession.isComplete()) finishUpgradeQuiz();
-    else renderUpgradeQuiz();
-  });
-}
-function finishUpgradeQuiz(){
-  const finalDims = upgradeSession.finalNormDims();
-  const match = matchArchetype(finalDims);
-  const code = encodeCode(match.primary.id, finalDims, upgradeSession.name);
-  lastResult = buildResultFromDecoded({ archetype: match.primary, normDims: finalDims, name: upgradeSession.name, version: CODE_VERSION, upgraded: false }, code);
-  localStorage.setItem("pf_last_code", code);
-  upgradeSession = null;
-  renderResult();
-}
 
 /* ---------------- RESULT: bento card chrome ------------------------------
    Real Lucide icons (sourced from .claude/Icons, same approach as the
@@ -472,7 +415,7 @@ function renderResult(){
           <div class="ingot-content">
             <div class="ingot-top">
               <div class="ingot-icon">${a.icon}</div>
-              <div class="ingot-confidence"><span class="val count-up" data-target="${r.confidence.confidencePct}" data-suffix="%">0%</span><span class="lbl">Confidence</span></div>
+              <div class="ingot-confidence"><span class="val count-up" data-target="${r.confidence.confidencePct}" data-suffix="%">0%</span><span class="lbl">Result Confidence<button type="button" class="confidence-tip-btn" aria-label="What does Result Confidence mean?" onclick="event.stopPropagation()"><span aria-hidden="true">?</span><span class="confidence-tip-bubble" role="tooltip">Several nearby archetypes also scored highly. Higher values mean your result stood out more clearly.</span></button></span></div>
             </div>
             <div class="archetype-eyebrow">Primary Archetype</div>
             <h2 class="ingot-name">${a.name}</h2>
@@ -489,12 +432,6 @@ function renderResult(){
               ${r.mix.map((m,i) => `<div class="mix-item"><span class="mix-pct count-up" data-target="${m.pct}" data-suffix="%">0%</span><span class="mix-name">${m.archetype.icon} ${i===0?"":m.archetype.name}</span></div>`).join("")}
             </div>
             <div class="ingot-code">${r.code}</div>
-            ${r.upgradedFromV1 ? `
-            <div class="upgrade-banner">
-              <p>Your profile was created using Forge Version 1.</p>
-              <p>Forge has improved. Your original 20 traits carried over exactly, the 5 newer ones default to neutral for now.</p>
-              <button class="btn btn-accent" style="margin-top:10px" onclick="startUpgradeQuiz()">Answer ${UPGRADE_QUESTION_COUNT} questions to unlock the newer profile sections</button>
-            </div>` : ""}
           </div>
           ${a.image ? `<div class="ingot-visual" role="img" aria-label="${a.name}" style="background-image:url('${a.image}')"></div>` : ""}
         </div>
@@ -1682,37 +1619,48 @@ function exportIdentityPanel(ctx, r, a, x, y, w, h, opts){
 }
 
 async function exportPNG(kind){
-  const r = lastResult; const a = r.archetype;
-  const isStory = kind === "story";
-  const w = 1080, h = isStory ? 1920 : 1080;
-  const canvas = document.createElement("canvas");
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext("2d");
+  // Same try/catch/toast shape as savePDF() below -- this used to have
+  // none, so a thrown canvas error (e.g. a tainted canvas, or the image
+  // failing in a way loadExportImage's own resolve(null) didn't already
+  // absorb) would silently do nothing: no download, no error, no
+  // feedback, just a console error the user would never see. Found in
+  // the PF4 release-gate QA pass.
+  try {
+    const r = lastResult; const a = r.archetype;
+    const isStory = kind === "story";
+    const w = 1080, h = isStory ? 1920 : 1080;
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
 
-  const img = await loadExportImage(a.image);
-  exportPageBackground(ctx, w, h, a);
+    const img = await loadExportImage(a.image);
+    exportPageBackground(ctx, w, h, a);
 
-  if (isStory){
-    exportBrandHeader(ctx, w, 66, r, 32);
-    exportDrawImageCover(ctx, img, 80, 140, w-160, 1120, 32);
-    exportIdentityPanel(ctx, r, a, 80, 1280, w-160, 490, {
-      nameSize: 54, subSize: 25, showDescription: true, descLines: 3, chipCount: 3
-    });
-    exportBrandFooter(ctx, w, 1860, r);
-  } else {
-    exportBrandHeader(ctx, w, 54, r, 26);
-    exportDrawImageCover(ctx, img, 60, 106, w-120, 480, 26);
-    exportIdentityPanel(ctx, r, a, 60, 606, w-120, 340, {
-      nameSize: 44, subSize: 22, showDescription: false, chipCount: 3, pad: 36
-    });
-    exportBrandFooter(ctx, w, 990, r);
+    if (isStory){
+      exportBrandHeader(ctx, w, 66, r, 32);
+      exportDrawImageCover(ctx, img, 80, 140, w-160, 1120, 32);
+      exportIdentityPanel(ctx, r, a, 80, 1280, w-160, 490, {
+        nameSize: 54, subSize: 25, showDescription: true, descLines: 3, chipCount: 3
+      });
+      exportBrandFooter(ctx, w, 1860, r);
+    } else {
+      exportBrandHeader(ctx, w, 54, r, 26);
+      exportDrawImageCover(ctx, img, 60, 106, w-120, 480, 26);
+      exportIdentityPanel(ctx, r, a, 60, 606, w-120, 340, {
+        nameSize: 44, subSize: 22, showDescription: false, chipCount: 3, pad: 36
+      });
+      exportBrandFooter(ctx, w, 990, r);
+    }
+
+    const link = document.createElement("a");
+    link.download = `forge-${kind}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    click(760);
+  } catch(e){
+    console.error(`${kind} export failed:`, e);
+    showToast("Couldn't generate that image — try again.");
   }
-
-  const link = document.createElement("a");
-  link.download = `forge-${kind}.png`;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-  click(760);
 }
 
 /* ---------------- EXPORT: PDF ---------------------------------------------

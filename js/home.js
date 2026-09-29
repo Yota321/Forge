@@ -75,6 +75,12 @@ function renderLanding(){
   setAccentColors();
   setPageTitle();
   const saved = localStorage.getItem("pf_last_code");
+  // PF4-only "returning user" detection, reusing decodeCode()'s own
+  // obsolete flag rather than a second storage key: PF1/2/3 codes exist
+  // on `saved` too, but per the PF4 versioning rule they never count as
+  // a "returning user" here, only a real, current PF4 result does.
+  const savedDecoded = saved ? decodeCode(saved) : null;
+  const hasPF4Result = !!(savedDecoded && !savedDecoded.obsolete);
   const savedQuiz = getSavedQuizProgress();
   root.innerHTML = `
     <div class="lp-bg-flatten" aria-hidden="true"></div>
@@ -97,11 +103,16 @@ function renderLanding(){
           ${savedQuiz ? `
           <div class="card glass lp-status-card">
             <div class="eyebrow accent">IN PROGRESS</div>
-            <p>${savedQuiz.name ? obEsc(savedQuiz.name) + ", y" : "Y"}ou answered ${savedQuiz.cursor} of ${savedQuiz.targetLength}. Pick up on question ${savedQuiz.cursor + 1}.</p>
+            <p>${savedQuiz.name ? obEsc(savedQuiz.name) + ", y" : "Y"}ou answered ${savedQuiz.cursor} of ${Math.max(savedQuiz.cursor, (PACE_BOUNDS[savedQuiz.pace] || PACE_BOUNDS.balanced).min)}. Pick up on question ${savedQuiz.cursor + 1}.</p>
             <div class="cta-row">
               <button class="btn btn-primary" onclick="resumeQuiz()">Continue &rarr;</button>
               <button class="btn btn-ghost" onclick="discardSavedQuizAndStart()">Start over</button>
             </div>
+          </div>
+          ` : hasPF4Result ? `
+          <div class="cta-row">
+            <button class="btn btn-primary" onclick="click(380);loadSaved()">Reopen My Last Result &rarr;</button>
+            <button class="btn btn-ghost" onclick="click(380);navigate('compare')">Compare Two Results</button>
           </div>
           ` : `
           <div class="cta-row">
@@ -109,12 +120,12 @@ function renderLanding(){
             <button class="btn btn-ghost" onclick="click(380);navigate('compare')">Compare Two Results</button>
           </div>
           `}
-          ${saved ? `<button class="btn btn-ghost lp-reopen" onclick="click(380);loadSaved()">Reopen my last result</button>` : ""}
           ${saved ? `
           <div class="lp-quick-links" role="navigation" aria-label="Your profile">
             <button class="lp-quick-link" onclick="click(360);navigate('profile')">${ICONS.people}<span>Profile</span></button>
             <button class="lp-quick-link" onclick="click(360);navigate('growth')">${ICONS.trendUp}<span>Growth</span></button>
             <button class="lp-quick-link" onclick="click(360);navigate('improve')">${ICONS.spark}<span>Improve</span></button>
+            ${hasPF4Result ? `<button class="lp-quick-link" onclick="click(520);goToNameScreen()">${ICONS.restart}<span>Retake Assessment</span></button>` : ""}
           </div>` : ""}
 
           <div class="lp-avatars" aria-hidden="true">

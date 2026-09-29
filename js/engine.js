@@ -1111,9 +1111,10 @@ const COMPATIBILITY_CALC_LINES = [
 
 /* =========================================================================
    V2 ADDITIONS
-   Everything below is new for the v2 update. Nothing above this line was
-   removed or restructured, so PF1 codes and the original 20-dimension
-   scoring still work exactly as before.
+   Everything below was new for the old v2 update. (PF4 note: PF1/2/3
+   codes are no longer decoded at all -- see decodeCode()'s `obsolete`
+   handling further down -- so this section header is now purely
+   historical, not a compatibility guarantee.)
    ========================================================================= */
 
 /* ---- Archetype extras: animal, element, symbol -------------------------
@@ -2742,7 +2743,6 @@ function decodeCode(code){
       normDims,
       name,
       version,
-      upgraded: false,
     };
   } catch (e){
     return null;
@@ -3105,14 +3105,12 @@ function computeFunStats(normDims){
                              Read/Deep Dive, where the concept doesn't
                              apply, and for Balanced runs that resolved at
                              the checkpoint without needing them.
-   versionPenalty is a small deduction for PF1-origin profiles that
-   haven't been upgraded, since 5 dimensions were never actually measured
-   for them. When no session is available (a profile decoded from a
-   shared code), consistency and tieBreakerScore can't be measured, so
-   overall is computed from the three signals that only need normDims
+   When no session is available (a profile decoded from a shared code),
+   consistency and tieBreakerScore can't be measured, so overall is
+   computed from the three signals that only need normDims
    (archetypeSeparation, soulCertainty, sinVirtueCertainty) with a visible
    note explaining why. */
-function computeAssessmentConfidence(ranked, normDims, session, upgradedFromV1){
+function computeAssessmentConfidence(ranked, normDims, session){
   const gap = ranked[0].score - ranked[1].score;
   const archetypeSeparation = Math.max(0, Math.min(100, Math.round((gap / CONFIDENCE_SCALE) * 100)));
   const avgOthers = ranked.slice(1).reduce((s, r) => s + r.score, 0) / (ranked.length - 1);
@@ -3128,18 +3126,16 @@ function computeAssessmentConfidence(ranked, normDims, session, upgradedFromV1){
     sinVirtueAxes.reduce((s, ax) => s + Math.abs(ax.sinPct - 50) * 2, 0) / sinVirtueAxes.length
   );
 
-  const versionPenalty = upgradedFromV1 ? 6 : 0;
-
   if (!session || !session.answers){
     const overall = Math.max(0, Math.min(100, Math.round(
-      archetypeSeparation * 0.45 + soulCertainty * 0.35 + sinVirtueCertainty * 0.2 - versionPenalty
+      archetypeSeparation * 0.45 + soulCertainty * 0.35 + sinVirtueCertainty * 0.2
     )));
     return {
       confidencePct: overall,
       stabilityPct,
       overall,
       consistency: null, tieBreakerScore: null,
-      archetypeSeparation, soulCertainty, sinVirtueCertainty, versionPenalty,
+      archetypeSeparation, soulCertainty, sinVirtueCertainty,
       note: "This code carries no answer history to measure consistency or tie-breaker use from, so this reflects separation and certainty only.",
     };
   }
@@ -3169,13 +3165,13 @@ function computeAssessmentConfidence(ranked, normDims, session, upgradedFromV1){
 
   const overall = Math.max(0, Math.min(100, Math.round(
     archetypeSeparation * 0.30 + consistency * 0.20 + soulCertainty * 0.20 +
-    sinVirtueCertainty * 0.15 + tieBreakerScore * 0.15 - versionPenalty - contradictionPenalty
+    sinVirtueCertainty * 0.15 + tieBreakerScore * 0.15 - contradictionPenalty
   )));
 
   return {
     confidencePct: overall, // kept as the headline field existing UI already reads
     stabilityPct,
-    overall, consistency, archetypeSeparation, soulCertainty, sinVirtueCertainty, tieBreakerScore, versionPenalty,
+    overall, consistency, archetypeSeparation, soulCertainty, sinVirtueCertainty, tieBreakerScore,
     contradictions: session.contradictions || 0, contradictionPenalty,
     note: null,
   };
@@ -3735,8 +3731,8 @@ function computeCrossDimensionInsights(normDims){
 
 /* =========================================================================
    V4 ADDITIONS
-   Consistency check, framework approximations, duo titles, PF1 upgrade
-   path, and the remaining fantasy/fun profile extras.
+   Consistency check, framework approximations, duo titles, and the
+   remaining fantasy/fun profile extras.
    ========================================================================= */
 
 /* ---- Consistency check ---------------------------------------------------
@@ -3949,67 +3945,6 @@ function computeGemstone(normDims){ return scoreBySignature(GEMSTONES, normDims)
 function computeWeather(normDims){ return scoreBySignature(WEATHER_TYPES, normDims)[0].item; }
 function computeCoffeeOrder(normDims){ return scoreBySignature(COFFEE_ORDERS, normDims)[0].item; }
 
-/* -------------------------------------------------------------------------
-   PF1 -> PF2 upgrade path
-   Instead of leaving the 5 v2 dimensions permanently at a neutral 0 for
-   someone with an old code, this picks real questions from the current
-   200-question bank, ranked by how strongly they touch those 5
-   dimensions, so answering a handful of them fills the gap with real
-   signal instead of a default. No new authoring needed, it's drawn from
-   content that already exists.
-------------------------------------------------------------------------- */
-const V1_UPGRADE_DIMENSIONS = ["emotionalStability","competitiveness","responsibility","persistence","openMindedness"];
-const UPGRADE_QUESTION_COUNT = 9;
-
-function buildUpgradeQuestions(){
-  const scored = QUESTIONS.map(q => {
-    let score = 0;
-    const touched = new Set();
-    q.options.forEach(opt => V1_UPGRADE_DIMENSIONS.forEach(d => {
-      if (opt.d[d]){ score += Math.abs(opt.d[d]); touched.add(d); }
-    }));
-    return { q, score, touchedCount: touched.size };
-  }).filter(x => x.score > 0)
-    .sort((a,b) => (b.touchedCount - a.touchedCount) || (b.score - a.score));
-  return scored.slice(0, UPGRADE_QUESTION_COUNT).map(x => x.q);
-}
-
-class UpgradeQuizSession {
-  constructor(decodedProfile){
-    this.baseNormDims = { ...decodedProfile.normDims };
-    this.archetype = decodedProfile.archetype;
-    this.name = decodedProfile.name;
-    this.questions = buildUpgradeQuestions();
-    this.answers = [];
-    this.cursor = 0;
-    this.delta = {};
-    V1_UPGRADE_DIMENSIONS.forEach(d => this.delta[d] = 0);
-  }
-  totalLength(){ return this.questions.length; }
-  current(){ return this.cursor < this.questions.length ? this.questions[this.cursor] : null; }
-  isComplete(){ return this.cursor >= this.questions.length; }
-  answer(optionIndex){
-    const q = this.current();
-    if (!q) return;
-    const opt = q.options[optionIndex];
-    Object.entries(opt.d).forEach(([dim, val]) => {
-      if (V1_UPGRADE_DIMENSIONS.includes(dim)) this.delta[dim] = (this.delta[dim] || 0) + val;
-    });
-    this.answers.push({ questionId: q.id, optionIndex });
-    this.cursor++;
-  }
-  finalNormDims(){
-    const out = { ...this.baseNormDims };
-    V1_UPGRADE_DIMENSIONS.forEach(d => {
-      out[d] = Math.max(-10, Math.min(10, Math.round(this.delta[d] || 0)));
-    });
-    return out;
-  }
-}
-
-
-
-
 /* ---------------- QUIZ PROGRESS PERSISTENCE ------------------------------
    Going home mid-quiz (or just closing the tab) never throws answers away.
    Progress is saved to localStorage and picked back up on the exact next
@@ -4059,17 +3994,20 @@ function clearOnboardingProgress(){
    link, and the browser's own URL bar are all the same shareable thing.
    Query-param format (?code=...) is the primary, fully-supported form
    since it works on any static host with zero extra setup. A trailing
-   path segment that looks like a code (e.g. /PersonaForge/Yota-PF2-...)
+   path segment that looks like a code (e.g. /PersonaForge/Yota-PF4-...)
    is also read as a best-effort fallback, but actually serving that path
    on GitHub Pages needs a 404->index.html redirect set up in the repo;
-   without it, only the ?code= form will reach the app at all. */
+   without it, only the ?code= form will reach the app at all.
+   Version-agnostic regex on purpose -- a literal /-PF[12]-/ here was a
+   real bug found in the PF4 QA pass: it silently failed to recognize any
+   PF4 code arriving via a bookmarked/shared path-segment URL. */
 function getProfileCodeFromURL(){
   const params = new URLSearchParams(location.search);
   const fromQuery = params.get("code");
   if (fromQuery) return decodeURIComponent(fromQuery);
   const segments = location.pathname.split("/").filter(Boolean);
   const last = segments[segments.length - 1] || "";
-  if (/-PF[12]-/.test(last)) return decodeURIComponent(last);
+  if (/-PF\d+-/.test(last)) return decodeURIComponent(last);
   return null;
 }
 
@@ -4108,7 +4046,7 @@ function tryLoadProfileFromURL(){
    code: builds the full profile-extras bundle and the final result
    object, plus the small local history log.
    ========================================================================= */
-function buildProfileExtras(normDims, archetype, ranked, session, upgradedFromV1){
+function buildProfileExtras(normDims, archetype, ranked, session){
   return {
     mix: computePersonalityMix(ranked),
     soul: computeSoulType(normDims),
@@ -4129,7 +4067,7 @@ function buildProfileExtras(normDims, archetype, ranked, session, upgradedFromV1
     entertainment: computeEntertainment(normDims),
     extras: getArchetypeExtras(archetype),
     funStats: computeFunStats(normDims),
-    confidence: computeAssessmentConfidence(ranked, normDims, session, upgradedFromV1),
+    confidence: computeAssessmentConfidence(ranked, normDims, session),
     hidden: computeHiddenTraits(normDims, archetype),
     fantasyRole: computeFantasyRole(normDims),
     friendship: computeFriendshipProfile(normDims),
@@ -4173,8 +4111,7 @@ function computeResult(session){
     relationships: computeRelationshipStyles(normDims),
     traits: computeMeasuredTraits(normDims),
     consistency: computeConsistency(session),
-    upgradedFromV1: false,
-    ...buildProfileExtras(normDims, match.primary, match.ranked, session, false),
+    ...buildProfileExtras(normDims, match.primary, match.ranked, session),
   };
   localStorage.setItem("pf_last_code", code);
   saveToTimeline(result);
@@ -4516,6 +4453,17 @@ function sanitizeImportedLocalProfile(p){
     soul: typeof p.soul === "string" ? p.soul.slice(0, 30) : undefined,
     soulHex: isSafeHexColor(p.soulHex) ? p.soulHex : undefined,
     confidencePct: typeof p.confidencePct === "number" ? p.confidencePct : null,
+    // PF4 profile-schema fields (QA pass): without these, an imported
+    // profile would silently lose its profileId on the very next read
+    // (ensureProfileSchema() would mint a brand new one, since it only
+    // fills in fields that are actually missing) -- a real identity-
+    // continuity bug, not just a cosmetic gap. assessmentHistory/
+    // statistics/lastOpened are deliberately left out of this allowlist:
+    // they're derived from pf_history (already imported separately above)
+    // and re-synced automatically the next time ensureLocalProfile() runs,
+    // so re-deriving them fresh is correct, not a loss.
+    profileId: typeof p.profileId === "string" ? p.profileId.slice(0, 80) : undefined,
+    preferences: (p.preferences && typeof p.preferences === "object" && !Array.isArray(p.preferences)) ? p.preferences : undefined,
   };
 }
 
@@ -4753,7 +4701,7 @@ function buildResultFromLatestTimeline(){
   if (!decoded || decoded.obsolete) return null;
   const match = matchArchetype(decoded.normDims);
   const extras = applyStoredConfidence(
-    buildProfileExtras(decoded.normDims, match.primary, match.ranked, null, decoded.upgraded),
+    buildProfileExtras(decoded.normDims, match.primary, match.ranked, null),
     entry.code
   );
   return { name: decoded.name, meta: {}, normDims: decoded.normDims, archetype: match.primary, ...extras };
@@ -4958,7 +4906,7 @@ function buildResultFromDecoded(decoded, code){
   // shared code) has nothing to borrow from, so it keeps the session-less
   // estimate, same as before.
   const extras = applyStoredConfidence(
-    buildProfileExtras(normDims, match.primary, match.ranked, null, !!decoded.upgraded),
+    buildProfileExtras(normDims, match.primary, match.ranked, null),
     code
   );
   return {
@@ -4975,8 +4923,6 @@ function buildResultFromDecoded(decoded, code){
     traits: computeMeasuredTraits(normDims),
     consistency: null,
     ...extras,
-    upgradedFromV1: !!decoded.upgraded,
-    decodedProfile: decoded,
   };
 }
 

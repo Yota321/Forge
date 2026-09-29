@@ -54,7 +54,7 @@ So a full assessment is a **minimum of 35 and a maximum of 45 questions**, entir
 The results page is a bento-style dashboard built entirely from your own answers: an overview grid of short summary cards (traits, mind map, social style, career fits, values, growth timeline, relationships, and more) that each open into a full detail view on tap. Nothing is hardcoded per archetype beyond the archetype's own reference data — every number and chart is computed live from your 25 measured dimensions.
 
 Results can be:
-- **Shared** as a compact `PF2-...` code or a direct link
+- **Shared** as a compact `PF4-...` code or a direct link
 - **Compared** against another person's result, one-on-one or as a 3-5 person party compare
 - **Exported** as a Story or Post image, a PDF report, or a scannable QR code
 
