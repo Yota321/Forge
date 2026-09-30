@@ -422,14 +422,20 @@ function toggleTheme(){
   const next = currentTheme === "light" ? "dark" : "light";
   const applyAndRefresh = () => {
     applyTheme(next);
-    // Only the result page has canvas-drawn pixels (radar chart, QR code)
-    // whose colors are baked in at draw time rather than read live from
-    // CSS, so it's the one screen that needs a forced re-render. Every
-    // other screen (quiz, landing, compare, party) uses CSS custom
-    // properties directly and repaints on its own, so toggling theme
-    // there never interrupts what the person is doing (e.g. mid-quiz).
-    if (typeof lastResult !== "undefined" && lastResult && document.getElementById("radar")){ renderResult(); }
-    else { updateThemeIcon(); updateBrandLogo(); }
+    // Result's Sins & Virtues canvas and Compare's two radar canvases are
+    // the only pixels in the app with theme-dependent colors baked in at
+    // draw time rather than read live from CSS (see redrawResultCanvasesForTheme()
+    // in result.js and redrawCompareCanvasesForTheme() in compatibility.js
+    // for exactly which canvases and why). Everything else, including the
+    // Mind Map radar (SVG, not canvas) and the QR code (theme-independent
+    // black/white), repaints on its own via CSS custom properties, so
+    // toggling theme there never interrupts what the person is doing
+    // (e.g. mid-quiz). Guarded by typeof since only one of these two
+    // functions exists on any given page, if either does at all.
+    if (typeof redrawResultCanvasesForTheme === "function") redrawResultCanvasesForTheme();
+    else if (typeof redrawCompareCanvasesForTheme === "function") redrawCompareCanvasesForTheme();
+    updateThemeIcon();
+    updateBrandLogo();
   };
   click(300);
   // The bottom-to-top scan is built on the View Transitions API: it
@@ -744,6 +750,7 @@ function openNavMenu(){
   const btn = document.getElementById("navMenuBtn");
   const backdrop = document.getElementById("navMenuBackdrop");
   if (!menu || !btn) return;
+  rememberFocusTrigger();
   navMenuOpen = true;
   menu.hidden = false;
   if (backdrop) backdrop.hidden = false;
@@ -777,28 +784,29 @@ function onNavMenuOutsideClick(e){
   if (!menu || (menu.contains(e.target) || (btn && btn.contains(e.target)))) return;
   closeNavMenu();
 }
-// Real bug, found in a verification pass: Tab had no boundary while the
-// menu was open, so it walked straight past the last menu item into
-// whatever page content sits underneath — content that's still visually
-// covered by the menu and its backdrop at that point, so a keyboard user
-// could land on and activate something they can't actually see. Trapping
-// Tab/Shift+Tab within the menu's own focusable elements is the fix;
-// Escape already returned focus to the trigger button correctly and is
-// unchanged.
-function getNavMenuFocusable(){
-  const menu = document.getElementById("navMenu");
-  if (!menu) return [];
-  return [...menu.querySelectorAll("button, a[href], input")].filter(el => el.offsetParent !== null);
+
+/* ---------------- Shared focus-trap utility for modal/dialog overlays ---
+   Every aria-modal dialog in the app (the nav menu, Get Started, Privacy,
+   Danger Confirm, the Result Detail panel) needs the same three things:
+   Tab/Shift+Tab boundaries that don't leak into page content the overlay
+   is visually covering, Escape to close, and focus returning to whatever
+   triggered the dialog once it's gone. Originally only the nav menu had
+   the Tab boundary (a real bug found in an earlier pass: Tab walked
+   straight past the last menu item into content still covered by the
+   menu/backdrop), and nothing anywhere restored focus on close. Rather
+   than fix each dialog's hand-rolled copy separately, this is the one
+   shared implementation every one of them calls into. Each dialog keeps
+   its own open()/close() and Escape wiring (they differ in timing —
+   some remove() the overlay after a transition, some just toggle a
+   class) since that isn't duplicated logic, just the Tab-cycling math
+   and the focus-remember/restore pair are. */
+function getFocusable(container){
+  if (!container) return [];
+  return [...container.querySelectorAll('button, a[href], input, textarea, select, [tabindex]:not([tabindex="-1"])')]
+    .filter(el => el.offsetParent !== null && !el.disabled);
 }
-function onNavMenuKey(e){
-  if (e.key === "Escape"){
-    closeNavMenu();
-    const btn = document.getElementById("navMenuBtn");
-    if (btn) btn.focus();
-    return;
-  }
-  if (e.key !== "Tab") return;
-  const focusable = getNavMenuFocusable();
+function cycleFocusTrap(e, container){
+  const focusable = getFocusable(container);
   if (!focusable.length) return;
   const first = focusable[0], last = focusable[focusable.length - 1];
   if (e.shiftKey && document.activeElement === first){
@@ -808,6 +816,32 @@ function onNavMenuKey(e){
     e.preventDefault();
     first.focus();
   }
+}
+// One shared "where to return focus" slot rather than one per dialog:
+// every dialog in the app is strictly modal (each open() bails if its
+// own overlay already exists, and nothing here ever opens a second
+// dialog over a first), so at most one trigger is ever pending at a
+// time. document.contains() guards the one real edge case found in this
+// codebase: renderResult() can rebuild the whole result page (e.g.
+// toggleCareers()) while the Result Detail panel is still open, which
+// destroys and recreates the tile button that originally triggered it —
+// focusing a now-detached node is a silent no-op, so this just skips
+// the restore instead of doing nothing anyway.
+let focusTrapReturnEl = null;
+function rememberFocusTrigger(){ focusTrapReturnEl = document.activeElement; }
+function restoreFocusTrigger(){
+  const el = focusTrapReturnEl;
+  focusTrapReturnEl = null;
+  if (el && document.contains(el) && typeof el.focus === "function") el.focus();
+}
+function onNavMenuKey(e){
+  if (e.key === "Escape"){
+    closeNavMenu();
+    restoreFocusTrigger();
+    return;
+  }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("navMenu"));
 }
 
 /* ---------------- nav-menu "have someone's code?" quick lookup -----------
@@ -1062,16 +1096,22 @@ function showGetStartedModal(){
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add("open"));
+  rememberFocusTrigger();
+  requestAnimationFrame(() => { overlay.classList.add("open"); getFocusable(overlay)[0]?.focus(); });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closeGetStartedModal(); });
   document.addEventListener("keydown", onGetStartedModalKey);
 }
-function onGetStartedModalKey(e){ if (e.key === "Escape") closeGetStartedModal(); }
+function onGetStartedModalKey(e){
+  if (e.key === "Escape"){ closeGetStartedModal(); return; }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("getStartedModal"));
+}
 function closeGetStartedModal(){
   const overlay = document.getElementById("getStartedModal");
   if (!overlay) return;
   overlay.classList.remove("open");
   document.removeEventListener("keydown", onGetStartedModalKey);
+  restoreFocusTrigger();
   setTimeout(() => overlay.remove(), 220);
 }
 // A Local Profile can exist before any quiz result does — it's just a
@@ -1100,15 +1140,21 @@ function showPrivacyModal(){
       <button class="btn btn-primary" onclick="closePrivacyModal()">Got it</button>
     </div>`;
   document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add("open"));
+  rememberFocusTrigger();
+  requestAnimationFrame(() => { overlay.classList.add("open"); getFocusable(overlay)[0]?.focus(); });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closePrivacyModal(); });
   document.addEventListener("keydown", onPrivacyModalKey);
 }
-function onPrivacyModalKey(e){ if (e.key === "Escape") closePrivacyModal(); }
+function onPrivacyModalKey(e){
+  if (e.key === "Escape"){ closePrivacyModal(); return; }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("privacyModal"));
+}
 function closePrivacyModal(){
   const overlay = document.getElementById("privacyModal");
   if (!overlay) return;
   overlay.classList.remove("open");
+  restoreFocusTrigger();
   document.removeEventListener("keydown", onPrivacyModalKey);
   setTimeout(() => overlay.remove(), 220);
 }

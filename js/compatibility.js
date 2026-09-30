@@ -172,12 +172,23 @@ function drawCompareRadar(canvas, dims, normDimsA, colorA, normDimsB, colorB){
 function mountCompareResult(out){
   out.innerHTML = renderCompareResult();
   initCountUps(out);
+  drawCompareRadars();
+}
+function drawCompareRadars(){
   const { profileA, archA, profileB, archB } = compareState;
   const duo = computeDuoTitle(archA, archB);
   const mind = document.getElementById("cmpRadarMind");
   const emo = document.getElementById("cmpRadarEmotion");
   if (mind) drawCompareRadar(mind, DIMENSIONS, profileA.normDims, duo.colorA, profileB.normDims, duo.colorB);
   if (emo) drawCompareRadar(emo, EMOTION_RADAR_DIMS, profileA.normDims, duo.colorA, profileB.normDims, duo.colorB);
+}
+// Called by toggleTheme() (global.js) when it exists on this page. Both
+// canvases bake theme-dependent grid/label colors in at draw time (see
+// the isLight check inside drawCompareRadar) — redrawing in place is
+// enough, no need to rebuild the surrounding HTML mountCompareResult()
+// also does.
+function redrawCompareCanvasesForTheme(){
+  if (typeof compareState !== "undefined" && compareState && document.getElementById("cmpRadarMind")) drawCompareRadars();
 }
 
 function compareStyleRow(label, a, b){

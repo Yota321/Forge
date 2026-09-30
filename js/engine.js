@@ -4568,6 +4568,14 @@ function addJournalEntry({ mood, text, prompt }){
     prompt: prompt || null,
   };
   entries.push(entry);
+  // Capped like every other growing local-storage list in the app
+  // (pf_history at 10, suggestion feedback at 100) -- this one was the
+  // one outlier with no bound at all. getJournalEntries() returns
+  // oldest-first, so this drops the oldest entries once over the cap,
+  // same as pf_history's own `while (history.length > 10) history.shift()`.
+  // 3650 is a decade of daily entries, generous enough that no realistic
+  // user hits it, while still giving this list an actual ceiling.
+  while (entries.length > 3650) entries.shift();
   saveJournalEntries(entries);
   return entry;
 }

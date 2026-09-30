@@ -268,7 +268,7 @@ function ensureResultDetailOverlay(){
       </div>
     </div>`;
   el.addEventListener("click", (e) => { if (e.target === el) closeResultDetail(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && resultDetailOpenId) closeResultDetail(); });
+  document.addEventListener("keydown", onResultDetailKey);
   document.body.appendChild(el);
 
   // Reuses the exact same scrollbar controller the main page uses (see
@@ -295,9 +295,27 @@ function ensureResultDetailOverlay(){
   new ResizeObserver(() => detailScrollbar.refresh()).observe(document.getElementById("resultDetailBody"));
 }
 
+// This overlay is created once (see ensureResultDetailOverlay() above)
+// and reused for every card, so its keydown listener is attached once
+// for the page's lifetime too, rather than per open/close like the
+// dynamically-created modals elsewhere — it just no-ops via the
+// resultDetailOpenId guard while nothing is open.
+function onResultDetailKey(e){
+  if (!resultDetailOpenId) return;
+  if (e.key === "Escape"){ closeResultDetail(); return; }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("resultDetailOverlay"));
+}
+
 function openResultDetail(id){
   const entry = resultDetailRegistry[id];
   if (!entry) return;
+  // Only remembered on the *first* open, not on switching to a different
+  // card while a panel is already open (e.g. a link inside one card's
+  // detail body that opens another) — otherwise this would overwrite
+  // the real trigger with an element that's about to be replaced/closed
+  // right along with the panel itself.
+  if (!resultDetailOpenId) rememberFocusTrigger();
   ensureResultDetailOverlay();
   const overlay = document.getElementById("resultDetailOverlay");
   document.getElementById("detailHeadIcon").innerHTML = resultIcon(entry.iconKey, entry.tint);
@@ -318,6 +336,7 @@ function openResultDetail(id){
   if (scrollEl) scrollEl.scrollTop = 0;
   if (detailScrollbar) detailScrollbar.refresh();
   if (entry.onOpen) entry.onOpen(body);
+  document.querySelector("#resultDetailOverlay .detail-close")?.focus();
 }
 
 function closeResultDetail(){
@@ -326,6 +345,7 @@ function closeResultDetail(){
   overlay.classList.remove("open");
   document.documentElement.classList.remove("detail-lock-scroll");
   document.querySelectorAll(".ov-card.active").forEach(c => c.classList.remove("active"));
+  restoreFocusTrigger();
   resultDetailOpenId = null;
   click(300);
 }
@@ -1356,6 +1376,20 @@ function initRadarFingerprintInteraction(container, pts){
    chart. Respects prefers-reduced-motion (snaps instantly instead). Lives
    inside the Secondary Archetype expansion card now, not its own card. */
 let sinVirtueMode = "sin";
+// Called by toggleTheme() (global.js) when it exists on this page. Only
+// the Sins & Virtues canvas actually bakes theme-dependent colors in at
+// draw time (see the isLight check inside drawSinVirtueRadar below) — the
+// Mind Map radar is SVG driven by CSS custom properties (repaints on its
+// own) and the QR canvas is theme-independent black/white, so neither
+// needs this. Redraws in place only if that specific canvas is currently
+// in the DOM (i.e. its panel is open right now) rather than forcing a
+// full renderResult(), which would be a lot of unnecessary DOM work to
+// fix two colors on one already-open canvas.
+function redrawResultCanvasesForTheme(){
+  if (!lastResult) return;
+  const canvas = document.getElementById("sinVirtueRadar");
+  if (canvas) drawSinVirtueRadar(canvas, lastResult.sinVirtue, sinVirtueMode, lastResult.archetype.colors[0]);
+}
 function drawSinVirtueRadar(canvas, axes, mode, accentColor, fromValues){
   if (!canvas) return;
   const ctx = canvas.getContext("2d");

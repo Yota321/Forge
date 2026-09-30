@@ -276,16 +276,22 @@ function showDangerConfirm(title, message, onConfirm){
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add("open"));
+  rememberFocusTrigger();
+  requestAnimationFrame(() => { overlay.classList.add("open"); getFocusable(overlay)[0]?.focus(); });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closeDangerConfirm(); });
   document.addEventListener("keydown", onDangerModalKey);
   document.getElementById("dangerModalConfirmBtn").onclick = () => { closeDangerConfirm(); onConfirm(); };
 }
-function onDangerModalKey(e){ if (e.key === "Escape") closeDangerConfirm(); }
+function onDangerModalKey(e){
+  if (e.key === "Escape"){ closeDangerConfirm(); return; }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("dangerModal"));
+}
 function closeDangerConfirm(){
   const el = document.getElementById("dangerModal");
   if (el) el.remove();
   document.removeEventListener("keydown", onDangerModalKey);
+  restoreFocusTrigger();
 }
 
 function confirmDeletePF4History(){
