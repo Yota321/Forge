@@ -203,6 +203,7 @@ function renderPartyResult(){
   const meterRow = (label, val, note) => `<div class="mini-bar-row"><span>${label}${note ? ` <span style="color:var(--text-dim)">(${note})</span>` : ""}</span><span class="count-up" data-target="${val}" data-suffix="%">0%</span></div>`;
   return `
     <div class="section revealed">
+      ${quickReadCompareWarningHtml(decoded.map(d => d.depthTier))}
       <div class="card glass" style="text-align:center">
         <div class="eyebrow accent">GROUP IDENTITY</div>
         <h4>${group.identity}</h4>

@@ -2679,13 +2679,45 @@ function computeRelationshipStyles(normDims){
 ------------------------------------------------------------------------- */
 
 const B36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const CODE_VERSION = 4;
+
+// Two independent version numbers, per the depth-tier/versioning audit:
+//  - The INTERNAL schema version (the number actually written into the
+//    code string as "PFn") identifies the wire *shape* -- how many digits,
+//    what they mean. It only ever goes up, and a number is never reused
+//    once shipped, so decodeCode() can always tell a genuine old code from
+//    a new one by version number alone. It is never shown to users.
+//  - The PUBLIC version (SCHEMA_TO_PUBLIC_VERSION below) is a purely
+//    editorial label shown in UI copy. Development schemas 1-3 (the old,
+//    pre-redesign product) are never public. Schema 4 (already shipped)
+//    and schema 5 (this release: adds the depth-tier digit, see below)
+//    are both still "PersonaForge 1" -- nothing user-facing changed
+//    generation, an internal capability was just added. A future schema
+//    bump only becomes a new public number when a release earns one; that
+//    is a deliberate decision made at the time, not a formula.
+const LEGACY_CODE_VERSION = 4; // frozen shape: 25 dim digits, no depth digit -- must decode forever, unchanged
+const CODE_VERSION = 5;        // current encode target: 25 dim digits + 1 depth-tier digit
+const SCHEMA_TO_PUBLIC_VERSION = { 4: 1, 5: 1 };
+function publicVersionLabel(schemaVersion){
+  const v = SCHEMA_TO_PUBLIC_VERSION[schemaVersion];
+  return v ? `PersonaForge ${v}` : "PersonaForge";
+}
+
+// The result-depth tier (Quick Read / Balanced / Deep Dive) a code was
+// generated at, packed as one extra base36 digit (schema 5+ only) so
+// Compare/Party Compare can warn about a Quick Read profile from a bare
+// pasted code, not just the local user's own session metadata.
+const DEPTH_TIER_TO_CODE = { short: "0", balanced: "1", deep: "2" };
+const DEPTH_TIER_FROM_CODE = { "0": "short", "1": "balanced", "2": "deep" };
+// session.pace -> the same "short"/"balanced"/"deep" vocabulary result.meta
+// uses, mirroring OB_LENGTH_OPTIONS' depth field in quiz.js (kept as an
+// independent copy so engine.js never depends on quiz.js load order).
+const PACE_TO_DEPTH = { quick: "short", balanced: "balanced", deep: "deep" };
 
 function sanitizeName(name){
   return (name || "").trim().replace(/[^a-zA-Z0-9_]/g, "").slice(0, 20);
 }
 
-function encodeCode(archetypeId, normDims, name){
+function encodeCode(archetypeId, normDims, name, resultDepth){
   const archIdx = ARCHETYPES.findIndex(a => a.id === archetypeId);
   const archDigit = B36[archIdx] || "0";
   let digits = "";
@@ -2695,6 +2727,9 @@ function encodeCode(archetypeId, normDims, name){
     digits += B36[shifted];
     checksum += shifted;
   });
+  const depthChar = DEPTH_TIER_TO_CODE[resultDepth] || DEPTH_TIER_TO_CODE.balanced;
+  digits += depthChar;
+  checksum += B36.indexOf(depthChar);
   const checkDigit = B36[checksum % 36];
   const base = `PF${CODE_VERSION}-${archDigit}-${digits}-${checkDigit}`;
   const cleanName = sanitizeName(name);
@@ -2717,24 +2752,40 @@ function decodeCode(code){
     const versionMatch = /^PF(\d+)$/.exec(versionTag);
     if (!versionMatch) return null;
     const version = parseInt(versionMatch[1], 10);
-    if (version < CODE_VERSION){
+    if (version < LEGACY_CODE_VERSION){
       // PF1/PF2/PF3: recognized only as "obsolete", never decoded or
       // migrated. No archetype/normDims are returned - there is nothing
       // safe to render from an old scoring model.
       return { obsolete: true, version, name };
     }
-    const expectedDigitCount = DIMENSIONS.length;
     const archIdx = B36.indexOf(archDigit);
     if (archIdx < 0 || !ARCHETYPES[archIdx]) return null;
+
+    // Schema LEGACY_CODE_VERSION (4) is the frozen legacy-current shape --
+    // exactly one base36 digit per dimension, no depth-tier digit -- and it
+    // must keep decoding exactly as it always has, forever: those codes
+    // are already out in the wild (shared links, QR codes, saved groups)
+    // and must "load normally, compare normally, export normally, never
+    // force a retest." Schema CODE_VERSION (5) and any later schema append
+    // one extra trailing digit encoding resultDepth.
+    const hasDepthDigit = version >= CODE_VERSION;
+    const expectedDigitCount = DIMENSIONS.length + (hasDepthDigit ? 1 : 0);
     if (digits.length !== expectedDigitCount) return null;
 
     let checksum = archIdx;
     const normDims = emptyDims();
-    for (let i = 0; i < expectedDigitCount; i++){
+    for (let i = 0; i < DIMENSIONS.length; i++){
       const val = B36.indexOf(digits[i]);
       if (val < 0 || val > 20) return null;
       checksum += val;
       normDims[DIMENSIONS[i]] = val - 10;
+    }
+    let depthTier = null;
+    if (hasDepthDigit){
+      const depthChar = digits[DIMENSIONS.length];
+      if (!(depthChar in DEPTH_TIER_FROM_CODE)) return null;
+      checksum += B36.indexOf(depthChar);
+      depthTier = DEPTH_TIER_FROM_CODE[depthChar];
     }
     if (B36[checksum % 36] !== checkDigit) return null;
 
@@ -2743,6 +2794,9 @@ function decodeCode(code){
       normDims,
       name,
       version,
+      // "short" | "balanced" | "deep" | null (unknown -- schema 4 codes
+      // predate this field and never carried a depth tier at all).
+      depthTier,
     };
   } catch (e){
     return null;
@@ -2766,7 +2820,19 @@ function freshenDecoded(decoded){
 // entered or loaded, instead of attempting to render (or migrate) a
 // profile from it. Centralized so every call site shows identical
 // wording, per the "do not attempt automatic migration" requirement.
-const OBSOLETE_CODE_MESSAGE = "This result was created with an earlier generation of PersonaForge. PersonaForge 4 is a complete redesign with a new adaptive engine, new question bank, new scoring model, and improved psychological interpretation. To receive an accurate result, please retake the assessment.";
+const OBSOLETE_CODE_MESSAGE = "This result was created with an earlier generation of PersonaForge. The current PersonaForge is a complete redesign with a new adaptive engine, new question bank, new scoring model, and improved psychological interpretation. To receive an accurate result, please retake the assessment.";
+
+// Shown above Compare/Party Compare results when at least one decoded
+// profile's depthTier is "short" (Quick Read) -- possible for any pasted
+// code (not just the local user's own) now that depthTier travels inside
+// the code itself (schema CODE_VERSION+). A legacy schema-4 code's
+// depthTier is null (genuinely unknown, not "not quick"), so it never
+// triggers this, same as a Balanced/Deep Dive code wouldn't.
+const QUICK_READ_COMPARE_WARNING = "This comparison includes at least one Quick Read profile. Some conclusions may be less certain than comparisons created from the full assessment.";
+function quickReadCompareWarningHtml(depthTiers){
+  if (!depthTiers.some(d => d === "short")) return "";
+  return `<p class="center-note quick-read-compare-warning" style="text-align:left">${obEsc(QUICK_READ_COMPARE_WARNING)}</p>`;
+}
 
 /* -------------------------------------------------------------------------
    ALGORITHM: Compatibility (Compare page)
@@ -4097,10 +4163,15 @@ function buildProfileExtras(normDims, archetype, ranked, session){
 function computeResult(session){
   const normDims = session.normalizedDims();
   const match = matchArchetype(normDims);
-  const code = encodeCode(match.primary.id, normDims, session.name);
+  const resultDepth = (session.meta && session.meta.resultDepth) || PACE_TO_DEPTH[session.pace] || "balanced";
+  const code = encodeCode(match.primary.id, normDims, session.name, resultDepth);
   const result = {
     name: session.name || "",
-    meta: session.meta || {},
+    // Written back explicitly (not just spread from session.meta) so the
+    // rendered report's depth-gating and the code's own encoded depth
+    // digit can never silently disagree -- both trace back to this one
+    // resolved `resultDepth`, not two independently-defaulted copies.
+    meta: { ...(session.meta || {}), resultDepth },
     normDims,
     archetype: match.primary,
     runnerUp: match.runnerUp,
@@ -4151,7 +4222,10 @@ function ensureProfileSchema(p){
   if (!p.assessmentHistory) p.assessmentHistory = [];
   if (!p.preferences) p.preferences = {};
   if (!p.statistics) p.statistics = { totalAssessments: 0, firstAssessmentAt: null, lastAssessmentAt: null };
-  p.pfVersion = "PF4";
+  // Internal schema stamp only -- never shown to users. Always the current
+  // CODE_VERSION, unconditionally overwritten on every touch (this isn't a
+  // migration flag, just a "profile last seen by schema N" marker).
+  p.pfVersion = `PF${CODE_VERSION}`;
   p.lastOpened = Date.now();
   return p;
 }
@@ -4649,7 +4723,13 @@ function getFullTimeline(){
     let changed = false;
     history.forEach(h => {
       if (h.legacy === undefined){
-        const isLegacy = (h.version || 1) < CODE_VERSION;
+        // Compared against LEGACY_CODE_VERSION (the oldest schema still
+        // fully supported), not CODE_VERSION (the current *encode*
+        // target) -- otherwise every already-issued schema-4 result would
+        // get wrongly archived the moment CODE_VERSION next bumps, which
+        // is exactly the "never force a retest" guarantee this field
+        // exists to protect.
+        const isLegacy = (h.version || 1) < LEGACY_CODE_VERSION;
         if (isLegacy){ h.legacy = true; changed = true; }
       }
     });
@@ -4704,7 +4784,7 @@ function buildResultFromLatestTimeline(){
     buildProfileExtras(decoded.normDims, match.primary, match.ranked, null),
     entry.code
   );
-  return { name: decoded.name, meta: {}, normDims: decoded.normDims, archetype: match.primary, ...extras };
+  return { name: decoded.name, meta: { resultDepth: decoded.depthTier }, normDims: decoded.normDims, archetype: match.primary, ...extras };
 }
 
 // "Growth-coded" dims: the ones that read as genuine development rather
@@ -4911,7 +4991,7 @@ function buildResultFromDecoded(decoded, code){
   );
   return {
     name: decoded.name || "",
-    meta: {},
+    meta: { resultDepth: decoded.depthTier },
     normDims,
     archetype: match.primary,
     runnerUp: match.runnerUp,

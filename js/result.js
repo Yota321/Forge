@@ -394,13 +394,16 @@ function renderResult(){
   const dominantSins = r.sinVirtue.filter(ax => ax.sinPct === maxSinPct);
   const maxVirtuePct = Math.max(...r.sinVirtue.map(ax => ax.virtuePct));
   const dominantVirtues = r.sinVirtue.filter(ax => ax.virtuePct === maxVirtuePct);
-  // Onboarding's "how deep do you want to go?" choice (step 03/03)
-  // rides in on r.meta.resultDepth. "short"/"balanced" get the
-  // highlight row (through Career) plus an unlock CTA for everything
-  // past it; "deep", or no meta at all (a shared/viewed profile, or one
-  // saved before this feature existed), always gets the full report.
-  const isLightReport = !!(r.meta && r.meta.resultDepth && r.meta.resultDepth !== "deep");
-  const depthLabel = r.meta && r.meta.resultDepth === "short" ? "Quick Read" : "Balanced";
+  // Onboarding's "how deep do you want to go?" choice (step 03/03) rides
+  // in on r.meta.resultDepth. Only "short" (Quick Read) gets the reduced
+  // report; "balanced" and "deep" both get the complete report (Deep Dive
+  // differs only in how many questions were asked to get here, not in
+  // what's shown -- see PACE_BOUNDS in engine.js). No meta at all (a
+  // legacy schema-4 code decoded with no depth digit, or genuinely
+  // missing metadata) defaults to the full report too, since there is no
+  // reliable signal it was ever a Quick Read.
+  const resultDepth = (r.meta && r.meta.resultDepth) || "balanced";
+  const isQuickRead = resultDepth === "short";
   root.innerHTML = `
     <div class="container result-hero">
       ${topBar(true)}
@@ -455,7 +458,7 @@ function renderResult(){
           <div class="card"><h4>Match Confidence</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${r.confidence.confidencePct}%"></div></div><p style="margin-top:8px;font-size:12.5px;color:var(--text-dim)">How clearly ${a.name} beat the runner-up.</p></div>
           <div class="card"><h4>Personality Stability</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${r.confidence.stabilityPct}%"></div></div><p style="margin-top:8px;font-size:12.5px;color:var(--text-dim)">How far ahead your top type is from the field overall.</p></div>
         </div>
-        ${r.hidden.hiddenStrengths.length ? `<div class="card" style="margin-top:12px"><h4>Hidden Strengths</h4><div class="tag-list">${r.hidden.hiddenStrengths.map(s=>`<span class="tag">${s}</span>`).join("")}</div><p style="margin-top:8px;font-size:12.5px;color:var(--text-dim)">Traits outside ${a.name}'s usual signature that showed up strongly anyway.</p></div>` : ""}
+        ${(!isQuickRead && r.hidden.hiddenStrengths.length) ? `<div class="card" style="margin-top:12px"><h4>Hidden Strengths</h4><div class="tag-list">${r.hidden.hiddenStrengths.map(s=>`<span class="tag">${s}</span>`).join("")}</div><p style="margin-top:8px;font-size:12.5px;color:var(--text-dim)">Traits outside ${a.name}'s usual signature that showed up strongly anyway.</p></div>` : ""}
         `,
         { span: "3of12", tint: "accent", className: "hero-summary", bigNumber: { val: `${r.confidence.confidencePct}%`, label: "Match confidence" } })}
 
@@ -496,6 +499,7 @@ function renderResult(){
         { span: "2of12", className: "hero-emotions" })}
       </div>
 
+      ${isQuickRead ? "" : `
       ${resultDetailCard("secondary-archetype", "usersRound", "Secondary Archetype", "A deeper layer beneath your primary archetype.",
         [
           `${soulHeart(r.soul.hex, 12)} ${r.soul.name} Soul`,
@@ -644,7 +648,7 @@ function renderResult(){
 
       </div>
 
-      <div id="deepReportSections" class="deep-wrap${isLightReport ? " deep-collapsed" : ""}">
+      <div id="deepReportSections" class="deep-wrap">
 
       ${resultDetailCard("values", "layers", "Values", `${topValues.map(v=>v.name).join(", ")} lead.`,
         topValues.map(v => `${v.icon} ${v.name} ${v.pct}%`),
@@ -927,11 +931,9 @@ function renderResult(){
       </div>
 
       </div>
+      `}
 
-      ${isLightReport ? resultUtilityCard("sparkle", "Want to dive deeper?", `
-        <p>You're looking at the ${depthLabel} read. Unlock the full Deep Analysis of this exact result, same answers, nothing to retake.</p>
-        <button class="btn btn-primary" onclick="unlockFullReport()">Unlock full report &rarr;</button>
-      `, { span: "2of12", id: "unlockSection", tint: "accent" }) : ""}
+      ${isQuickRead ? renderQuickReadMoreCTA() : ""}
 
       </div>
     </div>
@@ -980,20 +982,50 @@ function toggleCareers(){
   renderResult();
 }
 
-// Reveals the deep-analysis overview cards for a Quick Read/Balanced
-// report — they're already fully rendered (just under the
-// .deep-collapsed wrapper class, see .deep-wrap in pages.css) since
-// renderResult() builds the whole report in one pass regardless of
-// depth, so this needs no recomputation, no re-decode, and no trip back
-// through the assessment.
-function unlockFullReport(){
-  const deep = document.getElementById("deepReportSections");
-  if (!deep) return;
-  click(480);
-  deep.classList.remove("deep-collapsed");
-  const cta = document.getElementById("unlockSection");
-  if (cta) cta.remove();
-  deep.scrollIntoView({ behavior: reducedMotion() ? "auto" : "smooth", block: "start" });
+// Quick Read's advanced sections aren't just hidden, they're never
+// rendered at all (see the isQuickRead branch in renderResult()) --
+// Quick Read's adaptive pace asks fewer questions, so Pattern Memory and
+// Cross-Dimension Insights computed from that run would be less reliable
+// than a real Balanced/Deep Dive run, not just cosmetically withheld.
+// This section replaces them with an honest "go get the real thing"
+// prompt instead of an instant reveal of weaker data.
+function renderQuickReadMoreCTA(){
+  return resultUtilityCard("sparkle", "There's More Beneath The Surface", `
+    <p>Quick Read gives you a fast snapshot of your personality, but it intentionally skips deeper psychological analysis.</p>
+    <p style="margin-top:10px">Take the full assessment to unlock recurring patterns, hidden strengths, cross-dimensional insights, richer narratives, and your complete PersonaForge profile.</p>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="continueToFullAssessment()">Take Full Assessment &rarr;</button>
+  `, { id: "unlockSection", className: "quick-read-cta", tint: "accent" });
+}
+
+// Continues the exact answers just given into a longer run rather than
+// starting over: quiz.js stashed a resumable copy of the completed Quick
+// Read session (see renderForging()) the moment this result was scored,
+// keyed to this one browser tab/session. Bumping its pace to "balanced"
+// and dropping it in as normal in-progress quiz storage means
+// quiz.html's own existing resume machinery picks it up and keeps asking
+// from the next unanswered question, now aimed at Balanced's higher
+// confidence floor -- no new resume UI needed, no re-answering anything.
+// pf_resume_quiz skips the "resume or start over?" confirmation screen
+// since clicking this CTA already *was* that deliberate confirmation.
+// If no resumable session exists (the result was opened later from
+// history, a different tab/browser, or storage was cleared), this
+// degrades gracefully to a fresh assessment rather than erroring or
+// pretending to continue something that no longer exists.
+function continueToFullAssessment(){
+  click(500);
+  const savedRaw = sessionStorage.getItem("pf_resumable_quick_session");
+  if (savedRaw){
+    try {
+      const saved = JSON.parse(savedRaw);
+      saved.pace = "balanced";
+      localStorage.setItem(QUIZ_PROGRESS_KEY, JSON.stringify(saved));
+      sessionStorage.removeItem("pf_resumable_quick_session");
+      sessionStorage.setItem("pf_resume_quiz", "1");
+      location.href = "quiz.html";
+      return;
+    } catch(e){ /* malformed/unavailable -- fall through to a fresh assessment */ }
+  }
+  location.href = "quiz.html";
 }
 
 function downloadQR(){
@@ -1752,6 +1784,12 @@ async function savePDF(){
   try {
     const JsPDFCtor = await loadJsPDF();
     const r = lastResult, a = r.archetype;
+    // Values/Career Fits/Relationships below are exactly the cards Quick
+    // Read never showed on screen (see isQuickRead in renderResult()) --
+    // the PDF should never hand out data the report itself withheld, so
+    // Quick Read gets the cover + Core Traits only, everyone else gets
+    // the same four-section export this always was.
+    const isQuickReadExport = !!(r.meta && r.meta.resultDepth === "short");
     const accent = hexToRgbTriple(a.colors[0]);
     const accent2 = hexToRgbTriple(a.colors[1]);
     const dark = [20, 22, 31];
@@ -1835,44 +1873,52 @@ async function savePDF(){
       y = pdfStatBar(doc, k, v, marginX, y, contentW, accent);
     });
 
-    y += 8;
-    ensureSpace(20);
-    y = pdfSectionTitle(doc, "Values", marginX, y, accent2);
-    y += 2;
-    r.humanValues.slice(0, 6).forEach(v => {
-      ensureSpace(12);
-      y = pdfStatBar(doc, v.name, v.pct, marginX, y, contentW, accent2);
-    });
+    if (!isQuickReadExport){
+      y += 8;
+      ensureSpace(20);
+      y = pdfSectionTitle(doc, "Values", marginX, y, accent2);
+      y += 2;
+      r.humanValues.slice(0, 6).forEach(v => {
+        ensureSpace(12);
+        y = pdfStatBar(doc, v.name, v.pct, marginX, y, contentW, accent2);
+      });
 
-    // ---- Career fits + relationships ------------------------------------
-    y += 8;
-    ensureSpace(20);
-    y = pdfSectionTitle(doc, "Career Fits", marginX, y, accent);
-    y += 2;
-    r.careers.slice(0, 6).forEach(c => {
-      ensureSpace(12);
-      y = pdfStatBar(doc, c.name, c.fit, marginX, y, contentW, accent);
-    });
+      // ---- Career fits + relationships ------------------------------------
+      y += 8;
+      ensureSpace(20);
+      y = pdfSectionTitle(doc, "Career Fits", marginX, y, accent);
+      y += 2;
+      r.careers.slice(0, 6).forEach(c => {
+        ensureSpace(12);
+        y = pdfStatBar(doc, c.name, c.fit, marginX, y, contentW, accent);
+      });
 
-    y += 8;
-    ensureSpace(20);
-    y = pdfSectionTitle(doc, "Relationships", marginX, y, accent2);
-    y += 2;
+      y += 8;
+      ensureSpace(20);
+      y = pdfSectionTitle(doc, "Relationships", marginX, y, accent2);
+      y += 2;
 
-    const attLines = pdfWrap(doc, `${r.relationship.attachmentStyle.name} — ${r.relationship.attachmentStyle.description}`, contentW);
-    ensureSpace(attLines.length * 5 + 12);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(20,22,31);
-    doc.text("Attachment Style", marginX, y);
-    doc.setFont("helvetica", "normal"); doc.setTextColor(90,96,112);
-    doc.text(attLines, marginX, y + 5.5);
-    y += attLines.length * 5 + 12;
+      const attLines = pdfWrap(doc, `${r.relationship.attachmentStyle.name} — ${r.relationship.attachmentStyle.description}`, contentW);
+      ensureSpace(attLines.length * 5 + 12);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(20,22,31);
+      doc.text("Attachment Style", marginX, y);
+      doc.setFont("helvetica", "normal"); doc.setTextColor(90,96,112);
+      doc.text(attLines, marginX, y + 5.5);
+      y += attLines.length * 5 + 12;
 
-    const confLines = pdfWrap(doc, `${r.relationship.conflictStyle.name} — ${r.relationship.conflictStyle.description}`, contentW);
-    ensureSpace(confLines.length * 5 + 12);
-    doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(20,22,31);
-    doc.text("Conflict Style", marginX, y);
-    doc.setFont("helvetica", "normal"); doc.setTextColor(90,96,112);
-    doc.text(confLines, marginX, y + 5.5);
+      const confLines = pdfWrap(doc, `${r.relationship.conflictStyle.name} — ${r.relationship.conflictStyle.description}`, contentW);
+      ensureSpace(confLines.length * 5 + 12);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(20,22,31);
+      doc.text("Conflict Style", marginX, y);
+      doc.setFont("helvetica", "normal"); doc.setTextColor(90,96,112);
+      doc.text(confLines, marginX, y + 5.5);
+    } else {
+      y += 6;
+      ensureSpace(16);
+      doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.setTextColor(120,125,138);
+      const noteLines = pdfWrap(doc, "This is a Quick Read export. Take the full assessment on Forge for Values, Career Fits, Relationships, and the rest of your complete profile.", contentW);
+      doc.text(noteLines, marginX, y);
+    }
     pdfFooter(doc, page, r, pageW, pageH);
 
     doc.save(`forge-${(r.name || "result").toLowerCase().replace(/[^a-z0-9]+/g,"-")}.pdf`);

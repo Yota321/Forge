@@ -1176,15 +1176,13 @@ button.lp-card{ width:100%; }
    grid's own 14px gap, which is exactly the "inconsistent vertical gap"
    between e.g. Values' row and Stress & Recovery's row below it. */
 .result-grid .section{ margin-top:0; }
-/* Wraps the deep-tier cards (Relationship Styles through Full Ranking)
-   without breaking the grid: display:contents makes the wrapper itself
-   generate no box, so its children still become direct .result-grid
-   items. .deep-collapsed then hides them all at once for a Quick
-   Read/Balanced report, until unlockFullReport() removes it. (Not the
-   `hidden` attribute + inline style — an inline style would win over a
-   plain UA `[hidden]` rule and silently un-hide everything.) */
+/* Wraps the deep-tier cards (Values through Full Ranking) without
+   breaking the grid: display:contents makes the wrapper itself generate
+   no box, so its children still become direct .result-grid items. Quick
+   Read no longer renders this wrapper's contents at all (see the
+   isQuickRead branch in renderResult()), so there's no collapsed/hidden
+   state to manage here anymore -- just the layout passthrough. */
 .deep-wrap{ display:contents; }
-.deep-wrap.deep-collapsed{ display:none; }
 /* Spring/overshoot easing — the same curve Forge's buttons and icon-btn
    already use for their hover/press motion, reused here so bento cards
    feel like part of the same physical system instead of a flatter,
@@ -1900,6 +1898,20 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
    competing cards. Full width since it's the richest card outside the
    hero itself. */
 .secondary-expansion{ grid-column: 1 / -1; }
+
+/* Quick Read's replacement for everything from Secondary Archetype
+   through Full Ranking: one full-width, visually substantial card (not a
+   cramped leftover slot) since it's standing in for the entire rest of
+   the report, not just one card among many. */
+.quick-read-cta{
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 40px;
+}
+.quick-read-cta .bento-head{ justify-content: center; }
+.quick-read-cta .bento-body{ max-width: 60ch; margin: 0 auto; }
+.quick-read-cta .bento-body p{ color: var(--text-muted); font-size: 15px; line-height: 1.6; }
+.quick-read-cta h3{ font-size: 22px; }
 .expansion-divider{ height:1px; margin:18px 0; background:var(--border); }
 /* The Soul Type sub-heading's heart + name pairing — explicit even though
    .bento-head already centers its row, because the heart is a bare inline

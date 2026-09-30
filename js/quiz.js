@@ -272,7 +272,7 @@ function confirmAbout(goBack){
    same engine is allowed to stop within (QuizSession's `pace`, via
    PACE_BOUNDS), rather than switching between fixed-length and adaptive
    modes. The result page's presentation depth (see renderResult()'s
-   isLightReport/resultDepth branch in result.js) rides along on the same
+   isQuickRead/resultDepth branch in result.js) rides along on the same
    choice via `depth` below; `value` is the one part that actually drives
    the engine (QuizSession's pace param). */
 const OB_LENGTH_OPTIONS = [
@@ -720,6 +720,17 @@ function renderForging(){
   setTimeout(() => {
     clearInterval(int);
     const result = computeResult(session);
+    // Quick Read's "Take Full Assessment" CTA on the result page needs to
+    // continue these exact answers into a longer run, not start over --
+    // but raw answers are otherwise never kept past scoring (see
+    // clearQuizProgress() inside computeResult()), so this is the one
+    // narrow, session-scoped exception: a one-shot sessionStorage copy
+    // (same lifetime as pf_fresh_result below), never localStorage, gone
+    // the moment the tab closes or the CTA consumes it.
+    if (result.meta && result.meta.resultDepth === "short"){
+      try{ sessionStorage.setItem("pf_resumable_quick_session", JSON.stringify(session.serialize())); }
+      catch(e){ /* storage unavailable -- the CTA just falls back to a fresh assessment */ }
+    }
     sessionStorage.setItem("pf_fresh_result", JSON.stringify(result));
     location.href = "result.html";
   }, 2200);

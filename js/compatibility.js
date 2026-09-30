@@ -207,6 +207,7 @@ function renderCompareResult(){
   const duo = computeDuoTitle(archA, archB);
   return `
     <div class="section revealed">
+      ${quickReadCompareWarningHtml([profileA.depthTier, profileB.depthTier])}
       <div class="duo-crest" style="background: linear-gradient(120deg, ${duo.colorA}, ${duo.colorB})">
         <div class="duo-icons"><span>${duo.iconA}</span><span class="duo-x">&times;</span><span>${duo.iconB}</span></div>
         <div class="duo-title">${duo.title}</div>

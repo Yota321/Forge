@@ -16,13 +16,14 @@
 
 // Bump this (and add a row to LEGAL_VERSION_HISTORY) whenever this page's
 // legal content, credits, or structure meaningfully changes.
-const LEGAL_VERSION = "1.2.0";
-const LEGAL_LAST_UPDATED = "September 29, 2026";
+const LEGAL_VERSION = "1.3.0";
+const LEGAL_LAST_UPDATED = "September 30, 2026";
 
 const LEGAL_VERSION_HISTORY = [
   { version: "1.0.0", date: "September 3, 2026", notes: "Initial Terms of Service, privacy notes, and third-party credits published." },
   { version: "1.1.0", date: "September 3, 2026", notes: "Generalized profile-code wording to cover future PF formats beyond PF1/PF2, added compliance, indemnification, DMCA, export control, dispute resolution, force majeure, severability, entire agreement, and assignment clauses, and revised wording throughout." },
-  { version: "1.2.0", date: "September 29, 2026", notes: "Updated profile-code wording for PF4, a complete redesign of the assessment engine. PF1-PF3 codes are retired and no longer compatible; no automatic migration is performed." }
+  { version: "1.2.0", date: "September 29, 2026", notes: "Updated profile-code wording for PF4, a complete redesign of the assessment engine. PF1-PF3 codes are retired and no longer compatible; no automatic migration is performed." },
+  { version: "1.3.0", date: "September 30, 2026", notes: "Public release numbering now starts at PersonaForge 1; internal development version numbers are no longer shown anywhere in the app. Quick Read now shows a reduced report with a prompt to continue into the full assessment. Compare and Party Compare show a notice when a profile in the comparison is a Quick Read result." }
 ];
 
 // Every font actually used anywhere in Forge.
@@ -238,7 +239,7 @@ function renderLegal(){
 
           <section class="legal-section" id="about">
             <h2>2. About Forge</h2>
-            <p>Forge is an adaptive, scenario-based personality exploration app. It asks a series of questions, adapts the next question based on your previous answers, and turns the result into a compact personality code we call a <strong>PF-code</strong>, shown as <code>PF*</code> since Forge's encoding format is expected to keep evolving (currently <code>PF4</code>; earlier <code>PF1</code>-<code>PF3</code> codes are retired and no longer compatible), along with a visual trait breakdown, an archetype, and optional career and compatibility notes.</p>
+            <p>Forge is an adaptive, scenario-based personality exploration app. It asks a series of questions, adapts the next question based on your previous answers, and turns the result into a compact personality code we call a <strong>PF-code</strong>, along with a visual trait breakdown, an archetype, and optional career and compatibility notes. PersonaForge 1 is the current release; a code from an earlier, no-longer-supported version of the app is retired and no longer compatible, and you'll be asked to retake the assessment.</p>
             <p>Forge runs <strong>entirely inside your browser</strong>. There is no account system, no backend server, and no analytics of any kind. Everything described in these terms reflects that architecture.</p>
           </section>
 
