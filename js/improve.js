@@ -115,6 +115,7 @@ function renderImprove(){
   const rec = computeRecommendationProfile(result.normDims);
   const checkIn = getImproveCheckInState();
   const a = result.archetype;
+  setAccentColors(a.colors[0], a.colors[1]);
   const growth = computeGrowthTimeline(result);
   const streak = computeJournalStreak();
   const nudge = computeRetakeNudge(growth, streak);

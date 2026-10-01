@@ -214,6 +214,23 @@ function renderPartyResult(){
         <p style="color:var(--text-muted)">Overall Team Chemistry</p>
       </div>
 
+      <div class="card glass" style="margin-top:12px">
+        <div class="eyebrow accent">THE CAST</div>
+        <div class="party-cast-grid">
+          ${group.cast.map(c => `
+          <div class="party-cast-card">
+            <div class="party-cast-icon">${c.archetype.icon}</div>
+            <div class="party-cast-role">${c.roleName}</div>
+            <div class="party-cast-name">${c.personName}</div>
+            <p class="party-cast-desc">${c.roleDescription}</p>
+          </div>`).join("")}
+        </div>
+      </div>
+
+      <div class="card glass party-narrative-card" style="margin-top:12px;text-align:center">
+        <p>If this were the party in a story: <strong>${group.narrative.survivesLongest}</strong> survives longest. <strong>${group.narrative.stepsUpFirst}</strong> steps up first when it actually matters.</p>
+      </div>
+
       <div class="grid-2" style="margin-top:12px">
         <div class="card glass"><h4>Dominant Archetype</h4><p>${group.dominantArchetype ? `${group.dominantArchetype.archetype.icon} ${group.dominantArchetype.archetype.name} (${group.dominantArchetype.count} of ${group.n})` : "No single type repeats, everyone reads differently"}</p></div>
         <div class="card glass"><h4>Dominant Soul</h4><p>${group.dominantSoul ? `${group.dominantSoul.soul.name} • ${group.dominantSoul.soul.trait} (${group.dominantSoul.count} of ${group.n})` : "No single soul type repeats"}</p></div>

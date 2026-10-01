@@ -167,8 +167,27 @@ let resultCardIdx = 0;
 let resultDetailRegistry = {};
 let resultDetailOpenId = null;
 
+// Capped to 3 (was 5): every overview tile shares one fixed content
+// budget so cards stay the same height as their neighbors (see the
+// min-height/line-clamp/nowrap rules on .bento-card/.ov-subtitle/
+// .ov-chip-row in pages.css) instead of a card with more highlights
+// growing taller than the rest of the row.
 function resultChips(items){
-  return (items || []).filter(Boolean).slice(0, 5).map(h => `<span class="ov-chip">${h}</span>`).join("");
+  return (items || []).filter(Boolean).slice(0, 3).map(h => `<span class="ov-chip">${String(h).trim()}</span>`).join("");
+}
+
+// Every archetype name is "The <Word>" (ARCHETYPES in engine.js) -- split
+// into two independently-styled spans so an archetype's own world CSS
+// (.archetype-world-<id> .ingot-name-main, see pages.css) can give the
+// second word an outsized, differently-colored editorial treatment
+// without this needing a second data field or changing what a.name
+// actually is. Falls back to the whole string unsplit if a future
+// archetype name ever doesn't fit the "The X" shape, rather than
+// silently dropping part of the name.
+function splitArchetypeName(name){
+  const m = /^(\S+)\s+(.+)$/.exec(name || "");
+  if (!m) return obEsc(name || "");
+  return `<span class="ingot-name-lead">${obEsc(m[1])}</span><span class="ingot-name-main">${obEsc(m[2])}</span>`;
 }
 
 // A card with no Layer 2 — either it's already a single short action
@@ -184,7 +203,7 @@ function resultUtilityCard(iconKey, title, innerHtml, opts){
   const i = resultCardIdx++;
   return `
       <div class="section bento-card util-card${span}${extraClass}"${idAttr} style="--i:${i};--tint:var(--${tint})">
-        <div class="bento-head">${resultIcon(iconKey, tint)}<h3>${title}</h3></div>
+        <div class="bento-head">${resultIcon(iconKey, tint)}<h3>${title.trim()}</h3></div>
         <div class="bento-body">${innerHtml}</div>
       </div>`;
 }
@@ -221,9 +240,9 @@ function resultDetailCard(id, iconKey, title, subtitle, highlights, detailHtml, 
   const tapHint = `<span class="tap-hint">Tap for detail<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>`;
   return `
       <button type="button" class="section bento-card ov-card${span}${extraClass}" id="ov-${id}" style="--i:${i};--tint:var(--${tint})" onclick="openResultDetail('${id}')" aria-haspopup="dialog">
-        <div class="bento-head">${resultIcon(iconKey, tint)}<h3>${title}</h3>${arrow}</div>
+        <div class="bento-head">${resultIcon(iconKey, tint)}<h3>${title.trim()}</h3>${arrow}</div>
         ${bignum}
-        ${subtitle ? `<p class="ov-subtitle">${subtitle}</p>` : ""}
+        ${subtitle ? `<p class="ov-subtitle">${subtitle.trim()}</p>` : ""}
         ${preview}
         ${chips ? `<div class="ov-chip-row">${chips}</div>` : ""}
         ${tapHint}
@@ -238,6 +257,43 @@ function resultDetailCard(id, iconKey, title, subtitle, highlights, detailHtml, 
 function registerDetailOnly(id, iconKey, title, detailHtml, opts){
   opts = opts || {};
   resultDetailRegistry[id] = { iconKey, title, tint: opts.tint, html: detailHtml, onOpen: opts.onOpen };
+}
+
+// Personality Atlas (v1.2, engine.js's computeAtlasMatch()): a category-
+// agnostic renderer for a category-agnostic data shape -- a new atlas
+// category needs a new entry in ATLAS_CATEGORY_CONFIG (engine.js), not a
+// new render function here, since every item already carries everything
+// this needs (name-or-source, an optional source/medium pair, a role,
+// an optional energy line, and an explanation) regardless of category.
+function renderAtlasItem(item, category){
+  let name, meta, roleText;
+  if (category === "Story"){
+    name = item.source; meta = item.medium;
+    roleText = `If you were in this story, you'd be ${item.role.replace(/^The\b/, "the")}.`;
+  } else {
+    name = item.name;
+    meta = item.medium ? `${item.source} &middot; ${item.medium}` : item.source;
+    roleText = item.role;
+  }
+  return `
+  <div class="card media-match-row">
+    <div class="media-match-head">
+      <span class="media-match-name">${name}</span>
+      <span class="media-match-source">${meta || ""}</span>
+    </div>
+    <p class="media-match-role">${roleText}</p>
+    ${item.energy ? `<p style="margin-top:6px">${item.energy}</p>` : ""}
+    <p class="media-match-why">${item.explanation}</p>
+  </div>`;
+}
+function renderAtlasSection(section){
+  const note = section.category === "HistoricalFigure"
+    ? `<p class="center-note" style="text-align:left;margin-top:0;margin-bottom:10px">Real people, matched on cognitive and behavioral style only, not politics or biography. Living people are never included.</p>`
+    : "";
+  return `
+  <h4 style="margin-top:16px;margin-bottom:8px">${section.label}</h4>
+  ${note}
+  ${section.items.map(item => renderAtlasItem(item, section.category)).join("")}`;
 }
 
 // The modal's own scrollbar controller — created once, alongside the
@@ -425,7 +481,7 @@ function renderResult(){
   const resultDepth = (r.meta && r.meta.resultDepth) || "balanced";
   const isQuickRead = resultDepth === "short";
   root.innerHTML = `
-    <div class="container result-hero">
+    <div class="container result-hero archetype-world-${a.id}">
       ${topBar(true)}
       ${r.name ? `<div class="name-tag">${obEsc(r.name)}'s Result</div>` : `<div class="name-tag">Your Result</div>`}
       ${r.meta && (r.meta.occupation || r.meta.country || r.meta.ageGroup) ? `<p class="meta-line">${[r.meta.occupation, r.meta.country, r.meta.ageGroup].filter(Boolean).map(obEsc).join(" \u00b7 ")}</p>` : ""}
@@ -441,7 +497,7 @@ function renderResult(){
               <div class="ingot-confidence"><span class="val count-up" data-target="${r.confidence.confidencePct}" data-suffix="%">0%</span><span class="lbl">Result Confidence<button type="button" class="confidence-tip-btn" aria-label="What does Result Confidence mean?" onclick="event.stopPropagation()"><span aria-hidden="true">?</span><span class="confidence-tip-bubble" role="tooltip">Several nearby archetypes also scored highly. Higher values mean your result stood out more clearly.</span></button></span></div>
             </div>
             <div class="archetype-eyebrow">Primary Archetype</div>
-            <h2 class="ingot-name">${a.name}</h2>
+            <h2 class="ingot-name">${splitArchetypeName(a.name)}</h2>
             <div class="ingot-title">${a.title}</div>
             <p class="ingot-desc">${a.description}</p>
             <p class="ingot-desc" style="margin-top:10px;color:var(--text-muted);font-size:14px">${buildBlendedInsight(r, a, growth)}</p>
@@ -502,7 +558,8 @@ function renderResult(){
         <div class="radar-legend">25 dimensions, measured from your answers, never shown to you during the test</div>
         <p style="margin-top:14px">Your strongest reads are ${topDims.slice(0,3).join(", ")}. The full shape (not just the top few points) is what actually separates ${a.name} from a similar-looking type.</p>
         `,
-        { span: "3of12", className: "hero-map", wide: true, onOpen: () => renderRadarFingerprint(document.getElementById("radarFingerprint"), r.normDims, a.colors[0]) })}
+        { span: "3of12", className: "hero-map", wide: true,
+          onOpen: () => renderRadarFingerprint(document.getElementById("radarFingerprint"), r.normDims, a.colors[0]) })}
 
       ${resultDetailCard("emotions", "heart", "Emotions", "Understand your emotional patterns and responses.",
         [`Steadiness ${r.traits["Emotional Steadiness"]}%`, `Trust ${r.relationship.trustLevel}%`, `Under stress: ${r.stress[0].name}`],
@@ -601,7 +658,7 @@ function renderResult(){
           <div class="card"><h4>Planning</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${r.friendship.planningSkill}%"></div></div></div>
         </div>
         `,
-        { span: "3of12", className: "insight-social" })}
+        { span: "3of12", className: "insight-social", tint: "sky" })}
 
       ${resultDetailCard("motivation", "gem", "Motivation", r.motivation.name,
         Object.entries(r.motivationFacets).sort((x,y)=>y[1]-x[1]).map(([k,v])=>`${k} ${v}%`),
@@ -688,7 +745,7 @@ function renderResult(){
           </div>`).join("")}
         </div>
         `,
-        { span: "2of12" })}
+        { span: "3of12" })}
 
       ${resultDetailCard("growth-timeline", "chartLine", "Growth Timeline",
         previousTimeline ? `Compared with your run on ${new Date(previousTimeline.timestamp).toLocaleDateString()}.` : "Your development over time.",
@@ -780,7 +837,7 @@ function renderResult(){
           </div>
         </div>
         `,
-        { span: "2of12" })}
+        { span: "3of12" })}
 
       ${resultDetailCard("environment-fit", "mapPin", "Environment Fit", "The settings where you perform and feel your best.",
         a.idealEnvironments.slice(0,4),
@@ -791,7 +848,7 @@ function renderResult(){
         </div>
         <div class="card" style="margin-top:12px"><h4>Favorite Hobbies</h4><div class="tag-list">${a.hobbies.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
         `,
-        { span: "2of12" })}
+        { span: "4of12" })}
 
       ${resultDetailCard("stress-recovery", "wind", "Stress & Recovery", "How you respond to pressure and what helps you recharge.",
         r.stress.slice(0,3).map(s => s.name),
@@ -802,7 +859,7 @@ function renderResult(){
           ${r.stress.map((s,i) => `<p style="margin-top:${i?8:0}px"><strong>${i+1}. ${s.name}.</strong> ${s.description}</p>`).join("")}
         </div>
         `,
-        { span: "3of12" })}
+        { span: "4of12" })}
 
       ${resultDetailCard("personal-growth", "trendingUp", "Personal Growth", a.growthAdvice,
         a.weaknesses.slice(0,3),
@@ -824,7 +881,7 @@ function renderResult(){
           </div>
         </div>` : ""}
         `,
-        { span: "2of12" })}
+        { span: "4of12" })}
 
       ${resultDetailCard("more-about-you", "sparkles", "More About You", "Narrative role, fantasy casting, and a few more reads.",
         [r.narrativeRole.primary.name, r.fantasyRole.name, r.mythicalCreature.name],
@@ -875,7 +932,7 @@ function renderResult(){
           </div>
         </div>
         `,
-        { span: "4of12" })}
+        { span: "3of12" })}
 
       ${resultDetailCard("frameworks", "layers", "Other Frameworks", "Your closest read on a few familiar systems.",
         [r.frameworks.mbti, r.frameworks.enneagram.name],
@@ -896,6 +953,34 @@ function renderResult(){
         `,
         { span: "3of12" })}
 
+      ${r.contradictions.length ? resultDetailCard("contradictions", "sparkle", "Where You Don't Fit Neatly", `${r.contradictions[0].label}.`,
+        r.contradictions.map(c => c.label),
+        `
+        <p class="center-note" style="text-align:left;margin-top:0">Most personality reads flatten you into one clean line per trait. These are places where two real, strong tendencies hold at once -- not resolved, not contradictory in a bad way, just both true.</p>
+        ${r.contradictions.map((c) => `
+        <div class="card contradiction-card" style="margin-top:12px">
+          <h4>${c.label}</h4>
+          <div class="contradiction-bars">
+            <div class="contradiction-bar-row"><span>${DIM_LABELS[c.dimA]}</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${c.aPct}%"></div></div><span class="contradiction-pct">${c.aPct}%</span></div>
+            <div class="contradiction-bar-row"><span>${DIM_LABELS[c.dimB]}</span><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${c.bPct}%"></div></div><span class="contradiction-pct">${c.bPct}%</span></div>
+          </div>
+          <p style="margin-top:10px">${c.explanation}</p>
+        </div>`).join("")}
+        `,
+        { span: "3of12", tint: "gold" }) : ""}
+
+      ${r.atlas.length ? resultDetailCard("media-match", "sparkles", "Your Personality Atlas",
+        (() => {
+          const lead = (r.atlas.find(s => s.category === "Character") || r.atlas[0]).items[0];
+          return `Closest match: ${lead.name || lead.source}.`;
+        })(),
+        (r.atlas.find(s => s.category === "Character") || r.atlas[0]).items.map(i => i.name || i.source),
+        `
+        <p class="center-note" style="text-align:left;margin-top:0">Matched from your archetype, soul, and measured dimensions against a local, curated atlas of characters, worlds, and real historical figures, not generated on the fly. Only categories with a genuinely confident match are shown.</p>
+        ${r.atlas.map(section => renderAtlasSection(section)).join("")}
+        `,
+        { span: "3of12", className: "media-match-card", tint: "coral" }) : ""}
+
       <div class="fun-ranking-row">
 
       ${resultDetailCard("fun-stats", "partyPopper", "Fun Stats", "NPC energy, rizz, chaos, and other bonus flavor.",
@@ -911,10 +996,10 @@ function renderResult(){
             </div>`).join("")}
         </div>
         `,
-        {})}
+        { span: "6of12" })}
 
       ${resultDetailCard("ranking", "listOrdered", "Full Ranking", "How you scored against all 12 archetypes.",
-        [r.consistency ? `${r.consistency.pct}% consistent` : null, `${r.achievements.length} achievements`].filter(Boolean),
+        [r.consistency ? `${r.consistency.pct}% consistent` : null].filter(Boolean),
         `
         <p class="center-note" style="text-align:left;margin-top:0">This is how you scored against all 12 archetypes, not just the one you matched.</p>
         <div class="card" style="margin-top:12px">
@@ -946,9 +1031,8 @@ function renderResult(){
           // chips to 3 so it still reads cleanly at half width instead of
           // wrapping into several short rows.
           preview: `<div class="rank-preview-row">${r.ranked.slice(0,3).map((row,i) => `<span class="rank-preview-chip"><span class="num">${String(i+1).padStart(2,"0")}</span>${row.archetype.icon} ${row.archetype.name}</span>`).join("")}</div>`,
+          span: "6of12",
         })}
-
-      </div>
 
       </div>
       `}
@@ -988,6 +1072,8 @@ function renderResult(){
     });
     initCountUps(root);
     setupProgressiveReveal(root);
+    initCardTilt(root);
+    initHeroParallax(root);
   });
 }
 

@@ -14,6 +14,14 @@ function obEsc(str){
   return String(str == null ? "" : str).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// Shared onboarding option lists -- moved here from quiz.js (v1.4) so
+// Profile's Edit Profile section can reuse the exact same options
+// without a second, driftable copy; quiz.js still reads these by the
+// same names, unchanged, since global.js loads before it on every page.
+const OB_AGE_GROUPS = ["Under 18", "18–24", "25–34", "35–44", "45–54", "55+"];
+const OB_GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
+const OB_REASONS = ["Learn about myself", "Compare with someone", "Personal growth", "Just curious"];
+
 /* =========================================================================
    PERSONAFORGE, MINI QR ENCODER
    A from-scratch QR code generator (no external library, per the
@@ -995,6 +1003,24 @@ function importProfile(){
       if (!decoded){ showToast("That .pf file doesn't contain a valid Forge profile code."); return; }
       if (decoded.obsolete){ showToast(OBSOLETE_CODE_MESSAGE); return; }
 
+      // v1.5 Profile Manager: import used to overwrite whatever profile
+      // was active -- a real risk once multiple profiles exist (importing
+      // a friend's .pf while your own profile happened to be active would
+      // have silently destroyed it). createNewProfile() is the exact
+      // primitive switchToProfile()/the Profile Switcher already use --
+      // it snapshots the outgoing active profile's data away intact and
+      // clears the canonical keys, so everything below populates a
+      // genuinely fresh profile. No data loss, nothing overwritten.
+      // freshProfileId is threaded through to the payload.localProfile
+      // write below: found live in testing that without this, the
+      // source file's OWN preserved profileId (sanitizeImportedLocalProfile
+      // keeps it, for the older single-profile "reimport my own backup"
+      // case) would create a SECOND, orphaned index entry distinct from
+      // the one just created here, rather than describing the same
+      // profile -- two rows in the switcher for one import.
+      let freshProfileId = null;
+      if (typeof createNewProfile === "function") freshProfileId = createNewProfile(decoded.name || "")?.profileId || null;
+
       try{ localStorage.setItem("pf_last_code", code); }
       catch(e){ showToast("Couldn't save that profile on this device (storage may be full or blocked)."); return; }
 
@@ -1020,7 +1046,13 @@ function importProfile(){
       }
       if (payload.localProfile && typeof payload.localProfile === "object"){
         const safeProfile = sanitizeImportedLocalProfile(payload.localProfile);
-        if (safeProfile){ try{ saveLocalProfile(safeProfile); } catch(e){ /* ignore */ } }
+        if (safeProfile){
+          // Always the profile slot createNewProfile() just made, never
+          // whatever id the source file happened to carry -- see the
+          // comment above freshProfileId for why.
+          if (freshProfileId) safeProfile.profileId = freshProfileId;
+          try{ saveLocalProfile(safeProfile); } catch(e){ /* ignore */ }
+        }
       }
       if (payload.settings && typeof payload.settings === "object"){
         if (payload.settings.theme === "light" || payload.settings.theme === "dark"){
@@ -1031,7 +1063,7 @@ function importProfile(){
         }
       }
       click(560);
-      showToast(`Imported ${decoded.name ? decoded.name + "'s" : "the"} profile. Reloading…`);
+      showToast(`Imported ${decoded.name ? decoded.name + "'s" : "the"} profile as a new saved profile. Reloading…`);
       setTimeout(() => location.reload(), 900);
     };
     reader.onerror = () => showToast("That .pf file couldn't be read from disk. Try again.");
@@ -1256,6 +1288,36 @@ function goToNameScreen(){
   location.href = "quiz.html";
 }
 
+// v1.4: for a profile that's already answered onboarding once. Pre-fills
+// name/ageGroup/gender/occupation/country/pace from the local profile and
+// hands them to quiz.html via one sessionStorage flag (same one-shot
+// pattern as pf_fresh_result/pf_resumable_quick_session) -- its own boot()
+// script reads pf_retake_prefill and calls startQuiz() directly, so
+// onboarding steps 1-4 never render at all. Falls back to the normal
+// onboarding entry if there's no profile yet (first-time users always
+// get the full flow, per "onboarding only appears on first launch").
+function retakeAssessment(){
+  const profile = getLocalProfile();
+  // profile.code only exists once a result has actually completed (see
+  // ensureLocalProfile()) -- a bare profile shell from "Get Started" with
+  // no assessment yet still counts as "first launch" for onboarding
+  // purposes, so it gets the full flow same as no profile at all.
+  if (!profile || !profile.code){ goToNameScreen(); return; }
+  click(520);
+  const paceFromDepth = { short:"quick", balanced:"balanced", deep:"deep" };
+  const pace = paceFromDepth[profile.lastResultDepth] || "balanced";
+  const meta = {
+    ageGroup: profile.ageGroup || "",
+    gender: profile.gender || "",
+    occupation: profile.occupation || "",
+    country: profile.country || "",
+    pace,
+    resultDepth: profile.lastResultDepth || "balanced",
+  };
+  sessionStorage.setItem("pf_retake_prefill", JSON.stringify({ name: profile.name || "", meta }));
+  location.href = "quiz.html";
+}
+
 // Shared "go look at my own last result" action, for any page besides
 // index.html that wants a link straight into result.html — result.html's
 // own boot script only shows a result when handed one of a few specific
@@ -1324,6 +1386,69 @@ function initMagneticButtons(container){
       btn.style.setProperty("--magnet-x", "0px");
       btn.style.setProperty("--magnet-y", "0px");
     });
+  });
+}
+
+// Low-amplitude pointer tilt for the result page's bento grid (see
+// .bento-card:hover in pages.css, which composites --tilt-x/--tilt-y
+// into its existing translateY hover lift via perspective()+rotate()).
+// Same reduced-motion/hover-capability gate and rAF-throttled-pointermove
+// shape as initMagneticButtons() above, on purpose -- this is the same
+// kind of small, physical, interaction-only motion, just applied to
+// cards instead of buttons. 7deg total swing (+/-3.5deg) is deliberately
+// small: enough to read as "this card has depth" at a glance, never
+// enough to feel like a gimmick or fight the card's own hover lift.
+const CARD_TILT_MAX_DEG = 3.5;
+function initCardTilt(container){
+  if (reducedMotion() || !window.matchMedia("(hover: hover)").matches) return;
+  (container || document).querySelectorAll(".bento-card").forEach(card => {
+    let raf = null;
+    card.addEventListener("pointermove", (e) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const rect = card.getBoundingClientRect();
+        const px = (e.clientX - rect.left) / rect.width - 0.5;
+        const py = (e.clientY - rect.top) / rect.height - 0.5;
+        card.style.setProperty("--tilt-x", (-py * CARD_TILT_MAX_DEG * 2).toFixed(2) + "deg");
+        card.style.setProperty("--tilt-y", (px * CARD_TILT_MAX_DEG * 2).toFixed(2) + "deg");
+      });
+    });
+    card.addEventListener("pointerleave", () => {
+      card.style.setProperty("--tilt-x", "0deg");
+      card.style.setProperty("--tilt-y", "0deg");
+    });
+  });
+}
+
+// Subtle background-position parallax for the result hero's full-bleed
+// archetype photo (.ingot-visual, inside .ingot-split -- see pages.css).
+// Tracks pointer position across the whole hero card, not just the
+// photo half, so the shift already feels underway by the time the
+// cursor reaches the image instead of only starting there. Same gate
+// and rAF-throttle shape as initCardTilt()/initMagneticButtons() above;
+// 10px max keeps it read as "this photo has depth", not a scroll-jack
+// or anything that could read as jarring on a still image.
+const HERO_PARALLAX_MAX_PX = 10;
+function initHeroParallax(container){
+  if (reducedMotion() || !window.matchMedia("(hover: hover)").matches) return;
+  const split = (container || document).querySelector(".ingot-split");
+  if (!split || !split.querySelector(".ingot-visual")) return;
+  let raf = null;
+  split.addEventListener("pointermove", (e) => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = null;
+      const rect = split.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      split.style.setProperty("--parallax-x", (-px * HERO_PARALLAX_MAX_PX * 2).toFixed(1) + "px");
+      split.style.setProperty("--parallax-y", (-py * HERO_PARALLAX_MAX_PX * 2).toFixed(1) + "px");
+    });
+  });
+  split.addEventListener("pointerleave", () => {
+    split.style.setProperty("--parallax-x", "0px");
+    split.style.setProperty("--parallax-y", "0px");
   });
 }
 

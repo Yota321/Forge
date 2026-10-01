@@ -90,10 +90,6 @@ function obCardValue(group, fallback){
   return document.querySelector(`.ob-card.selected[data-group="${group}"]`)?.dataset.value || fallback;
 }
 
-const OB_AGE_GROUPS = ["Under 18", "18–24", "25–34", "35–44", "45–54", "55+"];
-const OB_GENDERS = ["Male", "Female", "Non-binary", "Prefer not to say"];
-const OB_REASONS = ["Learn about myself", "Compare with someone", "Personal growth", "Just curious"];
-
 /* ---------------- STEP 1: NAME -----------------------------------------*/
 function renderNameScreen(){
   setAccentColors();

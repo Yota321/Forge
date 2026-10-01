@@ -151,6 +151,75 @@
 .profile-name-row{ display:flex; gap:8px; margin-top:6px; }
 .profile-name-row .ns-input{ flex:1; }
 
+/* Profile identity card (v1.4): large glowing avatar, tagline, badges,
+   and the confidence/streak/level stat row -- built to be worth a
+   screenshot, per the brief. --hero-glow is set inline per-profile
+   (soul color, or favorite color as a fallback for a profile with no
+   result yet), so the glow is always a real, meaningful color rather
+   than one fixed accent regardless of who's looking at it. */
+.profile-hero-v2{ position:relative; overflow:hidden; }
+.profile-hero-v2::before{
+  content:""; position:absolute; top:-40%; left:50%; width:70%; aspect-ratio:1;
+  transform:translateX(-50%); border-radius:50%; pointer-events:none;
+  background:radial-gradient(circle, color-mix(in srgb, var(--hero-glow, var(--accent)) 28%, transparent), transparent 70%);
+  filter:blur(10px); opacity:0.8;
+}
+.profile-hero-v2 > *{ position:relative; z-index:1; }
+.profile-avatar-wrap-lg .profile-avatar-img,
+.profile-avatar-wrap-lg .profile-avatar-fallback{
+  width:96px; height:96px; font-size:36px;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--hero-glow, var(--accent)) 45%, transparent), 0 16px 40px -18px color-mix(in srgb, var(--hero-glow, var(--accent)) 60%, #000);
+}
+.profile-nickname{ font-weight:400; color:var(--text-muted); font-size:0.7em; }
+.profile-tagline{ font-family:var(--font-display); font-style:italic; font-size:15px; color:var(--user-accent-1, var(--accent)); margin-top:2px; }
+.profile-badge-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.profile-hero-stats{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px;
+  padding-top:16px; border-top:1px solid var(--border);
+}
+.profile-stat{ text-align:center; }
+.profile-stat-val{ display:block; font-family:var(--font-display); font-size:24px; font-weight:700; }
+.profile-stat-label{ display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-dim); margin-top:2px; }
+
+/* Edit Profile modal */
+.edit-profile-modal{ max-width:520px; }
+.edit-profile-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+.ns-input-color{ padding:4px; height:40px; cursor:pointer; }
+@media (max-width:520px){ .edit-profile-grid{ grid-template-columns:1fr; } }
+
+/* Profile Files section */
+.profile-files-grid{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+
+/* Profile Switcher (v1.5) */
+.profile-switcher-modal{ max-width:480px; }
+.profile-switcher-list{ margin-top:14px; display:flex; flex-direction:column; gap:8px; max-height:360px; overflow-y:auto; }
+.profile-switcher-row{
+  display:flex; align-items:center; gap:12px; padding:10px 12px;
+  border-radius:var(--radius-md); border:1px solid var(--border); background:var(--surface);
+}
+.profile-switcher-row.active{ border-color:var(--accent); background:color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.profile-switcher-row .profile-avatar-img,
+.profile-switcher-row .profile-avatar-fallback{ width:40px; height:40px; font-size:16px; flex-shrink:0; }
+.profile-switcher-row-info{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.profile-switcher-row-name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.profile-switcher-row-meta{ font-size:12px; color:var(--text-dim); }
+.profile-switcher-active-tag{ font-size:11px; padding:4px 9px; }
+.profile-switcher-rename, .profile-switcher-delete{ width:30px; height:30px; flex-shrink:0; }
+.profile-switcher-delete svg{ width:14px; height:14px; }
+/* Below ~420px there simply isn't room for avatar + name + meta + Switch
+   + two icon buttons in one row without severe truncation (found live at
+   375px: the name collapsed to "Y…" and the row overlapped itself) --
+   wraps into two rows instead: identity on top, actions below. */
+@media (max-width:420px){
+  .profile-switcher-row{ flex-wrap:wrap; }
+  .profile-switcher-row-info{ flex-basis:100%; order:1; }
+  .profile-switcher-row-name{ white-space:normal; }
+  .profile-switcher-row > button:not(.profile-switcher-rename):not(.profile-switcher-delete),
+  .profile-switcher-row > .tag{ order:2; margin-left:auto; }
+  .profile-switcher-rename{ order:3; }
+  .profile-switcher-delete{ order:4; }
+}
+
 /* Journal page: the mood picker row and past-entry rows. */
 .journal-mood-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
 .journal-mood-btn{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 14px; border-radius:16px; border:1px solid var(--border); background: var(--surface); font-size:22px; color: var(--text-muted); transition: border-color .2s var(--ease), color .2s var(--ease); }
@@ -284,15 +353,6 @@
   .lp-bento-canvas{ display:flex; flex-direction:column; gap:20px; }
   .lp-bento-canvas::before{ display:none; }
   .lp-hero-visual{ min-height: 300px; margin-bottom:0; }
-  /* "Reopen My Last Result" (min-width:270px, well short of the full
-     stacked-column width on an actual phone) and "Compare Two Results"
-     (no width rule at all, so it only ever sized to its own text) both
-     read as small, off-center-looking buttons floating in the middle of
-     a full-width mobile layout. Stretching both to the row's full width
-     here only — height/padding/font/colors untouched — is what actually
-     fixes that; min-width:270px stays as the floor for the (unaffected)
-     desktop 901px+ sizing further down this file. */
-  .lp-hero-text .cta-row .btn{ width:100%; }
 }
 
 /* ---- Bento (Discover / Compare / Evolve) ---- */
@@ -679,7 +739,8 @@ button.lp-card{ width:100%; }
 
 /* ---- Home post-quiz dashboard (renderHomeDashboard(), js/home.js) ---- */
 .lp-dashboard-head h2{ font-size: clamp(22px, 3vw, 30px); margin-top:6px; max-width:640px; }
-.lp-dashboard-grid{ display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap:16px; margin-top:18px; align-items:start; }
+.lp-dashboard-grid{ display:grid; grid-template-columns: 1.4fr 1fr 1fr; gap:16px; margin-top:18px; align-items:stretch; }
+.lp-dashboard-grid > .card{ display:flex; flex-direction:column; }
 .lp-dashboard-hero h3{ font-size:19px; }
 @media (max-width: 900px){ .lp-dashboard-grid{ grid-template-columns: 1fr; } }
 
@@ -765,11 +826,6 @@ button.lp-card{ width:100%; }
   .lp-footer-inner{ grid-template-columns: 1fr; justify-items:center; text-align:center; padding: 0 20px 28px; }
   .lp-footer-top{ flex-direction:column; gap:4px; }
   .lp-footer .footer-nav{ grid-column:1; flex-wrap:wrap; justify-content:center; row-gap:8px; }
-  /* A touch bigger than desktop's 20px — standing alone above the
-     tagline (not inline beside it, see flex-direction:column above) it
-     reads as the page's own sign-off mark here, so it can carry a
-     little more visual weight than it does sitting inline on desktop. */
-  .lp-footer-logo{ height:24px; }
 }
 
 
@@ -1024,7 +1080,7 @@ button.lp-card{ width:100%; }
   .qz-question2{ font-size: clamp(21px, 5.2vw, 26px); max-width: 34ch; margin-bottom:32px; }
   .qz-cards{ grid-template-columns:1fr; gap:14px; }
   .qz-card{ flex-direction:row; text-align:left; justify-content:flex-start; min-height:0; padding:20px; gap:16px; }
-  .qz-card-letter{ position:static; flex-shrink:0; align-self:center; }
+  .qz-card-letter{ position:static; flex-shrink:0; align-self:flex-start; margin-top:2px; }
   .qz-card-icon{ width:44px; height:44px; flex-shrink:0; }
   .qz-card-text{ max-width:none; }
   .qz-card:hover{ transform:none; } /* no hover lift on touch — avoids a "stuck" lifted state after a tap */
@@ -1154,40 +1210,15 @@ button.lp-card{ width:100%; }
 .card-span-2of12{ grid-column: span 2; }
 .card-span-3of12{ grid-column: span 3; }
 .card-span-4of12{ grid-column: span 4; }
-/* Medium, per the fixed card-size taxonomy (Small=3of12, Medium=6of12,
-   Large=6of12 x 2 rows, Wide=12of12, Tall=3of12 x 2 rows) — currently
-   just Fun Stats/Full Ranking, which share a row as two equal halves. */
-.card-span-6of12{ grid-column: span 6; }
 @media (max-width: 1080px){
   .result-grid{ grid-template-columns: repeat(6, 1fr); }
-  /* !important on both of these: .deep-wrap's own base rule (and
-     .result-hero's --bento-row-h default) are declared unconditionally
-     further down the file, same specificity as these — without
-     !important, that later same-specificity declaration silently wins
-     the cascade at any width, tablet included, exactly the bug this is
-     guarding against (confirmed live: .deep-wrap was still rendering 12
-     desktop-width columns and a 170px row height here before this). */
-  .deep-wrap, .insight-bento, .fun-ranking-row{ grid-template-columns: repeat(6, 1fr) !important; }
   /* The *of12 deep-report cards (Values through Full Ranking & Extras)
      collapse to a uniform third-width at tablet regardless of their
      desktop span — nine of those cards share this breakpoint, and
      three-per-row is the one uniform width that packs all nine into
      clean, gap-free rows (9 / 3 = 3 rows exactly); halving them instead
-     would leave an odd card alone in its own half-empty row. 6of12
-     (Fun Stats/Full Ranking) keeps its own half-row pairing. */
+     would leave an odd card alone in its own half-empty row. */
   .card-span-2of12, .card-span-3of12, .card-span-4of12{ grid-column: span 2; }
-  .card-span-6of12{ grid-column: span 3; }
-  /* --bento-row-h (170px) was tuned against desktop's much wider columns
-     (a card at 1/4 or 1/3 of a 1440px grid). At tablet's narrower
-     third-width columns the same text wraps to more lines, and a fixed
-     170px + overflow:hidden was quietly clipping it (Growth Timeline's
-     progress bars disappearing, Values' second tag crowded against the
-     edge) rather than resizing the card — exactly the "random resizing
-     vs. clipped content" tradeoff .bento-card's height:100% rule exists
-     to avoid. Taller rows, not a layout change, keeps tablet reading as
-     "desktop, scaled down" instead of collapsing toward the phone
-     treatment further down. */
-  .result-hero{ --bento-row-h: 210px !important; }
 }
 @media (max-width: 640px){
   .result-grid{ grid-template-columns: 1fr; gap:12px; }
@@ -1215,40 +1246,13 @@ button.lp-card{ width:100%; }
    grid's own 14px gap, which is exactly the "inconsistent vertical gap"
    between e.g. Values' row and Stress & Recovery's row below it. */
 .result-grid .section{ margin-top:0; }
-/* Deep-tier cards (Values through Full Ranking) used to flow straight
-   into the outer .result-grid via display:contents, sized by their own
-   content. That's exactly what let a verbose card grow past its row's
-   height and collide with the row below, or a sparse one leave dead air
-   above its footer — no two cards in this section were guaranteed to
-   agree on a height. Now a real nested grid, same architecture as
-   .insight-bento right above it: one fixed row height
-   (--bento-row-h, shared by every "more to explore" grid so they all
-   snap to the identical rhythm), explicit per-card grid-column spans
-   (see the card-span-*of12 classes and each card's `span` option in
-   result.js), and .bento-card filling its cell exactly (see the
-   height:100% rule below) instead of sizing itself. Quick Read still
-   renders nothing here (see the isQuickRead branch in renderResult()),
-   so there's no collapsed/hidden state to manage — just a grid that,
-   when present, is fully deterministic. */
-.deep-wrap{
-  display:grid; grid-column:1 / -1;
-  grid-template-columns:repeat(12,minmax(0,1fr));
-  grid-auto-rows:var(--bento-row-h,170px);
-  gap:var(--bento-gap); min-width:0;
-}
-/* Every card in the "more to explore" section fills its grid cell
-   exactly — never shorter (no dead space above the footer), never
-   taller (no collision with the row below). This is safe specifically
-   here because .insight-bento/.deep-wrap/.fun-ranking-row all use the
-   same fixed --bento-row-h and every card's visible content is already
-   capped to fit it (3 chips max, 2-line subtitle clamp, no chip
-   wrapping — see .ov-chip-row/.ov-subtitle); overflow:hidden on
-   .result-hero .bento-card is the safety net for the rare case
-   (an optional preview block, e.g. Growth Timeline's retake-comparison
-   bars) that still runs long. Scoped to just these three grids rather
-   than the base .bento-card rule, so the hero row above (which sizes
-   itself differently) is untouched. */
-.insight-bento .bento-card, .deep-wrap .bento-card, .fun-ranking-row .bento-card{ height:100%; }
+/* Wraps the deep-tier cards (Values through Full Ranking) without
+   breaking the grid: display:contents makes the wrapper itself generate
+   no box, so its children still become direct .result-grid items. Quick
+   Read no longer renders this wrapper's contents at all (see the
+   isQuickRead branch in renderResult()), so there's no collapsed/hidden
+   state to manage here anymore -- just the layout passthrough. */
+.deep-wrap{ display:contents; }
 /* Spring/overshoot easing — the same curve Forge's buttons and icon-btn
    already use for their hover/press motion, reused here so bento cards
    feel like part of the same physical system instead of a flatter,
@@ -1283,9 +1287,16 @@ button.lp-card{ width:100%; }
   flex-shrink:0; background: var(--icon-bg, color-mix(in srgb, var(--accent) 14%, transparent));
   color: var(--icon-fg, var(--accent));
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px color-mix(in srgb, var(--icon-fg, var(--accent)) 18%, transparent);
-  transition: transform .4s var(--spring);
+  transition: transform .4s var(--spring), box-shadow .3s var(--ease);
 }
-.bento-card:hover .bento-icon{ transform: scale(1.08) rotate(-3deg); }
+/* Glow is hover-only, not baseline -- the icon stays flat chrome at
+   rest (see above) and only lights up as the card is engaged with,
+   which is the "restrained but strong glow" the whole pass keeps
+   coming back to rather than a permanent glow every card sits in. */
+.bento-card:hover .bento-icon{
+  transform: scale(1.08) rotate(-3deg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 0 0 1px color-mix(in srgb, var(--icon-fg, var(--accent)) 18%, transparent), 0 0 18px -4px color-mix(in srgb, var(--icon-fg, var(--accent)) 60%, transparent);
+}
 .bento-icon svg{ width:17px; height:17px; position:relative; z-index:1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.12)); }
 .bento-head h3{ font-size:15px; font-weight:600; margin:0; line-height:1.3; flex:1; }
 .bento-body{ font-size:13.5px; color: var(--text-muted); }
@@ -1324,36 +1335,11 @@ button.lp-card{ width:100%; }
     0 0 32px -12px color-mix(in srgb, var(--icon-fg, var(--accent)) 55%, transparent),
     0 4px 10px rgba(0,0,0,.06);
 }
-/* Clamped to 2 lines regardless of source text length — some subtitles
-   are a single short phrase, others (Social's category line, etc.) can
-   run longer; without a cap a verbose one grows the card taller than its
-   row neighbors, which is exactly the inconsistent-rhythm problem this
-   whole block exists to prevent. */
-.ov-subtitle{
-  font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: 2px;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-}
-/* nowrap, not wrap: resultChips() already caps every card to 3 highlight
-   items (see result.js), so this is the second half of the same
-   discipline — even 3 short chips never wrap into a second row that
-   would grow the card past its neighbors. Any chip that still doesn't
-   fit the card's width is clipped by overflow:hidden rather than
-   wrapping, which keeps the row's height fixed at exactly one chip tall
-   no matter how a given profile's data happens to measure. */
-.ov-chip-row{ display:flex; flex-wrap:nowrap; overflow:hidden; gap:7px; margin-top:14px; }
+.ov-subtitle{ font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-top: 2px; }
+.ov-chip-row{ display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
 .ov-chip{
   font-size: 11.5px; color: var(--text-dim); background: var(--surface); border: 1px solid var(--border);
   border-radius: 999px; padding: 5px 11px; line-height: 1.3;
-  /* Highlight chips are meant to be short teasers, but a few pull from
-     full-sentence data (e.g. Social's group-size-preference copy) that
-     can run long enough to need truncating on their own, even at only
-     one per row — the full text is one tap away in the detail panel
-     anyway. */
-  /* Shrinkable (not flex-shrink:0): lets each chip truncate itself with
-     its own ellipsis to fit the nowrap row, rather than whichever chip
-     lands past the row's width getting hard-clipped mid-pill by
-     overflow:hidden. */
-  flex-shrink:1; min-width:0; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ov-arrow{
   width:22px; height:22px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
@@ -1473,6 +1459,48 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 .value-pct{ font-family: var(--font-mono); color: var(--user-accent-1); font-size:14px; }
 .value-explain{ font-size:13px; color: var(--text-muted); margin-top:10px; line-height:1.5; }
 .value-source{ font-family: var(--font-mono); font-size:11px; color: var(--text-dim); margin-top:8px; }
+
+/* Media Match (v1.1): one full-width card holding three short lists
+   (characters/stories/worlds), each entry styled like a compact version
+   of the Values cards above rather than a new visual language. */
+/* span 9 (not full-width): sits directly beside Other Frameworks'
+   3of12 in result.js's DOM order, filling the row exactly (3+9=12)
+   instead of leaving that row's remaining space empty and dropping
+   to its own full-width row below. Reverts to full-width at tablet,
+   where Other Frameworks itself collapses to a third and nothing
+   needs that specific 9-column fit anymore. */
+.media-match-card{ grid-column: span 9; }
+@media (max-width: 1080px){
+  .media-match-card{ grid-column: 1 / -1; }
+}
+.media-match-row{ padding:16px; margin-top:10px; }
+.media-match-row:first-of-type{ margin-top:0; }
+.media-match-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.media-match-name{ font-weight:600; font-size:15px; }
+.media-match-source{ font-family: var(--font-mono); font-size:11px; color: var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; }
+.media-match-role{ margin-top:6px; color: var(--text-muted); font-style:italic; }
+.media-match-why{ font-size:13px; color: var(--user-accent-1); margin-top:8px; }
+
+/* Party Compare v1.1: "The Cast" -- five role cards in a responsive
+   grid, same .card glass surface the rest of Party Compare already uses. */
+.party-cast-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-top:14px; }
+.party-cast-card{ text-align:center; padding:16px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); }
+.party-cast-icon{ font-size:26px; }
+.party-cast-role{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color:var(--user-accent-1); margin-top:8px; }
+.party-cast-name{ font-weight:600; margin-top:2px; }
+.party-cast-desc{ font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.4; }
+
+/* Contradiction Engine (v1.6) */
+.contradiction-bars{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.contradiction-bar-row{ display:grid; grid-template-columns:110px 1fr 40px; align-items:center; gap:10px; font-size:12.5px; }
+.contradiction-pct{ font-family:var(--font-mono); color:var(--text-dim); text-align:right; }
+
+/* Confidence Engine (v1.7) */
+.confidence-engine-row{ display:flex; align-items:center; gap:18px; margin-top:8px; flex-wrap:wrap; }
+.confidence-engine-label{ font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--user-accent-1, var(--accent)); white-space:nowrap; }
+.confidence-engine-evidence{ flex:1; min-width:200px; }
+.confidence-engine-evidence p{ color:var(--text-muted); font-size:13.5px; line-height:1.6; }
+.confidence-engine-evidence strong{ color:var(--text); font-weight:600; }
 
 .sinvirtue-wrap{ position:relative; display:flex; justify-content:center; margin-top:14px; }
 .sinvirtue-flip{
@@ -1830,14 +1858,6 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
    can never quietly drift apart from each other again. */
 .result-hero{
   --bento-gap: 14px;
-  /* The one fixed row height every "more to explore" grid builds on
-     (.insight-bento, .deep-wrap, .fun-ranking-row) — a card's visible
-     content is capped (3 chips, 2-line subtitle, see .ov-chip-row/
-     .ov-subtitle) to comfortably fit it, and .bento-card fills it
-     exactly (height:100%) rather than negotiating its own height, which
-     is what makes every card in this section snap to one shared grid
-     instead of three grids that happen to usually agree. */
-  --bento-row-h: 170px;
   max-width: 1440px;
   padding-left: clamp(20px, 3vw, 38px);
   padding-right: clamp(20px, 3vw, 38px);
@@ -1845,14 +1865,6 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 .result-hero .result-grid{
   gap: var(--bento-gap);
   margin-top: 18px;
-  /* Safe again now that card content is actually bounded: resultChips()
-     caps every tile to 3 highlights, .ov-subtitle clamps to 2 lines, and
-     .ov-chip-row no longer wraps — so a card can no longer organically
-     grow taller than .bento-card's own min-height floor, which is what
-     used to make stretch dangerous (a verbose card's "Tap for detail"
-     got sliced off by overflow:hidden once a shorter sibling forced the
-     row shorter). With content capped, stretch just gives the intended
-     equal-height bento rhythm within a row with no clipping risk. */
   align-items: stretch;
   grid-auto-flow: row;
   --result-ease-out: cubic-bezier(.23,1,.32,1);
@@ -1951,7 +1963,7 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 
 /* Shared card material: different tints, one geometry and type system. */
 .result-hero .bento-card{
-  isolation:isolate; overflow:hidden;
+  isolation:isolate; overflow:hidden; min-height:0;
   padding:19px 20px;
   border-radius:24px;
   background:
@@ -1968,6 +1980,23 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   background:radial-gradient(circle, color-mix(in srgb, var(--tint, var(--accent)) 16%, transparent), transparent 68%);
 }
 .result-hero .bento-card > *{ position:relative; z-index:1; }
+/* Utility cards (Compare box, Unlock CTA, Scan to Share -- see
+   resultUtilityCard() in result.js) are a single short action, never a
+   drill-down into more of the report, so they don't compete at the same
+   visual weight as the cards actually carrying content: flat surface
+   instead of the tint gradient wash, and the corner glow dimmed rather
+   than removed outright, so there's still a hint of the page's identity
+   without it reading as "equally important" to Values or Growth
+   Timeline. .bento-card.util-card (three classes) is deliberately used
+   instead of a plain descendant selector so this reliably outranks the
+   tint wash above regardless of source order. */
+.result-hero .bento-card.util-card{
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 26px -20px rgba(0,0,0,.16);
+}
+[data-theme="light"] .result-hero .bento-card.util-card{ box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 12px 26px -20px rgba(15,23,42,.1); }
+.result-hero .bento-card.util-card::before{ opacity:.35; }
 .result-hero .bento-head{ gap:9px; margin-bottom:10px; }
 .result-hero .bento-head h3{ font-size:15px; line-height:1.2; }
 .result-hero .bento-icon{ width:32px; height:32px; border-radius:10px; }
@@ -1981,9 +2010,25 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 .result-hero .tap-hint svg{ width:10px; height:10px; }
 .result-hero .hero-summary{
   padding:24px 25px;
+  /* Bolder than the rest of the hero row on purpose -- Match Confidence
+     is the one number every result leads with, so this card is meant to
+     read as a real color statement, not another softly-tinted tile.
+     Simply raising the raw accent's mix % (tried 44%) reads bolder but
+     breaks WCAG AA for the .ov-subtitle text on the palette's brightest
+     archetypes (Catalyst #FDE047, Luminary #FACC15) -- measured live by
+     resolving the actual color-mix() output through a canvas (its
+     getComputedStyle value serializes as a non-standard color() string
+     that can't be parsed by hand) and computing real contrast ratios,
+     not eyeballed. Mixing the accent toward black FIRST, then blending
+     that darker/richer tone into --card at a much higher percentage,
+     gives more saturation and depth than the flat 44% version while
+     keeping every sampled archetype (including both brightest ones)
+     at 4.7:1+ against the subtitle text, comfortably past the 4.5:1
+     floor. --card stays present at every stop so the light bignum/body
+     text keeps its own (much larger) margin too. */
   background:
-    radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--user-accent-2) 19%, transparent), transparent 60%),
-    linear-gradient(145deg, color-mix(in srgb, var(--user-accent-1) 25%, var(--card)), var(--card));
+    radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, color-mix(in srgb, var(--user-accent-2) 45%, black) 55%, transparent), transparent 60%),
+    linear-gradient(145deg, color-mix(in srgb, color-mix(in srgb, var(--user-accent-1) 35%, black) 65%, var(--card)), var(--card));
 }
 .result-hero .hero-summary .bento-head h3{ font-size:20px; }
 .result-hero .hero-summary .ov-subtitle{ max-width:38ch; font-size:14px; line-height:1.5; }
@@ -2029,16 +2074,16 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 .soul-type-head svg{ display:block; }
 .soul-type-head h3{ line-height:1; }
 
-/* Fun Stats + Full Ranking: two ordinary half-width (Medium/6of12) cards
-   sharing a row. Same 12-column system as every other "more to explore"
-   grid now (was its own 2-column grid), so a span class means the same
-   thing everywhere instead of "span 1 of 2 columns" being a one-off
-   meaning unique to this row. */
+/* Fun Stats + Full Ranging: two ordinary half-width cards sharing a row,
+   the same simple pattern as the old Secondary Archetype/Soul Type row —
+   a plain 2-column grid rather than the shared 12-col card-span system,
+   since this row only ever holds exactly these two cards. */
 .fun-ranking-row{
   grid-column:1 / -1; display:grid;
-  grid-template-columns:repeat(12,minmax(0,1fr)); grid-template-rows:var(--bento-row-h,170px); gap: var(--bento-gap);
+  grid-template-columns:1fr 1fr; gap: var(--bento-gap);
   min-width:0;
 }
+.fun-ranking-row > .bento-card{ grid-column: span 1; }
 
 /* The second cluster is another completed rectangle, not an unrelated row. */
 .section-heading{
@@ -2051,7 +2096,7 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 .insight-bento{
   grid-column:1 / -1;
   display:grid; grid-template-columns:repeat(12,minmax(0,1fr));
-  grid-template-rows:repeat(2,var(--bento-row-h,170px)); gap: var(--bento-gap); min-width:0;
+  grid-template-rows:repeat(2,176px); gap: var(--bento-gap); min-width:0;
 }
 /* Patterns and Social are left as plain span-3 auto-placed items (no
    explicit grid-column/row) so they naturally fall into row 1, cols 1-6,
@@ -2072,11 +2117,7 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
    of rank chips underneath its normal subtitle/chips, same as any other
    card's .ov-preview — no longer a full-width special layout now that
    Full Ranking shares a row with Fun Stats instead of taking the whole
-   width to itself. .ov-preview itself carries no spacing of its own, so
-   it sat flush against the subtitle above with no breathing room; scoped
-   to just this card (not every .ov-preview user, e.g. Growth Timeline)
-   since that's the only one this pass is meant to touch. */
-#ov-ranking .ov-preview{ margin-top:12px; }
+   width to itself. */
 .rank-preview-row{ display:flex; flex-wrap:wrap; gap:8px; }
 .rank-preview-chip{
   display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px;
@@ -2087,7 +2128,17 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 
 @media (hover:hover) and (pointer:fine){
   .result-hero .bento-card:hover{
-    transform:translateY(-4px);
+    /* --tilt-x/--tilt-y are plain custom properties with a 0deg
+       fallback, written by initCardTilt() (global.js) on pointermove --
+       same rAF-throttled, --tilt-*-named pattern as the existing
+       --magnet-x/--magnet-y button effect. perspective() has to be the
+       first function in the list (spec requirement -- putting it after
+       translateY here silently collapsed the whole transform to a flat
+       2D matrix, confirmed live via getComputedStyle before this fix).
+       Since this whole block is already gated to fine-pointer/hover
+       devices, on touch these two properties are simply never written
+       and the transform is the exact translateY(-4px) this always was. */
+    transform:perspective(900px) translateY(-4px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
     border-color:color-mix(in srgb, var(--tint, var(--accent)) 48%, var(--border-strong));
     box-shadow:0 26px 52px -34px color-mix(in srgb, var(--tint, var(--accent)) 36%, #000);
   }
@@ -2126,13 +2177,12 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 
 /* Phone layouts are re-authored as a reading sequence, not compressed. */
 @media (max-width:720px){
-  .result-hero{ --bento-gap: 12px; padding-left:20px; padding-right:20px; }
+  .result-hero{ --bento-gap: 12px; padding-left:18px; padding-right:18px; }
   .result-hero .result-grid{ display:flex; flex-direction:column; gap: var(--bento-gap); }
   .hero-bento,
   .insight-bento,
-  .deep-wrap,
   .fun-ranking-row{ display:flex; flex-direction:column; gap: var(--bento-gap); width:100%; }
-  .hero-bento > *, .insight-bento > *, .deep-wrap > *, .fun-ranking-row > *{ width:100%; min-height:0; height:auto !important; }
+  .hero-bento > *, .insight-bento > *, .fun-ranking-row > *{ width:100%; min-height:0; }
   .hero-bento > .ingot{ order:1; }
   .hero-summary{ order:2; }
   .hero-map{ order:3; }
@@ -2142,15 +2192,6 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   .insight-relationships{ order:2; }
   .insight-career{ order:3; }
   .insight-motivation{ order:4; }
-  /* .ov-subtitle's 2-line clamp and .ov-chip-row's single-line/no-wrap
-     behavior (see both further up) exist only to keep content from
-     overflowing the fixed desktop row height. In this flex-column,
-     auto-height mobile layout there's no fixed row to overflow, so both
-     relax back to showing the real content in full instead of quietly
-     truncating it. */
-  .insight-bento .ov-subtitle, .deep-wrap .ov-subtitle, .fun-ranking-row .ov-subtitle{ -webkit-line-clamp: unset; overflow: visible; }
-  .insight-bento .ov-chip-row, .deep-wrap .ov-chip-row, .fun-ranking-row .ov-chip-row{ flex-wrap: wrap; overflow: visible; }
-  .insight-bento .ov-chip, .deep-wrap .ov-chip, .fun-ranking-row .ov-chip{ white-space: normal; }
   .result-hero .ingot{ padding:26px 22px 22px; }
   .result-hero .ingot-name{ max-width:none; font-size:clamp(40px,13vw,56px); }
   .result-hero .ingot-desc{ font-size:15px; }
@@ -2251,9 +2292,18 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   inset:0;
   z-index:1;
   pointer-events:none;
+  /* The two dark gradients above are purely functional (keep the text
+     over the photo readable) and stay exactly as they were. The third,
+     added below them, is the actual identity piece: a diagonal wash in
+     the archetype's own two-color pair, tinting the photo toward "this
+     archetype's world" instead of every archetype sharing one neutral
+     darkened photo treatment -- same curated image, genuinely different
+     atmosphere per result. Low enough opacity that it reads as color
+     temperature on the photo, not a flat color layer sitting on it. */
   background:
     linear-gradient(180deg, rgba(8,9,14,.18) 0%, rgba(8,9,14,.08) 27%, rgba(8,9,14,.52) 61%, rgba(8,9,14,.96) 100%),
-    linear-gradient(90deg, rgba(8,9,14,.74) 0%, rgba(8,9,14,.32) 58%, rgba(8,9,14,.08) 100%);
+    linear-gradient(90deg, rgba(8,9,14,.74) 0%, rgba(8,9,14,.32) 58%, rgba(8,9,14,.08) 100%),
+    linear-gradient(135deg, color-mix(in srgb, var(--user-accent-1) 40%, transparent) 0%, color-mix(in srgb, var(--user-accent-2) 22%, transparent) 55%, transparent 100%);
 }
 .result-hero .ingot-split::after{
   content:"";
@@ -2275,9 +2325,21 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   border:0;
   border-radius:inherit;
   background-size:cover;
-  background-position:center;
+  /* --parallax-x/-y: written by initHeroParallax() (global.js) on
+     pointermove across the whole hero card, same rAF-throttled,
+     reduced-motion/hover-gated pattern as --magnet-x/-y and --tilt-x/-y
+     elsewhere. 0px fallback means this is a plain "background-position:
+     center" (unchanged) on touch, where that listener never attaches.
+     The 1.01 overscan already existed to cover the gradient fade at the
+     edges; it also quietly gives the shift below a few px of headroom
+     before any edge of the photo could show through. */
+  background-position: calc(50% + var(--parallax-x, 0px)) calc(50% + var(--parallax-y, 0px));
   box-shadow:none;
-  transform:scale(1.01);
+  transform:scale(1.015);
+  transition: background-position .6s var(--ease);
+}
+@media (prefers-reduced-motion:reduce){
+  .result-hero .ingot-visual{ transition:none; }
 }
 .result-hero .ingot-content{
   position:relative;
@@ -2378,7 +2440,182 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
   border-color:rgba(255,255,255,.34);
 }
 
+/* =========================================================================
+   ARCHETYPE WORLD: ORACLE
+   First of a planned 12 genuinely distinct visual identities rather than
+   one shared layout recolored per archetype (.archetype-world-<id> is set
+   on the page's own root -- .container.result-hero -- in result.js, so it
+   scopes the whole page, not just the hero row; see splitArchetypeName()
+   there for why .ingot-name now renders as two spans instead of one
+   string). Oracle's brief: celestial, editorial, huge type, real moon
+   photography, a constellation graphic -- magazine-spread, not
+   dashboard-tile. Every
+   rule below is scoped under .archetype-world-oracle, so the other 11
+   archetypes are completely untouched; this is the template each of them
+   gets its own version of next. */
+.result-hero.archetype-world-oracle .ingot-name{
+  display:flex; flex-direction:column; gap:0;
+  max-width:none;
+  font-size:clamp(60px,7vw,112px);
+  line-height:.84;
+}
+.result-hero.archetype-world-oracle .ingot-name-lead{
+  font-size:.32em;
+  font-weight:700;
+  letter-spacing:-.01em;
+  color:rgba(255,255,255,.92);
+}
+.result-hero.archetype-world-oracle .ingot-name-main{
+  font-weight:800;
+  color:var(--user-accent-1);
+  text-shadow:0 10px 46px color-mix(in srgb, var(--user-accent-1) 55%, transparent);
+}
+@media (max-width:640px){
+  .result-hero.archetype-world-oracle .ingot-name{ font-size:clamp(46px,15vw,64px); }
+}
+
+/* ---- ONE-FAMILY FLAT DESIGN SYSTEM --------------------------------------
+   Correction pass: the previous version of this section cycled through
+   six unrelated hues (one per card, via --tint) and built "color" from a
+   dark-card-plus-translucent-wash blend -- precisely the "purple
+   dashboard with decorations" this was meant to move away from.
+   Replaced with the material language Home's own bento cards already
+   use (see .lp-card/.lp-card-01 above): solid, fully opaque, FIXED hex
+   gradient stops -- not theme-dependent tokens -- so these read
+   identically in light and dark mode, the same reason Home's own cards
+   use fixed hex instead of var(--coral)/var(--peach). One hue family
+   (indigo through lilac) stands in for the six-token rotation; which
+   shade a card gets is a hierarchy decision (hero-adjacent cards read
+   richer, everything else recedes to one consistent tone), not
+   per-card decoration. Radius and padding below also move to match
+   Home's own .lp-card numbers (28px radius, more generous padding)
+   instead of the tighter default bento values, per "consistent
+   border-radius, consistent padding, consistent spacing." */
+.result-hero.archetype-world-oracle{
+  /* Exact reference palette, used as-is -- no generated/estimated shades.
+     Semantic token NAMES stay the same across both themes (same pattern
+     global.css already uses for :root vs [data-theme=light]) so every
+     consuming rule below needs writing once; only the values differ
+     under the [data-theme=light] block further down. --op-tone-1/2 and
+     --op-tone-rich are the "different shade per section" layer: assigned
+     to specific cards by id below, not randomly, so the page reads as
+     one palette in several deliberate keys rather than either a single
+     flat color or an arbitrary rainbow. */
+  --op-base:#040607; --op-tone-1:#1A0E5C; --op-tone-2:#34117E; --op-tone-rich:#491AB1;
+  --op-charcoal:#212529;
+  --op-violet:#8942FE; --op-magenta:#BF40FA; --op-violet-deep:#4928C2;
+  --op-text-strong:#fff; --op-text-soft:#D4CDFF; --op-chip-text:#fff;
+}
+/* Light mode: lighter purples dominate, deep tones become the rare
+   accent instead of the base -- not just an inverted brightness, a
+   different emotional register, per "light mode should feel light,
+   dark mode should feel deep." Text flips dark since these backgrounds
+   are genuinely pale now; verified live via the same canvas-resolved
+   contrast method as every other color decision in this pass. */
+[data-theme="light"] .result-hero.archetype-world-oracle{
+  --op-base:#E3D9FC; --op-tone-1:#D4CDFF; --op-tone-2:#B796FE; --op-tone-rich:#A981FF;
+  --op-charcoal:#D4CDFF;
+  --op-violet:#A981FF; --op-magenta:#BF40FA; --op-violet-deep:#B796FE;
+  --op-text-strong:#1A0E5C; --op-text-soft:#1A0E5C; --op-chip-text:#1A0E5C;
+}
+.result-hero.archetype-world-oracle .bento-card{
+  background:linear-gradient(155deg, var(--op-tone-1) 0%, var(--op-base) 100%);
+  border-color:color-mix(in srgb, var(--op-violet-deep) 45%, transparent);
+  border-radius:var(--radius-xl);
+  padding:24px;
+  box-shadow:0 20px 48px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.05);
+}
+/* Tier: richer, more prominent cards -- the ones someone looks at first
+   or that carry the most personal signal -- read one step bolder than
+   the general grid. A deliberate editing choice, not automatic
+   rotation: picked by id, same handful every time this result renders. */
+.result-hero.archetype-world-oracle #ov-traits,
+.result-hero.archetype-world-oracle #ov-secondary-archetype,
+.result-hero.archetype-world-oracle #ov-mindmap,
+.result-hero.archetype-world-oracle #ov-patterns,
+.result-hero.archetype-world-oracle #ov-growth-timeline,
+.result-hero.archetype-world-oracle #ov-media-match{
+  background:linear-gradient(155deg, var(--op-tone-rich) 0%, var(--op-tone-1) 100%);
+}
+/* Tier: a second quiet tone for variety among the general grid, so
+   adjacent cards don't read as literal clones of each other -- still
+   the same family, one shade over. */
+.result-hero.archetype-world-oracle #ov-motivation,
+.result-hero.archetype-world-oracle #ov-relationships,
+.result-hero.archetype-world-oracle #ov-life-balance,
+.result-hero.archetype-world-oracle #ov-learning-style,
+.result-hero.archetype-world-oracle #ov-stress-recovery,
+.result-hero.archetype-world-oracle #ov-personal-growth,
+.result-hero.archetype-world-oracle #ov-more-about-you,
+.result-hero.archetype-world-oracle #ov-fun-stats,
+.result-hero.archetype-world-oracle #ov-ranking{
+  background:linear-gradient(155deg, var(--op-tone-2) 0%, var(--op-base) 100%);
+}
+/* Quiet utility surfaces (the Quick Read unlock CTA) recede furthest in
+   either theme -- darkest in dark mode, palest in light mode, both ends
+   of the same --op-base token. */
+.result-hero.archetype-world-oracle .util-card{
+  background:var(--op-base); border-color:var(--op-charcoal);
+}
+/* Match Confidence is the one card meant to read richer than the rest --
+   hierarchy through shade/brightness, not through being a different hue.
+   The single rare magenta touch lives here, as a border glow only, on
+   the one card where "hero can be strongest" actually applies.
+   The bright --op-violet is confined to a radial accent in the empty
+   top-right corner rather than spread as the main gradient: measured
+   live, white/lavender text over a plain violet-deep->violet linear
+   gradient dropped to 3.24:1 wherever text happened to sit on the
+   brighter stop (even pure white only just cleared 4.5:1 against
+   #8942FE alone, with no safety margin) -- the instruction was to use
+   these exact hex values, not altered ones, so the fix is compositional:
+   every line of text here sits on the safe violet-deep/tone-1 base, and
+   the bright violet only shows where the layout is already empty. */
+.result-hero.archetype-world-oracle .hero-summary{
+  background:
+    radial-gradient(75% 90% at 100% 0%, var(--op-violet) 0%, transparent 62%),
+    linear-gradient(165deg, var(--op-violet-deep) 0%, var(--op-tone-1) 100%);
+  border-color:color-mix(in srgb, var(--op-magenta) 45%, transparent);
+}
+.result-hero.archetype-world-oracle .hero-summary .ov-subtitle{ color:var(--op-text-soft); opacity:.9; }
+.result-hero.archetype-world-oracle .hero-summary .ov-chip{ background:var(--op-violet-deep); border-color:transparent; color:var(--op-chip-text); }
+.result-hero.archetype-world-oracle .hero-summary .ov-bignum .val{ color:var(--op-text-strong); }
+.result-hero.archetype-world-oracle .hero-summary .tap-hint{ color:var(--op-text-soft); opacity:.9; }
+/* Typography: a step larger and bolder than the shared default, matching
+   Home's own .lp-card (h3 20px / p 13.5px) rather than the tighter
+   dashboard-tile numbers everywhere else on this page. Text opacity is
+   .9, not the .82/.78 tried first: measured live, the lighter dilution
+   dropped as low as 3.24:1 on this page's own richer card tones (even
+   the brightest tier) in both themes -- .9 holds 5:1+ everywhere,
+   confirmed against every tone this system actually uses, light and
+   dark. */
+.result-hero.archetype-world-oracle .bento-head h3{ font-size:18px; letter-spacing:-.01em; color:var(--op-text-strong); }
+.result-hero.archetype-world-oracle .ov-bignum .val{ color:var(--op-text-strong); }
+.result-hero.archetype-world-oracle .ov-subtitle,
+.result-hero.archetype-world-oracle .bento-body,
+.result-hero.archetype-world-oracle .bento-body p{ font-size:14px; line-height:1.5; color:var(--op-text-soft); opacity:.9; }
+.result-hero.archetype-world-oracle .ov-bignum .lbl,
+.result-hero.archetype-world-oracle .core-trait-label,
+.result-hero.archetype-world-oracle .core-trait-pct,
+.result-hero.archetype-world-oracle .mini-bar-row span:last-child,
+.result-hero.archetype-world-oracle .tap-hint{ color:var(--op-text-soft); opacity:.9; }
+.result-hero.archetype-world-oracle .mini-bar-row{ border-bottom-color:rgba(255,255,255,.12); }
+.result-hero.archetype-world-oracle .core-trait-track{ background:rgba(255,255,255,.14); }
+/* Chips/tags/rank-preview: solid fills from the palette, not a
+   translucent white wash -- "minimal transparency" applies here too. */
+.result-hero.archetype-world-oracle .ov-chip,
+.result-hero.archetype-world-oracle .bento-body .tag,
+.result-hero.archetype-world-oracle .rank-preview-chip{
+  background:var(--op-violet-deep); border:1px solid color-mix(in srgb, var(--op-violet) 35%, transparent); color:var(--op-chip-text);
+}
+.result-hero.archetype-world-oracle .rank-preview-chip .num{ color:var(--op-text-soft); }
+.result-hero.archetype-world-oracle .bento-icon{
+  background:var(--op-violet) !important;
+  color:var(--op-chip-text) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+
 /* Compact secondary mosaic: two content rows. */
+.insight-bento{ grid-template-rows:170px 170px; }
 .section-heading{ padding-top:22px; }
 
 @media (max-width:1100px){
@@ -2418,14 +2655,8 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
      cards as well as the tallest. Fixed reproducible case that made
      this necessary: "The Stormcaller" (2-line name) at 500px width
      used to overlap the icon by 29px before this clamp + height fix. */
-  /* max-width was 31ch — noticeably narrower than the card's actual
-     content column (roughly 36-38ch at this padding), so the text
-     wrapped more aggressively than it needed to and hit the 3-line
-     clamp sooner, cutting off more of the description than necessary.
-     Letting it use the real column width is spacing, not a typography
-     change (font-size/line-height/clamp all untouched). */
   .result-hero .ingot-desc{
-    max-width:37ch; margin-top:13px; font-size:14.5px; line-height:1.5;
+    max-width:31ch; margin-top:13px; font-size:14.5px; line-height:1.5;
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
   }
   .result-hero .ingot-actions{

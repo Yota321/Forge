@@ -191,6 +191,25 @@ function redrawCompareCanvasesForTheme(){
   if (typeof compareState !== "undefined" && compareState && document.getElementById("cmpRadarMind")) drawCompareRadars();
 }
 
+// v1.1: the one new piece of text this redesign adds -- everything else
+// it uses (deep.explanations, layers.agreement, layers.brings) already
+// existed and was already fully explainable, just buried under a wall of
+// percentage bars further down the page. This is the opening line that
+// makes the page read as a dynamic between two people before it reads as
+// a score sheet.
+function buildCompareDynamicSummary(deep, nameA, nameB){
+  const A = nameA || "Person A", B = nameB || "Person B";
+  const bandLine = {
+    "Exceptional": `${A} and ${B} line up in a way that's genuinely rare.`,
+    "Excellent": `${A} and ${B} read as a strong match, with real differences that mostly work in your favor.`,
+    "Good": `${A} and ${B} have a solid foundation, with a few real differences worth naming out loud.`,
+    "Mixed": `${A} and ${B} are more a study in contrast than a mirror image.`,
+    "Difficult": `${A} and ${B} come at things from genuinely different directions.`,
+    "Extremely Incompatible": `${A} and ${B} approach almost everything differently, which is its own kind of interesting.`,
+  }[deep.band] || `${A} and ${B} read as a mixed match overall.`;
+  return deep.explanations.length ? `${bandLine} ${deep.explanations[0]}` : bandLine;
+}
+
 function compareStyleRow(label, a, b){
   return `<div class="cmp-style-row"><h4>${label}</h4><div class="grid-2"><p>${a}</p><p>${b}</p></div></div>`;
 }
@@ -231,6 +250,35 @@ function renderCompareResult(){
         <span class="tag band-tag" style="margin-top:10px;display:inline-block;color:${bandColor(deep.band)};border-color:${bandColor(deep.band)}66">${deep.band}</span>
       </div>
 
+      <div class="card glass cmp-dynamic-card" style="margin-top:14px">
+        <h4>The Dynamic</h4>
+        <p>${buildCompareDynamicSummary(deep, nameA, nameB)}</p>
+        ${deep.explanations.length > 1 ? deep.explanations.slice(1).map(e => `<p style="margin-top:8px">${e}</p>`).join("") : ""}
+      </div>
+
+      <div class="card glass" style="margin-top:12px">
+        <h4>Where You Naturally Agree</h4>
+        ${layers.agreement.agree.length ? layers.agreement.agree.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">No single trait both of you are strongly aligned on, and that's fine, it just means your common ground is more about balance than sameness.</p>`}
+      </div>
+      <div class="card glass" style="margin-top:12px">
+        <h4>Where You Naturally Disagree</h4>
+        ${layers.agreement.disagree.length ? layers.agreement.disagree.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">Nothing stands out as a hard opposite, your differences here are more matters of degree than direction.</p>`}
+      </div>
+      <div class="card glass" style="margin-top:12px">
+        <h4>Where You Balance Each Other</h4>
+        ${layers.agreement.balance.length ? layers.agreement.balance.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">You're fairly evenly matched across the board, less a case of balancing each other and more just running at similar levels.</p>`}
+      </div>
+      <div class="card glass" style="margin-top:12px">
+        <h4>Where Conflict May Happen</h4>
+        ${layers.agreement.conflictAreas.length ? layers.agreement.conflictAreas.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">Nothing in the friction-prone areas (trust, patience, risk, planning, independence) shows a sharp opposite, so conflict here is more likely to come from a bad day than a fundamental mismatch.</p>`}
+      </div>
+      <div class="grid-2" style="margin-top:12px">
+        <div class="card glass"><h4>What ${layers.brings.a.name} Brings</h4><div class="tag-list">${layers.brings.a.traits.length ? layers.brings.a.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
+        <div class="card glass"><h4>What ${layers.brings.b.name} Brings</h4><div class="tag-list">${layers.brings.b.traits.length ? layers.brings.b.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
+      </div>
+
+      <div class="section-divider"><span>The Receipts</span></div>
+
       <div class="card glass" style="margin-top:12px">
         <h4>Overview</h4>
         <div class="grid-2 cmp-overview-grid">
@@ -250,12 +298,6 @@ function renderCompareResult(){
           <div class="card glass"><h4>${c.name}</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${c.score}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${c.score}%</p></div>`).join("")}
       </div>
       <div class="careers-toggle"><button onclick="toggleCompareCategories()">${compareCategoriesExpanded ? "Show fewer categories" : `Show all ${deep.categories.length} categories`}</button></div>
-
-      ${deep.explanations.length ? `
-      <div class="card glass" style="margin-top:14px">
-        <h4>Why This Score</h4>
-        ${deep.explanations.map(e => `<p style="margin-top:8px">${e}</p>`).join("")}
-      </div>` : ""}
 
       <div class="grid-2" style="margin-top:12px">
         <div class="card glass"><h4>Shared Strengths</h4><div class="tag-list">${deep.sharedStrengths.map(s=>`<span class="tag">${s}</span>`).join("") || "<span class='tag'>Still emerging</span>"}</div></div>
@@ -307,34 +349,14 @@ function renderCompareResult(){
       ${compareStyleRow("Thinking Style", layers.thinkingStyle.a, layers.thinkingStyle.b)}
       ${compareStyleRow("Growth Advice", layers.growthAdvice.a, layers.growthAdvice.b)}
 
-      <div class="section-divider"><span>Where You Line Up</span></div>
-
-      <div class="card glass">
-        <h4>Where You Naturally Agree</h4>
-        ${layers.agreement.agree.length ? layers.agreement.agree.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">No single trait both of you are strongly aligned on, and that's fine, it just means your common ground is more about balance than sameness.</p>`}
-      </div>
-      <div class="card glass" style="margin-top:12px">
-        <h4>Where You Naturally Disagree</h4>
-        ${layers.agreement.disagree.length ? layers.agreement.disagree.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">Nothing stands out as a hard opposite, your differences here are more matters of degree than direction.</p>`}
-      </div>
-      <div class="card glass" style="margin-top:12px">
-        <h4>Where You Balance Each Other</h4>
-        ${layers.agreement.balance.length ? layers.agreement.balance.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">You're fairly evenly matched across the board, less a case of balancing each other and more just running at similar levels.</p>`}
-      </div>
-      <div class="card glass" style="margin-top:12px">
-        <h4>Where Conflict May Happen</h4>
-        ${layers.agreement.conflictAreas.length ? layers.agreement.conflictAreas.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">Nothing in the friction-prone areas (trust, patience, risk, planning, independence) shows a sharp opposite, so conflict here is more likely to come from a bad day than a fundamental mismatch.</p>`}
-      </div>
-      <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>What ${layers.brings.a.name} Brings</h4><div class="tag-list">${layers.brings.a.traits.length ? layers.brings.a.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
-        <div class="card glass"><h4>What ${layers.brings.b.name} Brings</h4><div class="tag-list">${layers.brings.b.traits.length ? layers.brings.b.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
-      </div>
-
       <div class="grid-2" style="margin-top:12px">
         <div class="card glass"><h4>Perfect Activity</h4><p>${deep.activities.activity}</p></div>
         <div class="card glass"><h4>Perfect Vacation</h4><p>${deep.activities.vacation}</p></div>
         <div class="card glass"><h4>Perfect Business</h4><p>${deep.activities.business}</p></div>
         <div class="card glass"><h4>Perfect Weekend</h4><p>${deep.activities.weekend}</p></div>
+        <div class="card glass"><h4>How You'd Solve Problems</h4><p>${deep.activities.solveProblems}</p></div>
+        <div class="card glass"><h4>How You'd Survive a Crisis</h4><p>${deep.activities.crisis}</p></div>
+        <div class="card glass" style="grid-column:1/-1"><h4>How This Friendship Gets Built</h4><p>${deep.activities.friendship}</p></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">

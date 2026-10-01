@@ -64,7 +64,7 @@ function renderHomeDashboard(){
       <div class="card glass">
         <h4>Feel Like Checking In?</h4>
         <p style="color:var(--text-muted);font-size:13.5px">${nudge}</p>
-        <div class="cta-row" style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="click(520);goToNameScreen()">Retake Assessment &rarr;</button></div>
+        <div class="cta-row" style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="retakeAssessment()">Retake Assessment &rarr;</button></div>
       </div>
     </div>
   </section>`;
@@ -72,7 +72,14 @@ function renderHomeDashboard(){
 
 /* ---------------- LANDING ---------------------------------------------*/
 function renderLanding(){
-  setAccentColors();
+  // A returning person with a real result sees their own archetype's
+  // colors here too, not just on Result itself -- renderHomeDashboard()
+  // below already builds this same "currently: <archetype>" card from
+  // buildResultFromLatestTimeline(), so the page's own accent silently
+  // staying generic lavender/sky while showing someone else's colors in
+  // the icon/name right next to it read as unfinished, not neutral.
+  const dashResult = buildResultFromLatestTimeline();
+  setAccentColors(dashResult && dashResult.archetype.colors[0], dashResult && dashResult.archetype.colors[1]);
   setPageTitle();
   const saved = localStorage.getItem("pf_last_code");
   // PF4-only "returning user" detection, reusing decodeCode()'s own
@@ -125,7 +132,7 @@ function renderLanding(){
             <button class="lp-quick-link" onclick="click(360);navigate('profile')">${ICONS.people}<span>Profile</span></button>
             <button class="lp-quick-link" onclick="click(360);navigate('growth')">${ICONS.trendUp}<span>Growth</span></button>
             <button class="lp-quick-link" onclick="click(360);navigate('improve')">${ICONS.spark}<span>Improve</span></button>
-            ${hasPF4Result ? `<button class="lp-quick-link" onclick="click(520);goToNameScreen()">${ICONS.restart}<span>Retake Assessment</span></button>` : ""}
+            ${hasPF4Result ? `<button class="lp-quick-link" onclick="retakeAssessment()">${ICONS.restart}<span>Retake Assessment</span></button>` : ""}
           </div>` : ""}
 
           <div class="lp-avatars" aria-hidden="true">
@@ -151,7 +158,7 @@ function renderLanding(){
             <span class="lp-visual-caption lp-visual-caption-bottom">Not just answers.<br>A clearer tomorrow.<br>//</span>
           </div>
 
-          <button class="lp-card lp-card-01" onclick="click(520);goToNameScreen()">
+          <button class="lp-card lp-card-01" onclick="retakeAssessment()">
             <div class="lp-card-top"><span class="lp-card-num">01</span><span class="lp-card-arrow">&nearr;</span></div>
             <h3>Discover</h3>
             <p>Answer real scenarios, not generic questions.</p>
@@ -204,7 +211,7 @@ function renderLanding(){
             <li>Personality timeline</li>
             <li>Works offline</li>
           </ul>
-          <button class="btn btn-primary" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button>
+          <button class="btn btn-primary" onclick="retakeAssessment()">Start Assessment &rarr;</button>
         </div>
         <div class="lp-cta-panel lp-cta-outline">
           <div class="eyebrow">WANT MORE? <span class="lp-soon-badge">Coming soon</span></div>

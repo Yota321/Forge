@@ -45,6 +45,22 @@ const PF_PAGE = "quiz";
 applyTheme(currentTheme);
 useCleanURL("quiz");
 (function boot(){
+  // v1.4: "Retake Assessment" from Home/Profile for a profile that
+  // already has name/ageGroup/gender/occupation/country/pace on record --
+  // skips onboarding steps 1-4 entirely and jumps straight to the first
+  // question, per the explicit "never re-ask what's already known" brief.
+  // A deliberate retake click wins over any stale unrelated progress
+  // sitting in storage (startQuiz() itself clears both keys), same as
+  // declining a resume prompt already does elsewhere.
+  const retakePrefillRaw = sessionStorage.getItem("pf_retake_prefill");
+  sessionStorage.removeItem("pf_retake_prefill");
+  if (retakePrefillRaw){
+    try {
+      const prefill = JSON.parse(retakePrefillRaw);
+      startQuiz(prefill.name || "", prefill.meta || {}, (prefill.meta && prefill.meta.pace) || "balanced");
+      return;
+    } catch(e){ /* malformed -- fall through to the normal boot sequence */ }
+  }
   // Explicit flag (set by the homepage's "Continue" button, which already
   // showed its own in-progress card and got a deliberate click) skips the
   // extra confirmation and resumes straight away.

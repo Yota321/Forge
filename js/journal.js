@@ -50,6 +50,7 @@ function renderJournal(){
     return;
   }
 
+  setAccentColors(result.archetype.colors[0], result.archetype.colors[1]);
   const rec = computeRecommendationProfile(result.normDims);
   const streak = computeJournalStreak();
   const today = getTodaysJournalEntry();

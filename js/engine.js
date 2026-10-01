@@ -1180,6 +1180,187 @@ const NARRATIVE_ROLES = [
     description:"You handle your own weather. Backup is nice, but you were never counting on it." },
 ];
 
+/* ---- Media Match: characters and fictional worlds mapped to the same
+   25 dimensions ---------------------------------------------------------
+   v1.1. Deliberately NOT LLM-generated, at runtime or otherwise: a
+   hand-curated local dataset, scored with the exact same scoreBySignature()
+   every list above already uses (NARRATIVE_ROLES, FANTASY_WEAPONS, etc.),
+   so "characters like you" is architecturally identical to "your fantasy
+   weapon" rather than a bolted-on second system. No network calls and no
+   fetched metadata/artwork -- names, sources, and short original
+   observations only (personality analysis of a public fictional character,
+   not reproduced text), consistent with the rest of the app running fully
+   offline. `role` is how they'd show up in their own story; `energy` is
+   the one-line feel, used as the card's subtitle. */
+const MEDIA_CHARACTERS = [
+  { name:"L", source:"Death Note", sourceType:"anime", role:"The Detective",
+    signature:[{dim:"logic",w:2},{dim:"independence",w:1},{dim:"curiosity",w:1}],
+    energy:"Methodical, a few steps ahead of everyone else in the room." },
+  { name:"Hermione Granger", source:"Harry Potter", sourceType:"book", role:"The One Who Actually Prepared",
+    signature:[{dim:"discipline",w:2},{dim:"planning",w:1},{dim:"logic",w:1}],
+    energy:"Shows up over-prepared because under-prepared has never once worked out." },
+  { name:"Tony Stark", source:"Iron Man", sourceType:"movie", role:"The Builder",
+    signature:[{dim:"creativity",w:2},{dim:"confidence",w:1},{dim:"drive",w:1}],
+    energy:"Solves the unsolvable problem, then can't stop tinkering with the solution." },
+  { name:"Geralt of Rivia", source:"The Witcher", sourceType:"game", role:"The Reluctant Professional",
+    signature:[{dim:"independence",w:2},{dim:"resilience",w:1},{dim:"discipline",w:1}],
+    energy:"Didn't want to get involved. Got involved anyway. Handled it." },
+  { name:"Michael Scott", source:"The Office", sourceType:"show", role:"The Heart of the Room",
+    signature:[{dim:"humor",w:2},{dim:"socialEnergy",w:1},{dim:"optimism",w:1}],
+    energy:"Needs everyone to like them, and somehow that's exactly what makes it work." },
+  { name:"Katniss Everdeen", source:"The Hunger Games", sourceType:"book", role:"The One Who Carries It",
+    signature:[{dim:"resilience",w:2},{dim:"responsibility",w:1},{dim:"independence",w:1}],
+    energy:"Never asked to lead. Leads anyway, because someone has to." },
+  { name:"Light Yagami", source:"Death Note", sourceType:"anime", role:"The One With A Plan For Everything",
+    signature:[{dim:"logic",w:2},{dim:"planning",w:1},{dim:"competitiveness",w:1},{dim:"trust",w:-1}],
+    energy:"Convinced they're the only one thinking clearly. Often is. That's the problem." },
+  { name:"Frodo Baggins", source:"The Lord of the Rings", sourceType:"book", role:"The Unlikely One Who Sees It Through",
+    signature:[{dim:"kindness",w:1},{dim:"persistence",w:2},{dim:"responsibility",w:1}],
+    energy:"Smallest person in the room, carries the heaviest thing anyway." },
+  { name:"Sherlock Holmes", source:"Sherlock Holmes", sourceType:"book", role:"The Observer",
+    signature:[{dim:"logic",w:2},{dim:"curiosity",w:1},{dim:"confidence",w:1}],
+    energy:"Notices the detail everyone else walked past without seeing." },
+  { name:"Aang", source:"Avatar: The Last Airbender", sourceType:"show", role:"The One Who Looks For Another Way",
+    signature:[{dim:"kindness",w:1},{dim:"adaptability",w:1},{dim:"optimism",w:1}],
+    energy:"Has every reason to fight fire with fire, keeps looking for a better option." },
+  { name:"Tyrion Lannister", source:"Game of Thrones", sourceType:"show", role:"The Sharpest Mind In The Room",
+    signature:[{dim:"logic",w:1},{dim:"humor",w:1},{dim:"selfAwareness",w:1}],
+    energy:"Talks their way out of rooms most people never talk their way into." },
+  { name:"Naruto Uzumaki", source:"Naruto", sourceType:"anime", role:"The One Who Doesn't Stay Down",
+    signature:[{dim:"optimism",w:1},{dim:"persistence",w:2},{dim:"socialEnergy",w:1}],
+    energy:"Gets knocked down exactly as often as everyone else. Gets up more." },
+  { name:"Elizabeth Bennet", source:"Pride and Prejudice", sourceType:"book", role:"The One Who Won't Pretend",
+    signature:[{dim:"independence",w:1},{dim:"selfAwareness",w:1},{dim:"confidence",w:1}],
+    energy:"Would rather be alone than agree with something they don't actually think." },
+  { name:"Rick Sanchez", source:"Rick and Morty", sourceType:"show", role:"The Smartest Person In Any Room",
+    signature:[{dim:"logic",w:2},{dim:"independence",w:1},{dim:"risk",w:1},{dim:"trust",w:-1}],
+    energy:"Right about almost everything, and exhausted by how often that's true." },
+  { name:"Mikasa Ackerman", source:"Attack on Titan", sourceType:"anime", role:"The One Who Doesn't Waver",
+    signature:[{dim:"responsibility",w:1},{dim:"resilience",w:1},{dim:"discipline",w:1}],
+    energy:"Decides what matters once, then never has to decide it again." },
+  { name:"Deadpool", source:"Deadpool", sourceType:"movie", role:"The One Who Won't Take It Seriously",
+    signature:[{dim:"humor",w:2},{dim:"risk",w:1},{dim:"adaptability",w:1}],
+    energy:"Turns literally anything into a joke, usually because the alternative is worse." },
+  { name:"Aragorn", source:"The Lord of the Rings", sourceType:"movie", role:"The Leader Who Didn't Want The Job",
+    signature:[{dim:"leadership",w:1},{dim:"responsibility",w:1},{dim:"resilience",w:1}],
+    energy:"Spent years avoiding the throne. Shows up anyway when it actually matters." },
+  { name:"Velma Dinkley", source:"Scooby-Doo", sourceType:"show", role:"The One Who Solves It",
+    signature:[{dim:"logic",w:1},{dim:"curiosity",w:1},{dim:"planning",w:1}],
+    energy:"Already knows who did it, and is mostly waiting for everyone else to catch up." },
+  { name:"Kratos", source:"God of War", sourceType:"game", role:"The One Trying To Be Better Than He Was",
+    signature:[{dim:"discipline",w:1},{dim:"resilience",w:1},{dim:"responsibility",w:1}],
+    energy:"Spent a lifetime being what the situation demanded, is done being that now." },
+  { name:"Am\u00E9lie Poulain", source:"Am\u00E9lie", sourceType:"movie", role:"The Quiet Architect Of Other People's Good Days",
+    signature:[{dim:"creativity",w:1},{dim:"curiosity",w:1},{dim:"kindness",w:1}],
+    energy:"Notices the small thing that would make someone's day, then just does it." },
+  { name:"Walter White", source:"Breaking Bad", sourceType:"show", role:"The One Who Decided Enough Was Enough",
+    signature:[{dim:"drive",w:2},{dim:"competitiveness",w:1},{dim:"independence",w:1}],
+    energy:"Spent a lifetime being underestimated, then made that everyone else's problem." },
+  { name:"Luna Lovegood", source:"Harry Potter", sourceType:"book", role:"The One Who Isn't Performing For Anyone",
+    signature:[{dim:"openMindedness",w:2},{dim:"curiosity",w:1},{dim:"optimism",w:1}],
+    energy:"Says the true, strange thing everyone else was too self-conscious to say." },
+  { name:"Levi Ackerman", source:"Attack on Titan", sourceType:"anime", role:"The One Who Holds The Standard",
+    signature:[{dim:"discipline",w:2},{dim:"leadership",w:1},{dim:"competitiveness",w:1}],
+    energy:"Expects a lot, mostly because they expect exactly that much of themselves." },
+  { name:"Furiosa", source:"Mad Max", sourceType:"movie", role:"The One Who Gets People Out",
+    signature:[{dim:"resilience",w:1},{dim:"independence",w:1},{dim:"leadership",w:1}],
+    energy:"Has a plan, has had it for a while, was just waiting for the right moment." },
+  { name:"Ted Lasso", source:"Ted Lasso", sourceType:"show", role:"The One Who Believes In People Anyway",
+    signature:[{dim:"optimism",w:2},{dim:"kindness",w:1},{dim:"patience",w:1}],
+    energy:"Knows exactly how this could go badly, chooses kindness first anyway." },
+];
+const MEDIA_WORLDS = [
+  { name:"Hogwarts", source:"Harry Potter", role:"Where curiosity gets rewarded, not just tolerated",
+    signature:[{dim:"curiosity",w:2},{dim:"kindness",w:1},{dim:"openMindedness",w:1}],
+    energy:"A world that takes wonder seriously and figures loyalty matters more than power." },
+  { name:"The Fellowship's Road", source:"The Lord of the Rings", role:"Where the small, steady ones matter most",
+    signature:[{dim:"persistence",w:2},{dim:"responsibility",w:1},{dim:"kindness",w:1}],
+    energy:"A long, unglamorous journey that only works because someone refuses to quit." },
+  { name:"Starfleet", source:"Star Trek", role:"Where curiosity is the whole mission",
+    signature:[{dim:"curiosity",w:1},{dim:"logic",w:1},{dim:"optimism",w:1}],
+    energy:"An exploration-first world that assumes most problems have a reasoned way through." },
+  { name:"The Heist Crew", source:"a good heist story", role:"Where everyone's specialty actually matters",
+    signature:[{dim:"planning",w:2},{dim:"risk",w:1},{dim:"adaptability",w:1}],
+    energy:"A world built on one plan, a dozen contingencies, and trusting the person next to you." },
+  { name:"The Found-Family Sitcom", source:"a good ensemble comedy", role:"Where the group is the whole point",
+    signature:[{dim:"socialEnergy",w:1},{dim:"humor",w:1},{dim:"kindness",w:1}],
+    energy:"A world where the people around you matter more than whatever the plot is about." },
+  { name:"The Last Outpost", source:"a post-apocalyptic survival story", role:"Where you keep people alive, including yourself",
+    signature:[{dim:"resilience",w:2},{dim:"independence",w:1},{dim:"emotionalStability",w:1}],
+    energy:"A world with no safety net, which is exactly the kind you'd actually hold together." },
+  { name:"The Noir City", source:"a detective mystery", role:"Where the truth is in the detail no one else caught",
+    signature:[{dim:"logic",w:2},{dim:"curiosity",w:1},{dim:"independence",w:1}],
+    energy:"A world that rewards paying closer attention than everyone else in the room." },
+  { name:"The Tournament Arc", source:"a competitive shonen story", role:"Where you keep getting back up",
+    signature:[{dim:"drive",w:1},{dim:"competitiveness",w:1},{dim:"persistence",w:1}],
+    energy:"A world that keeps raising the bar, and keeps finding you already climbing it." },
+];
+
+/* ---- Historical Minds (v1.1) -------------------------------------------
+   Feature 5's own hard rule: no living people. Every entry below died
+   well before 2000 -- checked by hand against `died`, which exists
+   specifically so that rule stays auditable rather than just asserted.
+   Framed strictly around cognitive/behavioral style (how they worked,
+   thought, or persisted), never around politics or moral judgment, for
+   the same reason MEDIA_CHARACTERS keeps its own descriptions to
+   personality analysis rather than biography. */
+const HISTORICAL_MINDS = [
+  { name:"Marie Curie", field:"Scientist", died:1934, role:"The One Who Kept Going Regardless",
+    signature:[{dim:"discipline",w:2},{dim:"curiosity",w:1},{dim:"persistence",w:1}],
+    energy:"Worked through years of tedious, thankless measurement to get to one real answer." },
+  { name:"Albert Einstein", field:"Scientist", died:1955, role:"The One Who Questioned The Obvious Answer",
+    signature:[{dim:"creativity",w:2},{dim:"curiosity",w:1},{dim:"independence",w:1}],
+    energy:"Took the assumption everyone else built on and asked what if it's wrong." },
+  { name:"Leonardo da Vinci", field:"Polymath", died:1519, role:"The One Who Couldn't Pick Just One Thing",
+    signature:[{dim:"curiosity",w:2},{dim:"creativity",w:1},{dim:"openMindedness",w:1}],
+    energy:"Treated every field as one connected question, not separate boxes." },
+  { name:"Nikola Tesla", field:"Inventor", died:1943, role:"The One Who Saw The Thing Before It Existed",
+    signature:[{dim:"creativity",w:2},{dim:"independence",w:1},{dim:"risk",w:1}],
+    energy:"Built for a future that hadn't caught up to the idea yet." },
+  { name:"Charles Darwin", field:"Naturalist", died:1882, role:"The One Who Watched Longer Than Anyone Else",
+    signature:[{dim:"curiosity",w:1},{dim:"patience",w:2},{dim:"discipline",w:1}],
+    energy:"Spent decades collecting quiet evidence before saying anything out loud." },
+  { name:"Jane Austen", field:"Writer", died:1817, role:"The One Who Saw Exactly What People Were Doing",
+    signature:[{dim:"selfAwareness",w:1},{dim:"humor",w:1},{dim:"logic",w:1}],
+    energy:"Noticed the social game everyone was playing and wrote it down precisely." },
+  { name:"Virginia Woolf", field:"Writer", died:1941, role:"The One Who Went Looking Inward",
+    signature:[{dim:"creativity",w:1},{dim:"selfAwareness",w:2},{dim:"independence",w:1}],
+    energy:"Trusted an inner train of thought most people talk themselves out of following." },
+  { name:"Mahatma Gandhi", field:"Reformer", died:1948, role:"The One Who Waited You Out",
+    signature:[{dim:"discipline",w:1},{dim:"patience",w:2},{dim:"persistence",w:1}],
+    energy:"Chose the slower, harder method on purpose and stayed with it for decades." },
+  { name:"Socrates", field:"Philosopher", died:-399, role:"The One Who Just Kept Asking Why",
+    signature:[{dim:"curiosity",w:2},{dim:"logic",w:1},{dim:"independence",w:1}],
+    energy:"Made people defend an idea until they realized they hadn't examined it at all." },
+  { name:"Ada Lovelace", field:"Mathematician", died:1852, role:"The One Who Saw What The Machine Could Become",
+    signature:[{dim:"creativity",w:1},{dim:"logic",w:2},{dim:"curiosity",w:1}],
+    energy:"Looked at a calculating machine and saw something closer to imagination." },
+  { name:"Mark Twain", field:"Writer", died:1910, role:"The One Who Said It Through A Joke",
+    signature:[{dim:"humor",w:2},{dim:"independence",w:1},{dim:"openMindedness",w:1}],
+    energy:"Got away with saying the sharp true thing because it was also funny." },
+  { name:"Isaac Newton", field:"Scientist", died:1727, role:"The One Who Wouldn't Stop Until It Resolved",
+    signature:[{dim:"logic",w:2},{dim:"discipline",w:1},{dim:"independence",w:1}],
+    energy:"Disappeared into a single hard problem until it actually gave way." },
+  { name:"Confucius", field:"Philosopher", died:-479, role:"The One Who Thought In Systems Of Duty",
+    signature:[{dim:"discipline",w:1},{dim:"patience",w:1},{dim:"responsibility",w:2}],
+    energy:"Built an entire way of living around what people owed each other." },
+  { name:"Vincent van Gogh", field:"Artist", died:1890, role:"The One Who Felt It Before He Understood It",
+    signature:[{dim:"creativity",w:2},{dim:"openMindedness",w:1},{dim:"drive",w:1}],
+    energy:"Painted what he felt at full intensity, unfiltered by whether it was expected." },
+  { name:"Harriet Tubman", field:"Strategist", died:1913, role:"The One Who Went Back For The Others",
+    signature:[{dim:"resilience",w:1},{dim:"responsibility",w:1},{dim:"risk",w:1}],
+    energy:"Got out, then spent years going back into danger to get others out too." },
+  { name:"Marcus Aurelius", field:"Philosopher", died:180, role:"The One Who Wrote To Steady Himself",
+    signature:[{dim:"discipline",w:1},{dim:"emotionalStability",w:2},{dim:"selfAwareness",w:1}],
+    energy:"Kept a private, honest ledger of his own mind instead of performing certainty." },
+  { name:"Emily Dickinson", field:"Poet", died:1886, role:"The One Who Didn't Need The Room",
+    signature:[{dim:"independence",w:2},{dim:"selfAwareness",w:1},{dim:"creativity",w:1}],
+    energy:"Did the work entirely on her own terms, with almost no audience at all." },
+  { name:"Alan Turing", field:"Mathematician", died:1954, role:"The One Who Reduced It To Its Real Shape",
+    signature:[{dim:"logic",w:2},{dim:"curiosity",w:1},{dim:"independence",w:1}],
+    energy:"Cut straight through the noise in a problem to the one question that mattered." },
+];
+
 /* ---- Aesthetic vibes --------------------------------------- */
 const AESTHETIC_VIBES = [
   { name:"Minimalist", signature:[{dim:"discipline",w:2},{dim:"planning",w:1},{dim:"independence",w:1}],
@@ -3057,6 +3238,318 @@ function computeNarrativeRole(normDims){
   return { primary: ranked[0].item, runnerUp: ranked[1].item };
 }
 
+/* ---- Identity tagline (v1.4) --------------------------------------------
+   The one-line "The Curious Builder" under a profile's identity card --
+   deliberately a different flavor from NARRATIVE_ROLES above (which reads
+   as a fictional-story archetype, Hero/Trickster/Villain) since a profile
+   card is a personal identity statement, not a casting choice. Same
+   scoreBySignature() mechanism as everything else, just its own list. */
+const IDENTITY_TAGLINES = [
+  { name:"The Curious Builder", signature:[{dim:"curiosity",w:1},{dim:"creativity",w:1}] },
+  { name:"The Quiet Strategist", signature:[{dim:"logic",w:1},{dim:"patience",w:1},{dim:"socialEnergy",w:-1}] },
+  { name:"The Gentle Challenger", signature:[{dim:"kindness",w:1},{dim:"competitiveness",w:1}] },
+  { name:"The Visionary Explorer", signature:[{dim:"creativity",w:1},{dim:"risk",w:1}] },
+  { name:"The Steady Anchor", signature:[{dim:"emotionalStability",w:1},{dim:"responsibility",w:1}] },
+  { name:"The Warm Realist", signature:[{dim:"empathy",w:1},{dim:"logic",w:1}] },
+  { name:"The Restless Optimist", signature:[{dim:"optimism",w:1},{dim:"drive",w:1},{dim:"patience",w:-1}] },
+  { name:"The Careful Rebel", signature:[{dim:"independence",w:1},{dim:"discipline",w:1}] },
+  { name:"The Bright Skeptic", signature:[{dim:"logic",w:1},{dim:"openMindedness",w:1},{dim:"trust",w:-1}] },
+  { name:"The Loyal Wildcard", signature:[{dim:"trust",w:1},{dim:"adaptability",w:1}] },
+  { name:"The Patient Perfectionist", signature:[{dim:"patience",w:1},{dim:"discipline",w:1}] },
+  { name:"The Bold Listener", signature:[{dim:"confidence",w:1},{dim:"empathy",w:1}] },
+  { name:"The Grounded Dreamer", signature:[{dim:"creativity",w:1},{dim:"emotionalStability",w:1}] },
+  { name:"The Sharp Diplomat", signature:[{dim:"logic",w:1},{dim:"kindness",w:1}] },
+  { name:"The Playful Perfectionist", signature:[{dim:"humor",w:1},{dim:"discipline",w:1}] },
+  { name:"The Fierce Protector", signature:[{dim:"responsibility",w:1},{dim:"risk",w:1}] },
+  { name:"The Independent Optimist", signature:[{dim:"independence",w:1},{dim:"optimism",w:1}] },
+  { name:"The Quiet Observer", signature:[{dim:"selfAwareness",w:1},{dim:"socialEnergy",w:-1},{dim:"curiosity",w:1}] },
+  { name:"The Social Strategist", signature:[{dim:"socialEnergy",w:1},{dim:"planning",w:1}] },
+  { name:"The Resilient Idealist", signature:[{dim:"resilience",w:1},{dim:"optimism",w:1}] },
+];
+function computeIdentityTagline(normDims){
+  return scoreBySignature(IDENTITY_TAGLINES, normDims)[0].item.name;
+}
+
+/* ---- Contradiction Engine (v1.6) -----------------------------------------
+   Finds genuine tensions: two dimensions that are BOTH strongly true at
+   once, where that combination is unusual rather than expected. A
+   contradiction only counts if both sides clear a real threshold --
+   this is why the list is often short (0-2 entries) or occasionally
+   empty for a given profile, on purpose. Forcing a contradiction onto
+   someone who doesn't have one would be exactly the generic, could-
+   describe-anyone text this whole engine exists to avoid. Every pair's
+   explanation is hand-written to name the specific tension, never a
+   templated "you have both X and Y." */
+const CONTRADICTION_PAIRS = [
+  { dimA:"logic", dimB:"empathy", label:"Logical, but deeply empathetic",
+    explanation:"You default to reasoning things through, but empathy runs just as strong underneath it -- most people who lead with logic learn to mute this. You didn't." },
+  { dimA:"independence", dimB:"socialEnergy", label:"Independent, but socially energized",
+    explanation:"You genuinely need your own space, and you're genuinely recharged by people. Not a contradiction you've resolved, just two real pulls you carry at once." },
+  { dimA:"planning", dimB:"risk", label:"A planner who still takes the leap",
+    explanation:"You don't wing decisions, you map them out. And then you still take the bigger risk anyway, calculated rather than avoided." },
+  { dimA:"discipline", dimB:"curiosity", label:"Disciplined, but restlessly curious",
+    explanation:"Structure keeps you grounded, curiosity keeps pulling you toward whatever's unexplored. You built the routine that makes room for both." },
+  { dimA:"creativity", dimB:"logic", label:"Analytical and imaginative at once",
+    explanation:"You think in systems and in leaps, both running hot. Most people are stronger in one; you never fully picked a side." },
+  { dimA:"competitiveness", dimB:"kindness", label:"Competitive, without the edge",
+    explanation:"You genuinely want to win, and you're genuinely kind about it. Those two don't usually survive in the same person without one quietly eating the other." },
+  { dimA:"confidence", dimB:"patience", label:"Confident, but in no hurry to prove it",
+    explanation:"You're sure of yourself without needing the room to see it right away -- confidence that doesn't need an audience." },
+  { dimA:"leadership", dimB:"patience", label:"Leads, but doesn't rush the room",
+    explanation:"You're comfortable setting the direction, and just as comfortable waiting for people to actually get there. Rarer than either trait alone." },
+  { dimA:"optimism", dimB:"selfAwareness", label:"Hopeful, with your eyes open",
+    explanation:"You expect things to work out, and you're clear-eyed about exactly why they might not. Optimism that isn't denial." },
+  { dimA:"responsibility", dimB:"risk", label:"Reliable, but not risk-averse",
+    explanation:"People can count on you to follow through, and you're still willing to bet on the uncertain option. Those two usually trade off against each other." },
+];
+function computeContradictions(normDims){
+  const THRESHOLD = 2.5; // both dims must clear this (of -10..10) to count as genuinely, simultaneously true
+  return CONTRADICTION_PAIRS
+    .map(c => ({ ...c, a: normDims[c.dimA] || 0, b: normDims[c.dimB] || 0 }))
+    .filter(c => c.a >= THRESHOLD && c.b >= THRESHOLD)
+    .map(c => ({ ...c, strength: Math.min(c.a, c.b), aPct: pct(c.a), bPct: pct(c.b) }))
+    .sort((x, y) => y.strength - x.strength)
+    .slice(0, 3);
+}
+
+/* ---- Media Match (v1.1) ------------------------------------------------
+   Explains a signature match in the same short, human register as the
+   rest of the report: names the one or two dimensions that actually
+   drove the score, using the same DIM_LABELS prose every other section
+   already reads from, rather than exposing raw dim keys or weights. */
+function explainSignatureMatch(signature, normDims){
+  const contributions = signature
+    .map(s => ({ dim: s.dim, val: (normDims[s.dim] || 0) * s.w }))
+    .filter(c => c.val > 0)
+    .sort((a, b) => b.val - a.val);
+  const top = contributions.slice(0, 2).map(c => DIM_LABELS[c.dim] || c.dim);
+  if (!top.length) return "A read that lines up with your overall shape more than any one trait.";
+  if (top.length === 1) return `Your ${top[0]} is what makes this one feel familiar.`;
+  return `Your ${top[0]} and ${top[1]} make this one feel familiar.`;
+}
+/* =========================================================================
+   PERSONALITY ATLAS (v1.2)
+   ---------------------------------------------------------------------
+   Replaces the three separate v1.1 datasets (MEDIA_CHARACTERS,
+   MEDIA_WORLDS, HISTORICAL_MINDS -- kept as-is below, unchanged content,
+   already written and reviewed) with one category-agnostic entity list
+   and one scoring/diversity/explanation engine that doesn't know or care
+   what a "Character" or a "World" is. Adding a new category later (Role,
+   Profession, Organization, ...) means adding entities with a category
+   string and an entry in ATLAS_CATEGORY_CONFIG below -- never touching
+   scoreAtlasEntity, selectDiverseAtlas, or the result page's render loop.
+
+   Why not the literal field list from the brief (franchise/universe/
+   country/occupation/alignment/importance/sharePriority/...)? Every one
+   of those is real for SOME category and meaningless for others (a World
+   has no "occupation", a Profession has no "franchise"), so hard-coding
+   them as required fields would mean most entities carry half a dozen
+   null fields forever. Entities instead carry a small required core
+   (id/name/category/medium/source/role/energy/signature) plus whatever
+   category-specific fields that entity actually has -- `tags` covers
+   the rest generically. Improves on the brief's schema rather than
+   copying it, per "do not blindly copy this."
+
+   Diversity, not just rank: subcategory is *derived* from each entity's
+   own strongest signature dimension (ATLAS_DIM_TO_BUCKET below), not
+   hand-tagged per entity -- so a future entity needs zero manual
+   classification to participate in diversity-aware selection, it just
+   works from its own signature like everything else here already does.
+   ========================================================================= */
+const ATLAS_DIM_TO_BUCKET = {
+  logic:"Analyst", curiosity:"Explorer", creativity:"Visionary", humor:"Trickster",
+  adaptability:"Explorer", empathy:"Heart", leadership:"Leader", patience:"Guardian",
+  drive:"Achiever", risk:"Maverick", trust:"Guardian", kindness:"Heart",
+  discipline:"Strategist", socialEnergy:"Heart", selfAwareness:"Outsider",
+  planning:"Strategist", resilience:"Survivor", optimism:"Heart",
+  independence:"Maverick", emotionalStability:"Guardian", competitiveness:"Achiever",
+  responsibility:"Guardian", persistence:"Survivor", openMindedness:"Explorer",
+};
+function atlasBucketFor(signature){
+  const top = [...signature].sort((a, b) => Math.abs(b.w) - Math.abs(a.w))[0];
+  return (top && ATLAS_DIM_TO_BUCKET[top.dim]) || "Wildcard";
+}
+// Built once at load, not per match -- every entity's signature magnitude
+// (used to normalize its score below) and diversity bucket are computed
+// a single time and cached on the entity object itself ("cache signatures,
+// cache normalized vectors, reuse calculations"), not recomputed on every
+// computeAtlasMatch() call. At today's ~50 entities this wouldn't matter;
+// at 10,000+ it's the difference between O(n) and O(n) per match instead
+// of O(n) work repeated on every single result page load.
+function buildAtlasEntities(){
+  const fromCharacters = MEDIA_CHARACTERS.map(c => ({
+    id: `character:${c.name}`, name: c.name, category: "Character", medium: c.sourceType,
+    source: c.source, role: c.role, energy: c.energy, signature: c.signature,
+  }));
+  const fromWorlds = MEDIA_WORLDS.map(w => ({
+    id: `world:${w.name}`, name: w.name, category: "World", medium: "Fiction",
+    source: w.source, role: w.role, energy: w.energy, signature: w.signature,
+  }));
+  const fromHistory = HISTORICAL_MINDS.map(h => ({
+    id: `historical:${h.name}`, name: h.name, category: "HistoricalFigure", medium: "Real",
+    source: h.field, role: h.role, energy: h.energy, signature: h.signature, died: h.died,
+  }));
+  const all = [...fromCharacters, ...fromWorlds, ...fromHistory];
+  all.forEach(e => {
+    e._sigMagnitude = e.signature.reduce((s, sig) => s + Math.abs(sig.w), 0) || 1;
+    e.subcategory = atlasBucketFor(e.signature);
+  });
+  return all;
+}
+const ATLAS_ENTITIES = buildAtlasEntities();
+
+// Normalized, not raw: a plain dot-product (what scoreBySignature() above
+// uses for every OTHER signature list in this file, e.g. NARRATIVE_ROLES)
+// structurally favors entities with more/heavier signature weights,
+// independent of fit quality -- a {w:2,w:1,w:1} entity outscores a
+// {w:2} entity even on an identical normDims read. That bias is fine for
+// the small, hand-balanced lists it was built for, but the Atlas mixes
+// entities with very different signature sizes across categories, so it
+// needs a fair comparison: divide by the entity's own weight magnitude.
+function scoreAtlasEntity(entity, normDims){
+  const raw = entity.signature.reduce((s, sig) => s + (normDims[sig.dim] || 0) * sig.w, 0);
+  return raw / entity._sigMagnitude;
+}
+// Greedy top-N capped per diversity bucket: walks the score-sorted list
+// and skips (doesn't discard -- just defers) any entity whose bucket
+// already has maxPerBucket picks, so "top 5" can't silently become five
+// Analyst-bucket detectives. Falls through to filling remaining slots
+// ignoring the cap only if the pool genuinely doesn't have enough
+// diversity to fill `count` otherwise, so a thin category still returns
+// something rather than an artificially short list.
+function selectDiverseAtlas(scored, count, maxPerBucket){
+  const picked = [];
+  const bucketCounts = {};
+  for (const s of scored){
+    if (picked.length >= count) break;
+    const used = bucketCounts[s.entity.subcategory] || 0;
+    if (used >= maxPerBucket) continue;
+    picked.push(s);
+    bucketCounts[s.entity.subcategory] = used + 1;
+  }
+  if (picked.length < count){
+    for (const s of scored){
+      if (picked.length >= count) break;
+      if (picked.includes(s)) continue;
+      picked.push(s);
+    }
+  }
+  return picked;
+}
+function explainSignatureContrast(signature, normDims){
+  const contributions = signature
+    .map(s => ({ dim: s.dim, val: (normDims[s.dim] || 0) * s.w }))
+    .filter(c => c.val < 0)
+    .sort((a, b) => a.val - b.val);
+  const top = contributions.slice(0, 2).map(c => DIM_LABELS[c.dim] || c.dim);
+  if (!top.length) return "A genuinely different shape from yours, not one sharp opposite trait, just an overall different balance.";
+  if (top.length === 1) return `Your read on ${top[0]} runs the opposite direction from this one.`;
+  return `Your read on ${top[0]} and ${top[1]} both run the opposite direction from this one.`;
+}
+// Category registry: the one place a future category gets added.
+// minScore is a confidence floor (on the same normalized scale
+// scoreAtlasEntity returns, roughly -10..10) -- a category whose best
+// available match doesn't clear it is left out of the result entirely
+// ("do not force every category to appear") rather than shown with a
+// weak, unconvincing top pick.
+const ATLAS_CATEGORY_CONFIG = {
+  Character: { label: "Characters Like You", count: 3, maxPerBucket: 1, minScore: 1.2 },
+  World: { label: "Worlds You'd Fit Into", count: 2, maxPerBucket: 2, minScore: 0.6 },
+  HistoricalFigure: { label: "Historical Minds", count: 2, maxPerBucket: 1, minScore: 1.2 },
+};
+function computeAtlasMatch(normDims){
+  const byCategory = {};
+  ATLAS_ENTITIES.forEach(e => { (byCategory[e.category] = byCategory[e.category] || []).push(e); });
+
+  const sections = [];
+  const featuredIds = new Set();
+  Object.entries(ATLAS_CATEGORY_CONFIG).forEach(([category, cfg]) => {
+    const pool = byCategory[category] || [];
+    if (!pool.length) return;
+    const scored = pool.map(entity => ({ entity, score: scoreAtlasEntity(entity, normDims) })).sort((a, b) => b.score - a.score);
+    if (scored[0].score < cfg.minScore) return;
+    const picked = selectDiverseAtlas(scored, cfg.count, cfg.maxPerBucket);
+    picked.forEach(s => featuredIds.add(s.entity.id));
+    sections.push({
+      category, label: cfg.label,
+      items: picked.map(s => ({ ...s.entity, explanation: explainSignatureMatch(s.entity.signature, normDims) })),
+    });
+  });
+
+  // Stories: derived from the Character section's own top matches (each
+  // one already implies its source story) rather than a fourth dataset --
+  // same reasoning as v1.1, just re-scored through the unified engine.
+  const charScored = (byCategory.Character || []).map(e => ({ entity: e, score: scoreAtlasEntity(e, normDims) })).sort((a, b) => b.score - a.score);
+  const seenSources = new Set();
+  const stories = [];
+  charScored.forEach(s => {
+    if (stories.length >= 3 || seenSources.has(s.entity.source)) return;
+    seenSources.add(s.entity.source);
+    stories.push({ source: s.entity.source, medium: s.entity.medium, role: s.entity.role, explanation: explainSignatureMatch(s.entity.signature, normDims) });
+  });
+  if (stories.length) sections.push({ category: "Story", label: "Stories You'd Fit Into", items: stories });
+
+  // Unexpected Match (v1.6: paired with the "obvious" pick, per the
+  // brief's own "the explanation matters more than the match"). The
+  // single best-scoring entity from whichever category didn't already
+  // clear its own confidence bar above -- a real, decent fit that's
+  // still genuinely surprising, not a random pick. "Expected" is simply
+  // the #1 Character match already shown in its own section above --
+  // reused, not recomputed, so the two can never disagree with each
+  // other about what the "obvious" pick even was.
+  const allScored = ATLAS_ENTITIES.map(entity => ({ entity, score: scoreAtlasEntity(entity, normDims) })).sort((a, b) => b.score - a.score);
+  const unexpected = allScored.find(s => !featuredIds.has(s.entity.id) && s.score >= 0.5);
+  const expectedEntity = charScored[0] && charScored[0].entity;
+  if (unexpected){
+    const baseExplanation = explainSignatureMatch(unexpected.entity.signature, normDims);
+    const explanation = (expectedEntity && expectedEntity.id !== unexpected.entity.id)
+      ? `Most people who read like you would expect ${expectedEntity.name}. ${baseExplanation.replace(/^Your/, "But your")}`
+      : baseExplanation;
+    sections.push({
+      category: "Unexpected", label: "Unexpected Match",
+      items: [{ ...unexpected.entity, explanation, expectedName: expectedEntity ? expectedEntity.name : null }],
+    });
+  }
+
+  // Opposite Personality: the lowest-scoring entity overall -- always
+  // shown (there's always a "most different" entry, unlike a positive
+  // match, which can legitimately not exist), framed as contrast rather
+  // than a match.
+  const opposite = allScored[allScored.length - 1];
+  if (opposite && opposite.score < 0){
+    sections.push({
+      category: "Opposite", label: "Opposite Personality",
+      items: [{ ...opposite.entity, explanation: explainSignatureContrast(opposite.entity.signature, normDims) }],
+    });
+  }
+
+  return sections;
+}
+
+/* ---- Atlas enrichment provider interface (v1.2, unused by default) -----
+   No providers are registered anywhere in this app -- this is the seam
+   a future one (AniList, TMDB, IGDB, OpenLibrary, Wikidata, ...) would
+   plug into without touching computeAtlasMatch/scoreAtlasEntity/
+   selectDiverseAtlas above. A provider only ever ADDS fields (image,
+   links, a richer description) to an entity already fully valid on its
+   own; the Atlas is complete and correct with zero providers registered,
+   which is also what keeps it working with no network and no API keys.
+   enrichAtlasEntity() is not called anywhere yet -- wiring it into
+   result.js's render path is future work, deliberately not done here
+   per "do NOT integrate APIs yet." */
+const ATLAS_PROVIDERS = [];
+function registerAtlasProvider(provider){ ATLAS_PROVIDERS.push(provider); }
+async function enrichAtlasEntity(entity){
+  let enriched = entity;
+  for (const provider of ATLAS_PROVIDERS){
+    try {
+      const extra = await provider.enrich(entity);
+      if (extra) enriched = { ...enriched, ...extra };
+    } catch (e) { /* provider unavailable or failed -- entity stays as local data, never blocks */ }
+  }
+  return enriched;
+}
+
 /* ---- Thinking, learning, decision profiles (Updates 8, 9, 10) ----------- */
 function computeThinkingProfile(normDims){ return computePercentageProfile(THINKING_CATEGORIES, normDims); }
 function computeLearningProfile(normDims){ return computePercentageProfile(LEARNING_CATEGORIES, normDims); }
@@ -3358,11 +3851,16 @@ function computeWhoComparisons(a, b, nameA, nameB){
 }
 
 const ACTIVITY_TEMPLATES = [
-  { dims:["risk","curiosity"], activity:"A spontaneous multi-city trip with no fixed itinerary", vacation:"Backpacking somewhere neither of you has been", business:"A scrappy early-stage venture that rewards moving fast", hobby:"Trying a new adrenaline sport together", weekend:"A last-minute road trip with no real plan" },
-  { dims:["creativity","openMindedness"], activity:"A collaborative art, music, or writing project", vacation:"A slow trip built around galleries, music, and local art scenes", business:"A creative studio or content brand", hobby:"Building something together with your hands", weekend:"A open-ended creative afternoon with zero deadline" },
-  { dims:["discipline","planning"], activity:"Training for something together with a real endpoint", vacation:"A well-planned trip with a clear itinerary and reservations made early", business:"An operations-heavy business that rewards consistency", hobby:"A shared fitness or skill-building routine", weekend:"A productive weekend with a satisfying list to check off" },
-  { dims:["empathy","kindness"], activity:"Volunteering somewhere together", vacation:"A quiet, restorative trip focused on connection over sightseeing", business:"A mission-driven venture or nonprofit", hobby:"Cooking for people you both care about", weekend:"A low-key weekend hosting people you love" },
-  { dims:["humor","socialEnergy"], activity:"Hosting a big, chaotic game night", vacation:"A trip built around festivals, nightlife, and meeting people", business:"Something public-facing and social, like events or hospitality", hobby:"An improv or comedy class together", weekend:"A weekend packed with plans and people" },
+  { dims:["risk","curiosity"], activity:"A spontaneous multi-city trip with no fixed itinerary", vacation:"Backpacking somewhere neither of you has been", business:"A scrappy early-stage venture that rewards moving fast", hobby:"Trying a new adrenaline sport together", weekend:"A last-minute road trip with no real plan",
+    solveProblems:"By trying something and adjusting fast rather than mapping it out first", crisis:"You'd move first and figure out the plan while already moving", friendship:"Built fast, over a shared spontaneous story rather than a slow build-up" },
+  { dims:["creativity","openMindedness"], activity:"A collaborative art, music, or writing project", vacation:"A slow trip built around galleries, music, and local art scenes", business:"A creative studio or content brand", hobby:"Building something together with your hands", weekend:"A open-ended creative afternoon with zero deadline",
+    solveProblems:"By reframing the problem itself before accepting the obvious answer", crisis:"You'd look for the unconventional way out others wouldn't consider", friendship:"Built on ideas you can only really have with each other" },
+  { dims:["discipline","planning"], activity:"Training for something together with a real endpoint", vacation:"A well-planned trip with a clear itinerary and reservations made early", business:"An operations-heavy business that rewards consistency", hobby:"A shared fitness or skill-building routine", weekend:"A productive weekend with a satisfying list to check off",
+    solveProblems:"By breaking it into steps and working the steps, in order", crisis:"You'd default to whatever the plan already accounted for", friendship:"Built slowly, through consistency shown over real time" },
+  { dims:["empathy","kindness"], activity:"Volunteering somewhere together", vacation:"A quiet, restorative trip focused on connection over sightseeing", business:"A mission-driven venture or nonprofit", hobby:"Cooking for people you both care about", weekend:"A low-key weekend hosting people you love",
+    solveProblems:"By checking in on who it actually affects before deciding anything", crisis:"You'd focus on making sure everyone's actually okay first", friendship:"Built on really being there, not just being around" },
+  { dims:["humor","socialEnergy"], activity:"Hosting a big, chaotic game night", vacation:"A trip built around festivals, nightlife, and meeting people", business:"Something public-facing and social, like events or hospitality", hobby:"An improv or comedy class together", weekend:"A weekend packed with plans and people",
+    solveProblems:"By talking it out loud with other people until it clicks", crisis:"You'd rally people and keep morale from collapsing", friendship:"Built loud, immediate, and easy from the very first conversation" },
 ];
 function computePerfectActivities(a, b){
   const combined = {};
@@ -3382,6 +3880,73 @@ function computePerfectActivities(a, b){
    traits with the most spread (likely friction points for the group as a
    whole, not just one pair).
 ------------------------------------------------------------------------- */
+/* ---- Party Compare v1.1: "the cast" ------------------------------------
+   Five named roles, each scored the same way every signature-based list
+   in this file already is (scoreBySignature's dot-product, just inlined
+   per-role here since this needs the *winning person*, not a ranked list
+   of items). Deliberately not forced to be five different people -- in a
+   3-5 person group it's completely normal, and informative, for one
+   person to carry more than one role; nothing here manufactures a false
+   balance the group doesn't actually have. */
+const GROUP_ROLE_SIGNATURES = {
+  stabilizer: [{dim:"emotionalStability",w:1},{dim:"resilience",w:1},{dim:"discipline",w:1}],
+  energizer: [{dim:"socialEnergy",w:1},{dim:"optimism",w:1}],
+  steerer: [{dim:"leadership",w:1},{dim:"confidence",w:1}],
+  humanizer: [{dim:"empathy",w:1},{dim:"kindness",w:1}],
+  challenger: [{dim:"competitiveness",w:1},{dim:"risk",w:1}],
+  // v1.2: three more, same mechanism, no changes to computeGroupCast()
+  // needed to add them -- this is the payoff of scoring roles generically
+  // instead of hand-writing a winner-finder per role.
+  planner: [{dim:"discipline",w:1},{dim:"planning",w:2}],
+  strategist: [{dim:"logic",w:1},{dim:"independence",w:1}],
+  chaosAgent: [{dim:"risk",w:1},{dim:"humor",w:1}],
+};
+const GROUP_ROLE_LABELS = {
+  stabilizer: { roleName:"The Stabilizer", roleDescription:"Keeps the group steady when things get stressful or uncertain." },
+  energizer: { roleName:"The Energizer", roleDescription:"Brings the social momentum that keeps everyone's energy up." },
+  steerer: { roleName:"The Steerer", roleDescription:"Naturally ends up setting the direction, whether or not they asked to." },
+  humanizer: { roleName:"The Humanizer", roleDescription:"Keeps the group's decisions grounded in how people actually feel." },
+  challenger: { roleName:"The Challenger", roleDescription:"Pushes the group past its comfortable default." },
+  planner: { roleName:"The Planner", roleDescription:"Has a structure in mind before anyone else has finished reacting." },
+  strategist: { roleName:"The Strategist", roleDescription:"Sees the whole board and plays several moves ahead of the conversation." },
+  chaosAgent: { roleName:"The Chaos Agent", roleDescription:"Is exactly as likely to save the plan as blow it up, on purpose." },
+};
+function computeGroupCast(profiles, names){
+  const label = (i) => names[i] || `Person ${i + 1}`;
+  return Object.entries(GROUP_ROLE_SIGNATURES).map(([role, signature]) => {
+    const scored = profiles.map((p, idx) => ({
+      idx,
+      score: signature.reduce((s, sig) => s + (p.normDims[sig.dim] || 0) * sig.w, 0),
+    })).sort((a, b) => b.score - a.score);
+    const winner = scored[0];
+    return {
+      role,
+      ...GROUP_ROLE_LABELS[role],
+      personName: label(winner.idx),
+      archetype: profiles[winner.idx].archetype,
+    };
+  });
+}
+
+// A couple of fun, game/story-framed one-liners on top of the Cast --
+// deliberately NOT more role cards (the grid is full enough already at 8
+// roles), just two named narrative beats the way a party in an actual
+// game or story gets talked about. Same signature-scoring mechanism as
+// everything above, just phrased as a scenario instead of a role.
+function computeGroupNarrative(profiles, names){
+  const label = (i) => names[i] || `Person ${i + 1}`;
+  const winnerFor = (signature) => {
+    const scored = profiles.map((p, idx) => ({
+      idx, score: signature.reduce((s, sig) => s + (p.normDims[sig.dim] || 0) * sig.w, 0),
+    })).sort((a, b) => b.score - a.score);
+    return label(scored[0].idx);
+  };
+  return {
+    survivesLongest: winnerFor([{dim:"resilience",w:1},{dim:"emotionalStability",w:1},{dim:"adaptability",w:1}]),
+    stepsUpFirst: winnerFor([{dim:"responsibility",w:1},{dim:"kindness",w:1},{dim:"risk",w:1}]),
+  };
+}
+
 function computeGroupCompatibility(profiles, names){
   const n = profiles.length;
   const label = (i) => names[i] || `Person ${i + 1}`;
@@ -3505,7 +4070,7 @@ function computeGroupCompatibility(profiles, names){
   return {
     n, pairwise, overallScore, bestPair, toughestPair, roles, groupSharedStrengths, groupFriction, vibe,
     identity, dominantArchetype, dominantSoul, groupStrengths, groupWeaknesses, sharedBlindSpots, missingArchetypes,
-    metrics, report,
+    metrics, report, cast: computeGroupCast(profiles, names), narrative: computeGroupNarrative(profiles, names),
   };
 }
 
@@ -4121,6 +4686,9 @@ function buildProfileExtras(normDims, archetype, ranked, session){
     motivationFacets: computeMotivationFacets(normDims),
     sinVirtue: computeSinVirtueProfile(normDims),
     narrativeRole: computeNarrativeRole(normDims),
+    identityTagline: computeIdentityTagline(normDims),
+    contradictions: computeContradictions(normDims),
+    atlas: computeAtlasMatch(normDims),
     social: computeSocialProfile(normDims),
     relationship: computeRelationshipProfile(normDims),
     thinking: computeThinkingProfile(normDims),
@@ -4182,6 +4750,10 @@ function computeResult(session){
     relationships: computeRelationshipStyles(normDims),
     traits: computeMeasuredTraits(normDims),
     consistency: computeConsistency(session),
+    // Real count, not an estimate -- the Confidence Engine (v1.7) wants
+    // genuine evidence ("1,900 answered questions"), not a guess derived
+    // from pace/depth after the fact.
+    questionCount: session.cursor,
     ...buildProfileExtras(normDims, match.primary, match.ranked, session),
   };
   localStorage.setItem("pf_last_code", code);
@@ -4222,6 +4794,22 @@ function ensureProfileSchema(p){
   if (!p.assessmentHistory) p.assessmentHistory = [];
   if (!p.preferences) p.preferences = {};
   if (!p.statistics) p.statistics = { totalAssessments: 0, firstAssessmentAt: null, lastAssessmentAt: null };
+  // v1.4 identity fields -- same lazy-fill-in-place pattern as everything
+  // above (an existing profile just quietly gains these the next time
+  // it's touched, nothing dropped or reset). All optional, all editable
+  // later from Profile's Edit Profile section; onboarding also writes
+  // ageGroup/gender/occupation/country here the moment a result completes
+  // (see ensureLocalProfile()) so a retake never has to ask again.
+  if (p.nickname === undefined) p.nickname = "";
+  if (p.birthday === undefined) p.birthday = null;
+  if (p.ageGroup === undefined) p.ageGroup = "";
+  if (p.gender === undefined) p.gender = "";
+  if (p.pronouns === undefined) p.pronouns = "";
+  if (p.occupation === undefined) p.occupation = "";
+  if (p.country === undefined) p.country = "";
+  if (p.location === undefined) p.location = "";
+  if (p.bio === undefined) p.bio = "";
+  if (p.favoriteColor === undefined) p.favoriteColor = null;
   // Internal schema stamp only -- never shown to users. Always the current
   // CODE_VERSION, unconditionally overwritten on every touch (this isn't a
   // migration flag, just a "profile last seen by schema N" marker).
@@ -4242,6 +4830,201 @@ function getLocalProfile(){
 }
 function saveLocalProfile(p){
   try{ localStorage.setItem(PF_PROFILE_KEY, JSON.stringify(p)); } catch(e){ /* storage unavailable, skip silently */ }
+  // v1.5: keeps the multi-profile index's summary row for the active
+  // profile in sync on every save, automatically -- this is the ONE
+  // touch point the whole multi-profile system needed in code that
+  // already existed. Every other function in the app that reads/writes
+  // pf_local_profile, pf_history, pf_journal_entries, etc. is completely
+  // unaware multiple profiles exist at all; see PROFILE_SCOPED_KEYS below
+  // for why.
+  try{ syncActiveProfileIntoIndex(p); } catch(e){ /* index unavailable, skip silently */ }
+}
+
+/* =========================================================================
+   MULTIPLE PROFILES (v1.5)
+   ---------------------------------------------------------------------
+   Architecture: the ACTIVE profile's data keeps living at the exact
+   canonical keys it always has (pf_local_profile, pf_history,
+   pf_journal_entries, pf_last_code, pf_suggestion_feedback, plus
+   in-progress quiz/onboarding state) -- nothing renamed, nothing
+   refactored. A new lightweight index (pf_profiles_index) tracks the
+   roster of profiles as small summaries (id/name/nickname/avatar-or-
+   soul-color/code/depth/version/dates) for the switcher UI, plus which
+   profile is currently "live" at the canonical keys. Switching profiles
+   snapshots the outgoing profile's canonical-key data into one JSON blob
+   under pf_profile_data:<id>, then restores the incoming profile's blob
+   back onto the canonical keys.
+
+   Why this instead of tagging every record with a profileId and
+   filtering everywhere? That approach would touch every read site across
+   engine.js/profile.js/growth.js/journal.js/home.js/result.js/improve.js/
+   frameworks.js -- dozens of call sites, each a chance to introduce a
+   regression, for a feature request that's explicit about "reuse current
+   systems" and "do not introduce regressions." The swap-at-the-canonical-
+   keys design means every one of those files keeps working completely
+   unchanged, oblivious that more than one profile can exist. It also
+   means "open to the most recently used profile by default" is true for
+   free -- whatever was live at the canonical keys when the tab last
+   closed is exactly what's there next time, no extra bookkeeping.
+   A device that predates v1.5 has no index yet; ensureProfilesIndex()
+   wraps its single existing pf_local_profile (if any) as the first
+   profile the first time any multi-profile code runs, touching nothing
+   else -- so this is a zero-risk migration, not a rewrite.
+   ========================================================================= */
+const PROFILES_INDEX_KEY = "pf_profiles_index";
+// Every canonical key that belongs to "whichever profile is active right
+// now" -- snapshotted/restored as one unit on every profile switch.
+// pf_quiz_progress/pf_onboarding_progress are included so an in-progress
+// assessment started under one profile is never silently lost if the
+// person switches away and back mid-quiz ("no information should
+// disappear", carried over from v1.4). pf_saved_groups (Compare's saved
+// party rosters) is deliberately NOT included -- a roster of other
+// people's codes to compare against reasonably stays shared across all
+// of this device's own profiles, not duplicated per profile.
+const PROFILE_SCOPED_KEYS = [
+  "pf_local_profile", "pf_history", "pf_journal_entries", "pf_last_code",
+  "pf_suggestion_feedback", "pf_quiz_progress", "pf_onboarding_progress",
+];
+
+function getProfilesIndex(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(PROFILES_INDEX_KEY) || "null");
+    if (raw && Array.isArray(raw.profiles)) return raw;
+  } catch(e){ /* fall through */ }
+  return null;
+}
+function saveProfilesIndex(idx){
+  try{ localStorage.setItem(PROFILES_INDEX_KEY, JSON.stringify(idx)); } catch(e){ /* storage unavailable, skip silently */ }
+}
+function profileSummaryFrom(p){
+  return {
+    id: p.profileId, name: p.name || "", nickname: p.nickname || "",
+    avatarImage: (p.avatarImage && isSafeAvatarDataUrl(p.avatarImage)) ? p.avatarImage : null,
+    soulHex: isSafeHexColor(p.soulHex) ? p.soulHex : null,
+    code: p.code || null, pfVersion: p.pfVersion || "", lastResultDepth: p.lastResultDepth || "",
+    createdAt: p.createdAt || Date.now(), updatedAt: p.updatedAt || p.createdAt || Date.now(),
+  };
+}
+// Lazily bootstraps the index from whatever single profile already
+// exists at the canonical keys -- the one-time, zero-risk migration
+// path for any device that had PersonaForge before v1.5.
+function ensureProfilesIndex(){
+  let idx = getProfilesIndex();
+  if (idx) return idx;
+  idx = { profiles: [], activeProfileId: null };
+  try{
+    const raw = JSON.parse(localStorage.getItem(PF_PROFILE_KEY) || "null");
+    if (raw && raw.profileId){
+      idx.profiles.push(profileSummaryFrom(raw));
+      idx.activeProfileId = raw.profileId;
+    }
+  } catch(e){ /* no existing profile to migrate -- an empty index is correct */ }
+  saveProfilesIndex(idx);
+  return idx;
+}
+function syncActiveProfileIntoIndex(p){
+  if (!p || !p.profileId) return;
+  const idx = ensureProfilesIndex();
+  const i = idx.profiles.findIndex(s => s.id === p.profileId);
+  const summary = profileSummaryFrom(p);
+  if (i >= 0) idx.profiles[i] = summary; else idx.profiles.push(summary);
+  idx.activeProfileId = p.profileId;
+  saveProfilesIndex(idx);
+}
+function snapshotActiveProfileData(){
+  const snap = {};
+  PROFILE_SCOPED_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) snap[k] = v; });
+  return snap;
+}
+function restoreProfileData(snap){
+  PROFILE_SCOPED_KEYS.forEach(k => localStorage.removeItem(k));
+  if (snap) Object.entries(snap).forEach(([k, v]) => { try{ localStorage.setItem(k, v); } catch(e){ /* skip */ } });
+}
+function listProfiles(){
+  return ensureProfilesIndex().profiles.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+}
+function getActiveProfileId(){
+  return ensureProfilesIndex().activeProfileId;
+}
+// Switches which profile's data is live at the canonical keys. Returns
+// true on success. No-ops (returns true) if the requested profile is
+// already active, so callers never need to check first.
+function switchToProfile(id){
+  const idx = ensureProfilesIndex();
+  if (idx.activeProfileId === id) return true;
+  if (!idx.profiles.some(s => s.id === id)) return false;
+  if (idx.activeProfileId){
+    localStorage.setItem(`pf_profile_data:${idx.activeProfileId}`, JSON.stringify(snapshotActiveProfileData()));
+  }
+  const incomingRaw = localStorage.getItem(`pf_profile_data:${id}`);
+  restoreProfileData(incomingRaw ? JSON.parse(incomingRaw) : null);
+  localStorage.removeItem(`pf_profile_data:${id}`);
+  idx.activeProfileId = id;
+  saveProfilesIndex(idx);
+  return true;
+}
+// Snapshots the current profile away (if any) and clears the canonical
+// keys for a genuinely fresh start -- the caller is expected to send the
+// person through full onboarding next (a brand-new profile has no
+// assessment yet, same "first launch" treatment as no profile at all).
+function createNewProfile(name){
+  const idx = ensureProfilesIndex();
+  if (idx.activeProfileId){
+    localStorage.setItem(`pf_profile_data:${idx.activeProfileId}`, JSON.stringify(snapshotActiveProfileData()));
+  }
+  restoreProfileData(null);
+  idx.activeProfileId = null;
+  saveProfilesIndex(idx);
+  return createLocalProfileIfMissing(name || "");
+}
+// Renames a profile whether or not it's currently active -- an inactive
+// profile's name lives in two places (the index summary, and inside its
+// own pf_profile_data:<id> snapshot), both kept in sync so a later switch
+// never shows a stale name.
+function renameProfile(id, name){
+  const idx = ensureProfilesIndex();
+  const summary = idx.profiles.find(s => s.id === id);
+  if (!summary) return false;
+  summary.name = name;
+  summary.updatedAt = Date.now();
+  saveProfilesIndex(idx);
+  if (idx.activeProfileId === id){
+    updateLocalProfile({ name, nameIsCustom: name.length > 0 });
+    return true;
+  }
+  const key = `pf_profile_data:${id}`;
+  const raw = localStorage.getItem(key);
+  if (raw){
+    try{
+      const snap = JSON.parse(raw);
+      if (snap.pf_local_profile){
+        const lp = JSON.parse(snap.pf_local_profile);
+        lp.name = name; lp.nameIsCustom = name.length > 0;
+        snap.pf_local_profile = JSON.stringify(lp);
+        localStorage.setItem(key, JSON.stringify(snap));
+      }
+    } catch(e){ /* leave the index summary as the source of truth */ }
+  }
+  return true;
+}
+// Deletes a profile entirely (all of its snapshot data, its index
+// entry). If it was the active one, switches to the next most-recently-
+// used remaining profile, or clears to a true "no profile" state if it
+// was the last one.
+function deleteProfileById(id){
+  const idx = ensureProfilesIndex();
+  const wasActive = idx.activeProfileId === id;
+  idx.profiles = idx.profiles.filter(s => s.id !== id);
+  localStorage.removeItem(`pf_profile_data:${id}`);
+  if (wasActive){
+    restoreProfileData(null);
+    idx.activeProfileId = null;
+    const next = idx.profiles.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+    saveProfilesIndex(idx);
+    if (next) switchToProfile(next.id);
+  } else {
+    saveProfilesIndex(idx);
+  }
 }
 
 // The PF4 onboarding Step 04 ("Begin PF4 Assessment") calls this before
@@ -4273,6 +5056,17 @@ function ensureLocalProfile(result){
     p.soul = result.soul.name;
     p.soulHex = result.soul.hex;
     p.confidencePct = result.confidence ? result.confidence.confidencePct : null;
+    p.lastResultDepth = (result.meta && result.meta.resultDepth) || p.lastResultDepth || "";
+    // v1.4: fill-if-empty only, never overwrite -- an answer someone gave
+    // once during onboarding persists onto the profile so a retake never
+    // has to ask again, but if they've since edited it from Profile's
+    // Edit Profile section (or just left it blank on purpose), a later
+    // retake's onboarding answer never clobbers that choice.
+    const meta = result.meta || {};
+    if (meta.ageGroup && !p.ageGroup) p.ageGroup = meta.ageGroup;
+    if (meta.gender && !p.gender) p.gender = meta.gender;
+    if (meta.occupation && !p.occupation) p.occupation = meta.occupation;
+    if (meta.country && !p.country) p.country = meta.country;
     p.updatedAt = Date.now();
     // Keep assessmentHistory/statistics in sync with the active (PF4-only)
     // timeline every time a result is saved, rather than a second,
@@ -4536,8 +5330,30 @@ function sanitizeImportedLocalProfile(p){
     // they're derived from pf_history (already imported separately above)
     // and re-synced automatically the next time ensureLocalProfile() runs,
     // so re-deriving them fresh is correct, not a loss.
-    profileId: typeof p.profileId === "string" ? p.profileId.slice(0, 80) : undefined,
+    // profileId is restricted to isSafeId()'s character set (not just a
+    // length cap, security review v1.5) -- it's used as a literal
+    // localStorage key suffix (pf_profile_data:<id>) and rendered in the
+    // Profile Switcher, and every profileId this app itself ever
+    // generates (crypto.randomUUID() or the pf-<base36> fallback) already
+    // satisfies this, so a real exported profile always round-trips.
+    profileId: isSafeId(p.profileId) ? p.profileId : undefined,
     preferences: (p.preferences && typeof p.preferences === "object" && !Array.isArray(p.preferences)) ? p.preferences : undefined,
+    // v1.5 identity fields (security review: these were missing from
+    // this allowlist entirely, which is why they never had an import
+    // path -- an allowlist that drops a field is a functional gap here,
+    // not a safety feature, since every field below is separately type/
+    // length-checked exactly like name and soul above it).
+    nickname: typeof p.nickname === "string" ? p.nickname.slice(0, 20) : undefined,
+    birthday: typeof p.birthday === "string" ? p.birthday.slice(0, 10) : undefined,
+    ageGroup: typeof p.ageGroup === "string" ? p.ageGroup.slice(0, 20) : undefined,
+    gender: typeof p.gender === "string" ? p.gender.slice(0, 20) : undefined,
+    pronouns: typeof p.pronouns === "string" ? p.pronouns.slice(0, 20) : undefined,
+    occupation: typeof p.occupation === "string" ? p.occupation.slice(0, 30) : undefined,
+    country: typeof p.country === "string" ? p.country.slice(0, 30) : undefined,
+    location: typeof p.location === "string" ? p.location.slice(0, 30) : undefined,
+    bio: typeof p.bio === "string" ? p.bio.slice(0, 200) : undefined,
+    favoriteColor: isSafeHexColor(p.favoriteColor) ? p.favoriteColor : undefined,
+    lastResultDepth: ["short","balanced","deep"].includes(p.lastResultDepth) ? p.lastResultDepth : undefined,
   };
 }
 
@@ -4688,14 +5504,40 @@ function deleteSavedGroup(id){
   try{ localStorage.setItem(GROUPS_KEY, JSON.stringify(groups)); } catch(e){ /* ignore */ }
 }
 
-/* ---------------- TIMELINE -----------------------------------
-   Since there's no backend, "history" just means a small local log kept in
-   localStorage on this device: each completed result, versioned and
-   timestamped. On a retake, the newest run is compared against the most
-   recent previous entry so the person can see roughly what shifted. */
+/* ---------------- TIMELINE / PERSONALITY KNOWLEDGE GRAPH (v1.7) ----------
+   Each completed result becomes one snapshot in pf_history. Immutable in
+   the sense that matters: normDims, code, archetype/soul-at-the-time,
+   confidence, consistency, and depth are never recomputed or altered
+   after the fact -- they're what was actually true on that run.
+
+   What's deliberately NOT stored here: full Atlas match objects,
+   contradiction explanation text, or anything else that's a pure
+   function of normDims. Storing those per-snapshot would duplicate
+   regenerable content and mean a future Atlas/explanation improvement
+   could never reach past snapshots. Instead this stores compact
+   *reference* fields (names/labels only -- atlasTopMatchName,
+   contradictionLabels, narrativeRoleName, identityTagline) cheap enough
+   to scan across the whole timeline for Memory Engine statements ("you've
+   matched Sherlock Holmes three times"), plus normDims itself, so
+   hydrateTimelineEntry() (below) can always recompute the full rich
+   detail on demand, current logic, for any single snapshot someone
+   actually opens. One data shape, read by Timeline/Confidence/Memory/
+   Growth/Relationship features alike -- not a separate store per feature.
+
+   Cap raised from 10 to 500 (was a real bug this rewrite incidentally
+   fixes: applyStoredConfidence() looks up a result's original confidence
+   by code, so anyone past 10 retakes was already silently losing that
+   lookup for their earliest runs). 500 is a defensive ceiling, not a
+   realistic one -- weekly retakes for a decade -- matching every other
+   growing list in this app (journal at 3650, suggestion feedback at
+   100), not a literal "never overwrite, unbounded" store, which would be
+   a genuine, unbounded localStorage-growth risk this codebase has
+   avoided everywhere else on purpose. */
+const TIMELINE_CAP = 500;
 function saveToTimeline(result){
   try{
     const history = JSON.parse(localStorage.getItem("pf_history") || "[]");
+    const contradictions = computeContradictions(result.normDims);
     history.push({
       code: result.code,
       name: result.name,
@@ -4703,14 +5545,69 @@ function saveToTimeline(result){
       archetypeId: result.archetype.id,
       soul: result.soul ? result.soul.name : null,
       confidencePct: result.confidence ? result.confidence.confidencePct : null,
+      consistencyPct: result.consistency ? result.consistency.pct : null,
+      depth: (result.meta && result.meta.resultDepth) || null,
+      questionCount: typeof result.questionCount === "number" ? result.questionCount : null,
       normDims: result.normDims,
       traits: result.traits,
       timestamp: Date.now(),
       version: CODE_VERSION,
+      // Compact derived references (see header comment) -- cheap enough
+      // to scan across hundreds of entries, never the full computed object.
+      contradictionLabels: contradictions.map(c => c.label),
+      atlasTopMatchName: (result.atlas.find(s => s.category === "Character") || {}).items?.[0]?.name || null,
+      narrativeRoleName: result.narrativeRole ? result.narrativeRole.primary.name : null,
+      identityTagline: result.identityTagline || null,
     });
-    while (history.length > 10) history.shift();
+    while (history.length > TIMELINE_CAP) history.shift();
     localStorage.setItem("pf_history", JSON.stringify(history));
   } catch(e){ /* storage unavailable, skip silently */ }
+}
+// Re-derives the full rich detail for one snapshot, current logic, from
+// its immutable normDims -- the "hydrate on demand" half of the
+// architecture above. Never called in a loop over the whole timeline
+// (that would be the wasteful, "recompute everything to scan for one
+// string" mistake this design specifically avoids); only when a UI
+// actually opens one specific snapshot.
+function hydrateTimelineEntry(entry){
+  return {
+    ...entry,
+    contradictions: computeContradictions(entry.normDims),
+    atlas: computeAtlasMatch(entry.normDims),
+    narrativeRole: computeNarrativeRole(entry.normDims),
+    identityTagline: computeIdentityTagline(entry.normDims),
+  };
+}
+// Lazy migration for snapshots saved before v1.7: the new compact
+// reference fields are backfilled from each entry's own already-stored
+// normDims the first time the timeline is read, written back once, same
+// "archive/enrich, never destroy" pattern the `legacy` flag already
+// uses just below. depth/consistencyPct have no safe way to reconstruct
+// (that information was never captured pre-v1.7) so they stay null on
+// old entries -- an honest gap, not a guess.
+function ensureTimelineSnapshotFields(h){
+  let changed = false;
+  if (h.contradictionLabels === undefined){
+    h.contradictionLabels = computeContradictions(h.normDims).map(c => c.label);
+    changed = true;
+  }
+  if (h.atlasTopMatchName === undefined){
+    const atlas = computeAtlasMatch(h.normDims);
+    h.atlasTopMatchName = (atlas.find(s => s.category === "Character") || {}).items?.[0]?.name || null;
+    changed = true;
+  }
+  if (h.narrativeRoleName === undefined){
+    h.narrativeRoleName = computeNarrativeRole(h.normDims).primary.name;
+    changed = true;
+  }
+  if (h.identityTagline === undefined){
+    h.identityTagline = computeIdentityTagline(h.normDims);
+    changed = true;
+  }
+  if (h.depth === undefined) { h.depth = null; changed = true; }
+  if (h.consistencyPct === undefined) { h.consistencyPct = null; changed = true; }
+  if (h.questionCount === undefined) { h.questionCount = null; changed = true; }
+  return changed;
 }
 function getPreviousTimelineEntry(){
   const history = getActiveTimeline();
@@ -4740,6 +5637,13 @@ function getFullTimeline(){
         const isLegacy = (h.version || 1) < LEGACY_CODE_VERSION;
         if (isLegacy){ h.legacy = true; changed = true; }
       }
+      // v1.7 Knowledge Graph fields: skipped for legacy (pre-PF4) entries
+      // on purpose -- their normDims were scored under a different,
+      // retired system, so running the current Atlas/contradiction/
+      // narrative-role logic against them would produce results that
+      // don't actually describe what that old result meant. Those stay
+      // null, same as depth/consistency already do for any pre-v1.7 entry.
+      if (!h.legacy && ensureTimelineSnapshotFields(h)) changed = true;
     });
     if (changed){ try{ localStorage.setItem("pf_history", JSON.stringify(history)); } catch(e){ /* ignore */ } }
     return history;
@@ -4748,6 +5652,110 @@ function getFullTimeline(){
 }
 function getActiveTimeline(){
   return getFullTimeline().filter(h => !h.legacy);
+}
+
+/* ---------------- CONFIDENCE ENGINE (v1.7) --------------------------------
+   Replaces a bare percentage with an evidence-based read: how much Forge
+   actually knows about this person, from real counts (assessments,
+   elapsed time, questions answered, measured consistency) -- never a
+   single formula pretending those don't matter. Every tier requires BOTH
+   enough assessments AND real elapsed time (five retakes in one sitting
+   isn't "very high confidence", it's just repetition), and where
+   consistency data exists, it has to actually be high. */
+function computeConfidenceEngine(){
+  const history = getActiveTimeline();
+  const n = history.length;
+  if (!n) return null;
+  const firstTs = history[0].timestamp, lastTs = history[history.length - 1].timestamp;
+  const spanDays = Math.max(0, Math.round((lastTs - firstTs) / 86400000));
+  const spanMonths = Math.round(spanDays / 30);
+  const totalQuestions = history.reduce((s, h) => s + (h.questionCount || 0), 0);
+  const consistencyValues = history.map(h => h.consistencyPct).filter(v => typeof v === "number");
+  const avgConsistency = consistencyValues.length ? Math.round(consistencyValues.reduce((a, b) => a + b, 0) / consistencyValues.length) : null;
+  const deepCount = history.filter(h => h.depth === "deep").length;
+
+  let label;
+  if (n >= 6 && spanDays >= 60 && (avgConsistency === null || avgConsistency >= 70)) label = "Very High";
+  else if (n >= 3 && spanDays >= 14) label = "High";
+  else if (n >= 2) label = "Building";
+  else label = "Initial";
+
+  return { assessmentCount: n, spanDays, spanMonths, totalQuestions, avgConsistency, deepCount, label, firstTimestamp: firstTs, lastTimestamp: lastTs };
+}
+
+/* ---------------- MEMORY ENGINE (v1.7) -------------------------------------
+   Every statement here is a direct read of stored snapshot data -- a
+   measured delta between two real entries, a repeated field value, a
+   label that appeared or stopped appearing. Nothing is templated
+   flattery and nothing fires without real evidence clearing a real
+   threshold (a 1-point dimension wobble isn't "you've changed"). Returns
+   0-5 statements depending on what the person's actual history supports;
+   an empty array for someone with under 2 real assessments is correct,
+   not a bug. */
+function computeMemoryStatements(){
+  const history = getActiveTimeline();
+  if (history.length < 2) return [];
+  const statements = [];
+  const first = history[0], last = history[history.length - 1];
+  const monthsAgo = Math.max(0, Math.round((last.timestamp - first.timestamp) / (1000 * 60 * 60 * 24 * 30)));
+  const timeLabel = monthsAgo >= 1 ? `Over the last ${monthsAgo} month${monthsAgo === 1 ? "" : "s"}` : "Across your recent assessments";
+
+  // Biggest single-dimension shift between the first and most recent run.
+  let biggestDim = null, biggestDelta = 0;
+  DIMENSIONS.forEach(d => {
+    const delta = (last.normDims[d] || 0) - (first.normDims[d] || 0);
+    if (Math.abs(delta) > Math.abs(biggestDelta)){ biggestDelta = delta; biggestDim = d; }
+  });
+  if (biggestDim && Math.abs(biggestDelta) >= 3){
+    // DIM_LABELS entries are all nouns ("kindness", "risk tolerance",
+    // "logical thinking") everywhere else in this file -- a "you've
+    // become more {label}" phrasing that expects an adjective breaks on
+    // most of them ("more kindness" isn't a sentence). "has grown/faded"
+    // reads correctly against every single label in that object.
+    statements.push(`${timeLabel}, your ${DIM_LABELS[biggestDim]} has ${biggestDelta > 0 ? "grown noticeably" : "faded noticeably"}.`);
+  }
+
+  // Most stable dimension across the whole history (lowest variance),
+  // only worth saying with enough runs to actually call it a pattern.
+  if (history.length >= 3){
+    let stableDim = null, stableVariance = Infinity;
+    DIMENSIONS.forEach(d => {
+      const vals = history.map(h => h.normDims[d] || 0);
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const variance = vals.reduce((s, v) => s + (v - mean) * (v - mean), 0) / vals.length;
+      if (variance < stableVariance){ stableVariance = variance; stableDim = d; }
+    });
+    if (stableDim && stableVariance < 2){
+      statements.push(`Your ${DIM_LABELS[stableDim]} has stayed consistent across all ${history.length} assessments -- one of the few things that hasn't moved.`);
+    }
+  }
+
+  // A repeated Atlas character match -- real pattern, not one-off noise.
+  const matchCounts = {};
+  history.forEach(h => { if (h.atlasTopMatchName) matchCounts[h.atlasTopMatchName] = (matchCounts[h.atlasTopMatchName] || 0) + 1; });
+  const repeatedMatch = Object.entries(matchCounts).sort((a, b) => b[1] - a[1])[0];
+  if (repeatedMatch && repeatedMatch[1] >= 2){
+    statements.push(`You've matched ${repeatedMatch[0]} ${repeatedMatch[1]} times now -- not a fluke, a real pattern.`);
+  }
+
+  // A contradiction that showed up in the first read but hasn't since.
+  const firstLabels = new Set(first.contradictionLabels || []);
+  const lastLabels = new Set(last.contradictionLabels || []);
+  const resolved = [...firstLabels].find(l => !lastLabels.has(l));
+  if (resolved) statements.push(`"${resolved}" showed up in your first assessment but hasn't since -- that tension resolved somewhere along the way.`);
+  const newContradiction = [...lastLabels].find(l => !firstLabels.has(l));
+  if (newContradiction) statements.push(`"${newContradiction}" is new since your first assessment -- a tension that wasn't there before.`);
+
+  // Confidence trend, only worth naming past a real threshold.
+  const confidenceValues = history.map(h => h.confidencePct).filter(v => typeof v === "number");
+  if (confidenceValues.length >= 2){
+    const delta = confidenceValues[confidenceValues.length - 1] - confidenceValues[0];
+    if (Math.abs(delta) >= 10){
+      statements.push(`Your match confidence has ${delta > 0 ? "climbed" : "dropped"} ${Math.abs(delta)} points since your first assessment -- Forge's read on you has gotten ${delta > 0 ? "sharper" : "less certain"} over time.`);
+    }
+  }
+
+  return statements.slice(0, 5);
 }
 
 // Without a live session, computeAssessmentConfidence() falls back to a

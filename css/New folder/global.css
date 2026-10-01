@@ -64,7 +64,7 @@
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'Courier New', monospace;
 }
 
-/* ---------- Light theme ----------------------------------------------- 
+/* ---------- Light theme -----------------------------------------------
    White background, soft pastel gradients, frosted glass cards. Dark
    stays the default (it's what's been built and refined so far), but
    both are fully implemented and switching is instant and saved locally. */
@@ -398,14 +398,6 @@ html::-webkit-scrollbar{ display:none; }
   animation: navFadeIn .6s var(--ease) both;
 }
 [data-theme="light"] .top-bar{ background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.34)); box-shadow: 0 16px 36px -20px rgba(100,116,139,0.3), inset 0 1px 0 rgba(255,255,255,0.6); }
-/* Left/right padding only (top/bottom untouched, so the ~64px height the
-   comment above calls out stays exactly the same) — 26px of horizontal
-   padding was tuned for a bar with room to spare; on a narrow phone it
-   just crowds the Home pill/logo/hamburger trio into less space than
-   the bar's own width would otherwise give them. */
-@media (max-width: 560px){
-  .top-bar{ padding-left: 16px; padding-right: 16px; }
-}
 @keyframes navFadeIn{ from{ opacity:0; transform: translateY(-8px); } to{ opacity:1; transform:none; } }
 .nav-zone{ display:flex; align-items:center; }
 .nav-left{ justify-self:start; }

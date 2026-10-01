@@ -60,13 +60,217 @@ function removeAvatar(){
   renderProfile();
 }
 
-function saveProfileName(){
-  const field = document.getElementById("profileNameField");
-  if (!field) return;
-  const name = field.value.trim();
-  updateLocalProfile({ name, nameIsCustom: name.length > 0 });
+// Copies the bare PF-code (not a full share link -- that's
+// copyShareLink() on the result page, which needs shareURLFor() and
+// isn't loaded here). Same clipboard-with-fallback pattern.
+function copyProfileShareCode(){
+  const profile = getLocalProfile();
+  if (!profile || !profile.code) return;
+  navigator.clipboard?.writeText(profile.code).then(() => {
+    click(700); showToast("Share code copied.");
+  }).catch(() => showToast("Couldn't copy automatically — long-press to copy: " + profile.code));
+}
+
+/* ---------------- Profile Switcher (v1.5) ----------------------------------
+   Multiple saved profiles (engine.js's listProfiles()/switchToProfile()/
+   createNewProfile()/renameProfile()/deleteProfileById() -- see the
+   architecture note above those). Fifth caller of the shared focus-trap
+   modal pattern. Each row reuses profileAvatarMarkup() as-is: a profile
+   summary carries the exact same avatarImage/name/soulHex fields a full
+   profile does, so it needs no adapter. */
+function showProfileSwitcherModal(){
   click(460);
-  showToast("Name updated.");
+  if (document.getElementById("profileSwitcherModal")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "profileSwitcherModal";
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal-card glass profile-switcher-modal" role="dialog" aria-modal="true" aria-labelledby="profileSwitcherTitle">
+      <button class="icon-btn modal-close" onclick="closeProfileSwitcherModal()" aria-label="Close">${ICONS.close}</button>
+      <div class="eyebrow accent">PROFILES</div>
+      <h3 id="profileSwitcherTitle">Everyone saved on this device</h3>
+      <p style="color:var(--text-muted);font-size:13.5px">Switch between yourself, friends, family, or alternate reads -- entirely on this device, nothing synced.</p>
+      <div class="profile-switcher-list" id="profileSwitcherList"></div>
+      <div class="cta-row" style="margin-top:14px">
+        <button class="btn btn-primary" onclick="promptCreateNewProfile()">+ New Profile</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  rememberFocusTrigger();
+  requestAnimationFrame(() => { overlay.classList.add("open"); getFocusable(overlay)[0]?.focus(); });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeProfileSwitcherModal(); });
+  document.addEventListener("keydown", onProfileSwitcherModalKey);
+  renderProfileSwitcherList();
+}
+// Security review fix (v1.5): these used to be inline onclick="fn('${s.id}',
+// '${s.name}')" handlers. Two problems, both real: (1) s.id is a
+// profileId, and while it's always system-generated locally, an
+// imported .pf file's profileId only ever went through a length cap
+// (see sanitizeImportedLocalProfile()), never a character allowlist --
+// so an imported profile could carry one crafted to break out of the
+// single-quoted JS-string context inside the attribute. (2) s.name went
+// through obEsc() (safe for HTML content) plus an ad-hoc
+// .replace(/'/g,"\\'") for the JS-string context, but a trailing
+// backslash in the name defeats that: it escapes the closing quote
+// *I* added instead of terminating the string, breaking out of the
+// intended JS-string context. Rather than patch the escaping (a
+// JSON.stringify-then-obEsc double-encode would technically close this
+// specific hole), this avoids the whole class: no data is ever
+// interpolated into executable attribute text. IDs live in data-id,
+// looked up fresh from listProfiles() (the same allowlisted-shape
+// summaries used everywhere else) when a button is actually clicked.
+function renderProfileSwitcherList(){
+  const list = document.getElementById("profileSwitcherList");
+  if (!list) return;
+  const profiles = listProfiles();
+  const activeId = getActiveProfileId();
+  list.innerHTML = profiles.length ? profiles.map(s => `
+    <div class="profile-switcher-row ${s.id === activeId ? "active" : ""}" data-id="${obEsc(s.id)}">
+      ${profileAvatarMarkup(s)}
+      <div class="profile-switcher-row-info">
+        <span class="profile-switcher-row-name">${obEsc(s.name) || "Unnamed"}${s.nickname ? ` <span class="profile-nickname">"${obEsc(s.nickname)}"</span>` : ""}</span>
+        <span class="profile-switcher-row-meta">${s.code ? `${obEsc(s.lastResultDepth ? { short:"Quick Read", balanced:"Balanced", deep:"Deep Dive" }[s.lastResultDepth] || "" : "")}${s.pfVersion ? ` &bull; ${obEsc(s.pfVersion)}` : ""}` : "Not assessed yet"}</span>
+      </div>
+      ${s.id === activeId
+        ? `<span class="tag profile-switcher-active-tag">Active</span>`
+        : `<button class="btn btn-ghost btn-sm" data-action="switch">Switch</button>`}
+      <button class="icon-btn profile-switcher-rename" data-action="rename" aria-label="Rename">${ICONS.edit || "&#9998;"}</button>
+      <button class="icon-btn profile-switcher-delete" data-action="delete" aria-label="Delete">${ICONS.close}</button>
+    </div>`).join("") : `<p style="color:var(--text-muted)">No profiles yet.</p>`;
+  list.querySelectorAll("[data-action]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.closest("[data-id]")?.dataset.id;
+      const summary = profiles.find(s => s.id === id);
+      if (!id || !summary) return;
+      if (btn.dataset.action === "switch") switchProfileFromModal(id);
+      else if (btn.dataset.action === "rename") promptRenameProfile(id, summary.name || "");
+      else if (btn.dataset.action === "delete") promptDeleteProfile(id, summary.name || "");
+    });
+  });
+}
+function onProfileSwitcherModalKey(e){
+  if (e.key === "Escape"){ closeProfileSwitcherModal(); return; }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("profileSwitcherModal"));
+}
+function closeProfileSwitcherModal(){
+  const el = document.getElementById("profileSwitcherModal");
+  if (el) el.remove();
+  document.removeEventListener("keydown", onProfileSwitcherModalKey);
+  restoreFocusTrigger();
+}
+function switchProfileFromModal(id){
+  if (!switchToProfile(id)){ showToast("Couldn't switch to that profile."); return; }
+  click(520);
+  closeProfileSwitcherModal();
+  renderProfile();
+  showToast("Switched profile.");
+}
+function promptCreateNewProfile(){
+  const name = (prompt("Name for the new profile (you can change this later):", "") || "").trim();
+  createNewProfile(name);
+  click(520);
+  closeProfileSwitcherModal();
+  goToNameScreen();
+}
+function promptRenameProfile(id, currentName){
+  const name = prompt("Rename this profile:", currentName);
+  if (name === null) return;
+  renameProfile(id, name.trim());
+  click(420);
+  renderProfileSwitcherList();
+  if (id === getActiveProfileId()) renderProfile();
+}
+function promptDeleteProfile(id, name){
+  if (listProfiles().length <= 1){ showToast("This is the only profile on this device -- delete it from Privacy & Data instead if you want to start over."); return; }
+  // Closed first, not stacked underneath: showDangerConfirm() is its own
+  // focus-trapped modal, and this codebase's modal pattern (one keydown
+  // listener per open overlay) was never designed for two trapping Tab/
+  // Escape at once. Reopening after works fine since the list re-reads
+  // live state each time.
+  closeProfileSwitcherModal();
+  showDangerConfirm(
+    `Delete "${name || "this profile"}"?`,
+    "Removes this profile and everything saved under it (history, journal, statistics) from this device. This can't be undone.",
+    () => { deleteProfileById(id); renderProfile(); showToast("Profile deleted."); }
+  );
+}
+
+/* ---------------- Edit Profile (v1.4) -------------------------------------
+   Every onboarding-collected or identity field, editable after the fact,
+   in one place -- same .modal-overlay/.modal-card chrome and focus-trap
+   utilities (trapFocus helpers in global.js) as showDangerConfirm() and
+   showPrivacyModal() already use, so this is the fourth caller of that
+   shared pattern, not a new one. Writes straight through updateLocalProfile()
+   (already existed, already handles persistence) -- no new storage path. */
+function showEditProfileModal(){
+  const profile = getLocalProfile();
+  if (!profile) return;
+  click(460);
+  if (document.getElementById("editProfileModal")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "editProfileModal";
+  overlay.className = "modal-overlay";
+  const genderOptions = ["", ...OB_GENDERS].map(g => `<option value="${obEsc(g)}" ${profile.gender===g?"selected":""}>${g||"Prefer not to say"}</option>`).join("");
+  const ageOptions = ["", ...OB_AGE_GROUPS].map(a => `<option value="${obEsc(a)}" ${profile.ageGroup===a?"selected":""}>${a||"Not set"}</option>`).join("");
+  overlay.innerHTML = `
+    <div class="modal-card glass edit-profile-modal" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
+      <button class="icon-btn modal-close" onclick="closeEditProfileModal()" aria-label="Close">${ICONS.close}</button>
+      <div class="eyebrow accent">EDIT PROFILE</div>
+      <h3 id="editProfileTitle">Everything about you, in one place</h3>
+      <p style="color:var(--text-muted);font-size:13.5px">Updates instantly. None of this affects your archetype or soul type -- retake the assessment for that.</p>
+      <div class="edit-profile-grid">
+        <div><label class="ns-label" for="editName">Name</label><input type="text" id="editName" class="ns-input ns-input-sm" maxlength="20" value="${obEsc(profile.name)}" placeholder="Add a name" /></div>
+        <div><label class="ns-label" for="editNickname">Nickname</label><input type="text" id="editNickname" class="ns-input ns-input-sm" maxlength="20" value="${obEsc(profile.nickname)}" placeholder="What friends call you" /></div>
+        <div><label class="ns-label" for="editPronouns">Pronouns</label><input type="text" id="editPronouns" class="ns-input ns-input-sm" maxlength="20" value="${obEsc(profile.pronouns)}" placeholder="e.g. she/her" /></div>
+        <div><label class="ns-label" for="editBirthday">Birthday</label><input type="date" id="editBirthday" class="ns-input ns-input-sm" value="${obEsc(profile.birthday || "")}" /></div>
+        <div><label class="ns-label" for="editAgeGroup">Age group</label><select id="editAgeGroup" class="ns-input ns-input-sm">${ageOptions}</select></div>
+        <div><label class="ns-label" for="editGender">Gender</label><select id="editGender" class="ns-input ns-input-sm">${genderOptions}</select></div>
+        <div><label class="ns-label" for="editLocation">Location</label><input type="text" id="editLocation" class="ns-input ns-input-sm" maxlength="30" value="${obEsc(profile.location)}" placeholder="City or country" /></div>
+        <div><label class="ns-label" for="editOccupation">Occupation</label><input type="text" id="editOccupation" class="ns-input ns-input-sm" maxlength="30" value="${obEsc(profile.occupation)}" placeholder="What you do" /></div>
+        <div><label class="ns-label" for="editFavoriteColor">Favorite color</label><input type="color" id="editFavoriteColor" class="ns-input ns-input-sm ns-input-color" value="${isSafeHexColor(profile.favoriteColor) ? profile.favoriteColor : "#7C3AED"}" /></div>
+      </div>
+      <div style="margin-top:12px"><label class="ns-label" for="editBio">Bio</label><textarea id="editBio" class="ns-input" maxlength="200" rows="3" placeholder="A couple sentences about you">${obEsc(profile.bio)}</textarea></div>
+      <div class="cta-row" style="margin-top:14px">
+        <button class="btn btn-ghost" onclick="closeEditProfileModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEditProfileModal()">Save Changes</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  rememberFocusTrigger();
+  requestAnimationFrame(() => { overlay.classList.add("open"); getFocusable(overlay)[0]?.focus(); });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) closeEditProfileModal(); });
+  document.addEventListener("keydown", onEditProfileModalKey);
+}
+function onEditProfileModalKey(e){
+  if (e.key === "Escape"){ closeEditProfileModal(); return; }
+  if (e.key !== "Tab") return;
+  cycleFocusTrap(e, document.getElementById("editProfileModal"));
+}
+function closeEditProfileModal(){
+  const el = document.getElementById("editProfileModal");
+  if (el) el.remove();
+  document.removeEventListener("keydown", onEditProfileModalKey);
+  restoreFocusTrigger();
+}
+function saveEditProfileModal(){
+  const val = (id) => document.getElementById(id)?.value || "";
+  const name = val("editName").trim();
+  updateLocalProfile({
+    name, nameIsCustom: name.length > 0,
+    nickname: val("editNickname").trim(),
+    pronouns: val("editPronouns").trim(),
+    birthday: val("editBirthday") || null,
+    ageGroup: val("editAgeGroup"),
+    gender: val("editGender"),
+    location: val("editLocation").trim(),
+    occupation: val("editOccupation").trim(),
+    favoriteColor: isSafeHexColor(val("editFavoriteColor")) ? val("editFavoriteColor") : null,
+    bio: val("editBio").trim().slice(0, 200),
+  });
+  closeEditProfileModal();
+  click(460);
+  showToast("Profile updated.");
   renderProfile();
 }
 
@@ -123,9 +327,13 @@ function renderProfile(){
   // decoded.normDims means Profile can't drift from Growth/Home, which
   // already do the same (buildResultFromLatestTimeline).
   const archetype = decoded ? matchArchetype(decoded.normDims).primary : null;
+  if (archetype) setAccentColors(archetype.colors[0], archetype.colors[1]);
   const soul = decoded ? computeSoulType(decoded.normDims) : null;
+  const tagline = decoded ? computeIdentityTagline(decoded.normDims) : null;
   const progress = computeProgress(decoded ? decoded.normDims : null);
   const journalStreak = computeJournalStreak();
+  const depthLabel = { short:"Quick Read", balanced:"Balanced", deep:"Deep Dive" }[profile.lastResultDepth] || null;
+  const heroGlow = (soul && soul.hex) || profile.favoriteColor || "var(--accent)";
 
   root.innerHTML = `
     <div class="container">
@@ -134,27 +342,35 @@ function renderProfile(){
       <h2 style="margin:10px 0 6px">Your Local Space in Forge</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Everything here lives only on this device. There's no account behind it, and nothing here is sent anywhere.</p>
 
-      <div class="card glass profile-hero" style="margin-top:18px">
+      <div class="card glass profile-hero profile-hero-v2" style="margin-top:18px;--hero-glow:${heroGlow}">
         <div class="profile-hero-row">
-          <div class="profile-avatar-wrap">
+          <div class="profile-avatar-wrap profile-avatar-wrap-lg">
             ${profileAvatarMarkup(profile, soul ? soul.hex : null)}
           </div>
           <div class="profile-hero-info">
-            <h3>${obEsc(profile.name) || "Unnamed"}</h3>
-            <p style="color:var(--text-muted)">${hasResult ? `${archetype.icon} ${archetype.name} &bull; ${obEsc(soul ? soul.name : "")} Soul` : "Not assessed yet"}</p>
-            <div class="cta-row" style="margin-top:8px">
-              <button class="btn btn-ghost btn-sm" onclick="pickAvatar()">${profile.avatarImage ? "Change photo" : "Add photo"}</button>
-              ${profile.avatarImage ? `<button class="btn btn-ghost btn-sm" onclick="removeAvatar()">Remove photo</button>` : ""}
-            </div>
+            <h3>${obEsc(profile.name) || "Unnamed"}${profile.nickname ? ` <span class="profile-nickname">"${obEsc(profile.nickname)}"</span>` : ""}</h3>
+            ${tagline ? `<p class="profile-tagline">${obEsc(tagline)}</p>` : ""}
+            <p style="color:var(--text-muted);margin-top:2px">${hasResult ? `${archetype.icon} ${archetype.name} &bull; ${obEsc(soul ? soul.name : "")} Soul` : "Not assessed yet"}</p>
+            ${hasResult ? `
+            <div class="profile-badge-row">
+              ${depthLabel ? `<span class="tag">${depthLabel}</span>` : ""}
+              <span class="tag">${obEsc(profile.pfVersion || "")}</span>
+              ${profile.updatedAt ? `<span class="tag">${new Date(profile.updatedAt).toLocaleDateString()}</span>` : ""}
+            </div>` : ""}
           </div>
         </div>
-        <div class="nav-menu-sep" style="margin:16px 0"></div>
-        <div class="profile-name-edit">
-          <label for="profileNameField" class="ns-label">Display name</label>
-          <div class="profile-name-row">
-            <input type="text" id="profileNameField" class="ns-input ns-input-sm" maxlength="20" value="${obEsc(profile.name)}" placeholder="Add a name" />
-            <button class="btn btn-primary btn-sm" onclick="saveProfileName()">Save</button>
-          </div>
+        ${hasResult ? `
+        <div class="profile-hero-stats">
+          <div class="profile-stat"><span class="profile-stat-val count-up" data-target="${profile.confidencePct || 0}" data-suffix="%">0%</span><span class="profile-stat-label">Confidence</span></div>
+          <div class="profile-stat"><span class="profile-stat-val count-up" data-target="${journalStreak.current}">0</span><span class="profile-stat-label">Day Streak</span></div>
+          <div class="profile-stat"><span class="profile-stat-val count-up" data-target="${progress.level}">0</span><span class="profile-stat-label">Level</span></div>
+        </div>` : ""}
+        <div class="cta-row" style="margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="pickAvatar()">${profile.avatarImage ? "Change photo" : "Add photo"}</button>
+          ${profile.avatarImage ? `<button class="btn btn-ghost btn-sm" onclick="removeAvatar()">Remove photo</button>` : ""}
+          <button class="btn btn-ghost btn-sm" onclick="showEditProfileModal()">Edit Profile</button>
+          <button class="btn btn-ghost btn-sm" onclick="showProfileSwitcherModal()">Profiles${listProfiles().length > 1 ? ` (${listProfiles().length})` : ""}</button>
+          ${hasResult ? `<button class="btn btn-primary btn-sm" onclick="retakeAssessment()">Retake Assessment &rarr;</button>` : ""}
         </div>
       </div>
 
@@ -205,20 +421,9 @@ function renderProfile(){
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Export &amp; Import</h4>
-        <p>Move your profile to another browser or device, or back it up as a file.</p>
-        <div class="cta-row" style="margin-top:8px">
-          <button class="btn btn-ghost btn-sm" onclick="exportProfile()">Export Profile (.pf)</button>
-          <button class="btn btn-ghost btn-sm" onclick="importProfile()">Import Profile (.pf)</button>
-        </div>
-      </div>
-
-      <div class="card glass" style="margin-top:12px">
         <h4>Privacy &amp; Data</h4>
         <p style="color:var(--text-muted)">Everything below acts only on this device. ${legacyHistory.length ? `${legacyHistory.length} legacy result${legacyHistory.length===1?"":"s"} archived from an earlier PersonaForge.` : "No legacy results on this device."}</p>
         <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm" onclick="exportProfile()">Export Local Profile</button>
-          <button class="btn btn-ghost btn-sm" onclick="importProfile()">Import Local Profile</button>
           <button class="btn btn-ghost btn-sm" onclick="confirmResetOnboarding()">Reset Onboarding</button>
         </div>
         <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
@@ -228,6 +433,19 @@ function renderProfile(){
         <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm danger" onclick="confirmDeleteLocalProfile()">Delete Local Profile</button>
           <button class="btn btn-primary btn-sm danger" onclick="confirmDeleteEverything()">Delete Everything</button>
+        </div>
+      </div>
+
+      <div class="card glass profile-files-card" style="margin-top:12px">
+        <div class="eyebrow accent">PROFILE FILES</div>
+        <h4 style="margin-top:2px">Your data, as a file</h4>
+        <p style="color:var(--text-muted)">.pf stores your complete PersonaForge profile, completely offline. Nothing here ever touches a server.</p>
+        <div class="profile-files-grid">
+          <button class="btn btn-ghost btn-sm" onclick="exportProfile()">Export Persona (.pf)</button>
+          <button class="btn btn-ghost btn-sm" onclick="importProfile()">Import Persona (.pf)</button>
+          ${hasResult ? `<button class="btn btn-ghost btn-sm" onclick="viewMyLastResult()">Export Summary PDF</button>` : `<button class="btn btn-ghost btn-sm" disabled title="Take the assessment first">Export Summary PDF</button>`}
+          ${hasResult ? `<button class="btn btn-ghost btn-sm" onclick="copyProfileShareCode()">Copy Share Code</button>` : `<button class="btn btn-ghost btn-sm" disabled title="Take the assessment first">Copy Share Code</button>`}
+          ${hasResult ? `<button class="btn btn-ghost btn-sm" onclick="viewMyLastResult()">Generate QR</button>` : `<button class="btn btn-ghost btn-sm" disabled title="Take the assessment first">Generate QR</button>`}
         </div>
       </div>
 

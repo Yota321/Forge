@@ -55,12 +55,15 @@ function renderGrowth(){
   }
 
   const a = result.archetype;
+  setAccentColors(a.colors[0], a.colors[1]);
   const growth = computeGrowthTimeline(result);
   const history = growth.entries;
   const color = a.colors ? a.colors[0] : "var(--accent)";
   const snapshot = computeWeeklySnapshot(result, growth);
   const streak = computeJournalStreak();
   const nudge = computeRetakeNudge(growth, streak);
+  const confidenceEngine = computeConfidenceEngine();
+  const memoryStatements = computeMemoryStatements();
 
   root.innerHTML = `
     <div class="container">
@@ -76,6 +79,23 @@ function renderGrowth(){
         <p style="color:var(--text-muted)">Total assessments taken on this device</p>
         ${growth.badges.length ? `<div class="tag-list" style="justify-content:center;margin-top:10px">${growth.badges.map(b => `<span class="tag">${b}</span>`).join("")}</div>` : ""}
       </div>
+
+      ${confidenceEngine ? `
+      <div class="card glass confidence-engine-card" style="margin-top:14px">
+        <div class="eyebrow accent">CONFIDENCE</div>
+        <div class="confidence-engine-row">
+          <div class="confidence-engine-label">${confidenceEngine.label}</div>
+          <div class="confidence-engine-evidence">
+            <p>Forge has observed <strong>${confidenceEngine.assessmentCount} assessment${confidenceEngine.assessmentCount===1?"":"s"}</strong>${confidenceEngine.spanDays >= 1 ? ` over <strong>${confidenceEngine.spanMonths >= 1 ? `${confidenceEngine.spanMonths} month${confidenceEngine.spanMonths===1?"":"s"}` : `${confidenceEngine.spanDays} day${confidenceEngine.spanDays===1?"":"s"}`}</strong>` : ""}${confidenceEngine.totalQuestions ? `, <strong>${confidenceEngine.totalQuestions.toLocaleString()} answered questions</strong>` : ""}${confidenceEngine.avgConsistency !== null ? `, averaging <strong>${confidenceEngine.avgConsistency}% consistency</strong>` : ""}.</p>
+          </div>
+        </div>
+      </div>` : ""}
+
+      ${memoryStatements.length ? `
+      <div class="card glass" style="margin-top:14px">
+        <div class="eyebrow accent">FORGE REMEMBERS</div>
+        ${memoryStatements.map(m => `<p style="margin-top:8px">${m}</p>`).join("")}
+      </div>` : ""}
 
       ${snapshot ? `
       <div class="card glass" style="margin-top:14px">

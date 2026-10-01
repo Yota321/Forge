@@ -27,6 +27,7 @@ function renderFrameworks(){
     return;
   }
 
+  setAccentColors(result.archetype.colors[0], result.archetype.colors[1]);
   const deep = computeFrameworksDeepDive(result.normDims);
 
   root.innerHTML = `
