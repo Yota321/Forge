@@ -763,13 +763,20 @@ button.lp-card{ width:100%; }
      phone screen, squeezing the tagline into a ~220px column that wraps
      word by word and forces the four nav links onto two ragged rows. */
   .lp-footer-inner{ grid-template-columns: 1fr; justify-items:center; text-align:center; padding: 0 20px 28px; }
-  .lp-footer-top{ flex-direction:column; gap:4px; }
+  /* align-items:baseline (the desktop rule, for the logo+tagline sitting
+     side by side) carries over into this column layout too unless
+     overridden — in a column flex container "baseline" doesn't center
+     children on the cross axis, which is exactly why the logo was
+     sitting flush left instead of centered despite text-align:center/
+     justify-items:center above (confirmed live: its center was 87px off
+     the footer's actual center). center is the fix for a column stack. */
+  .lp-footer-top{ flex-direction:column; align-items:center; gap:6px; }
   .lp-footer .footer-nav{ grid-column:1; flex-wrap:wrap; justify-content:center; row-gap:8px; }
-  /* A touch bigger than desktop's 20px — standing alone above the
-     tagline (not inline beside it, see flex-direction:column above) it
-     reads as the page's own sign-off mark here, so it can carry a
-     little more visual weight than it does sitting inline on desktop. */
-  .lp-footer-logo{ height:24px; }
+  /* ~20% over desktop's 20px — standing alone above the tagline (not
+     inline beside it, see flex-direction:column above) it reads as the
+     page's own sign-off mark here, so it can carry more visual weight
+     than it does sitting inline on desktop. */
+  .lp-footer-logo{ height:28px; }
 }
 
 
@@ -2398,15 +2405,27 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 }
 
 @media (max-width:720px){
+  /* Was 740px — against a ~335px-wide card that's a 0.45 width:height
+     ratio, far taller/narrower than desktop's own ~1:1 ingot (confirmed
+     live: 789x782 at 1440px). The fixed height was also simply more
+     than the content needed: with the text block anchored to the
+     bottom (justify-content:flex-end below) and .ingot-top floating
+     independently at its own absolute position, the leftover height
+     just became blank image space between them, not real breathing
+     room. Shortened height + the action buttons moving to 3-per-row
+     (saving ~50px of stacked button rows, see .ingot-actions below)
+     closes most of that gap without touching font sizes, the image, or
+     dropping any button — it lands around 0.8 width:height, close to
+     desktop's own proportions scaled down rather than stretched. */
   .hero-bento > .ingot{
-    height:740px;
-    min-height:740px;
+    height:560px;
+    min-height:560px;
   }
   .result-hero .ingot-content{
     justify-content:flex-end;
-    padding:28px 22px 190px;
+    padding:22px 20px 140px;
   }
-  .result-hero .ingot-top{ top:25px; left:22px; right:22px; }
+  .result-hero .ingot-top{ top:20px; left:20px; right:20px; }
   .result-hero .ingot-icon{ width:46px; height:46px; }
   .result-hero .ingot-confidence{ padding:9px 11px; }
   .result-hero .ingot-name{ max-width:8ch; font-size:clamp(45px,14.5vw,58px); }
@@ -2425,22 +2444,32 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
      Letting it use the real column width is spacing, not a typography
      change (font-size/line-height/clamp all untouched). */
   .result-hero .ingot-desc{
-    max-width:37ch; margin-top:13px; font-size:14.5px; line-height:1.5;
+    max-width:37ch; margin-top:10px; font-size:14.5px; line-height:1.5;
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
   }
+  /* The second paragraph (the "blended insight" aside — see the
+     ingot-top/icon overlap comment above) is the lower-priority of the
+     two, so it gives up a line here rather than the primary
+     description: the shorter card has room for 3+2 clamped lines
+     between the two, not 3+3, without the text block creeping up into
+     the icon again. */
+  .result-hero .ingot-desc + .ingot-desc{ -webkit-line-clamp:2; }
+  /* 3-per-row (was 2) — same six buttons, same min-height and font-size,
+     just arranged in 2 rows instead of 3 so the action block itself
+     takes less of the card's new, shorter height. This is the
+     "breathe horizontally instead of vertically" trade the shorter
+     card needs to make. */
   .result-hero .ingot-actions{
-    left:22px;
-    right:22px;
-    bottom:22px;
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    left:20px;
+    right:20px;
+    bottom:18px;
+    grid-template-columns:repeat(3,minmax(0,1fr));
   }
   .result-hero .ingot-actions .btn{ min-height:44px; font-size:10.5px; }
   .section-heading{ padding-top:18px; }
 }
 
 @media (max-width:390px){
-  .hero-bento > .ingot{ height:720px; min-height:720px; }
-  .result-hero .ingot-content{ padding-bottom:184px; }
+  .hero-bento > .ingot{ height:560px; min-height:560px; }
   .result-hero .ingot-name{ font-size:44px; }
-  .result-hero .ingot-desc{ -webkit-line-clamp:3; }
 }
