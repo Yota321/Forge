@@ -29,8 +29,24 @@ const LEGAL_VERSION_HISTORY = [
 // Every font actually used anywhere in Forge.
 const LEGAL_FONTS = [
   {
+    name: "Clash Display",
+    role: "Display typeface, used for headings, large numbers, and card titles",
+    source: "Fontshare (Indian Type Foundry)",
+    homepage: "https://www.fontshare.com/fonts/clash-display",
+    license: "Fontshare Free Font License",
+    attribution: "Not required"
+  },
+  {
+    name: "Satoshi",
+    role: "Body typeface, used for paragraphs, buttons, and interface text",
+    source: "Fontshare (Indian Type Foundry)",
+    homepage: "https://www.fontshare.com/fonts/satoshi",
+    license: "Fontshare Free Font License",
+    attribution: "Not required"
+  },
+  {
     name: "Cabinet Grotesk",
-    role: "Display &amp; body typeface, used for headings, buttons, and primary text",
+    role: "Fallback typeface if the display or body font cannot load",
     source: "Fontshare (Indian Type Foundry)",
     homepage: "https://www.fontshare.com/fonts/cabinet-grotesk",
     license: "Fontshare Free Font License",
@@ -52,7 +68,7 @@ const LEGAL_FONTS = [
 // in-house rather than silently omitted.
 const LEGAL_THIRD_PARTY = [
   { name: "Google Fonts", purpose: "Webfont delivery for JetBrains Mono", homepage: "https://fonts.google.com/", license: "Hosting service; the font itself keeps its own license (see Fonts above)", attribution: "See Fonts above" },
-  { name: "Fontshare", purpose: "Webfont delivery for Cabinet Grotesk", homepage: "https://www.fontshare.com/", license: "Hosting service; the font itself keeps its own license (see Fonts above)", attribution: "See Fonts above" },
+  { name: "Fontshare", purpose: "Webfont delivery for Clash Display and Satoshi", homepage: "https://www.fontshare.com/", license: "Hosting service; the font itself keeps its own license (see Fonts above)", attribution: "See Fonts above" },
   { name: "QR code generator", purpose: "Renders the scannable QR code for shared profile links", homepage: "N/A", license: "Original Forge code (implements the public ISO/IEC 18004 QR standard, no third-party library used)", attribution: "Not applicable" },
   { name: "Trait radar chart", purpose: "Canvas-drawn radar visualization on the results screen", homepage: "N/A", license: "Original Forge code", attribution: "Not applicable" },
   { name: "Interface icon set", purpose: "Every UI icon (home, theme, sound, navigation, etc.)", homepage: "N/A", license: "Original Forge artwork, no external icon library used", attribution: "Not applicable" }
@@ -142,7 +158,7 @@ function renderLegalVersionHistory(){
   return LEGAL_VERSION_HISTORY.map(v => `<div class="version-row"><span class="v-tag">v${obEsc(v.version)}</span><span class="v-date">${obEsc(v.date)}</span><span class="v-note">${obEsc(v.notes)}</span></div>`).join("");
 }
 function renderLegalFonts(){
-  return LEGAL_FONTS.map(f => `<div class="credit-item"><h4>${obEsc(f.name)}</h4><dl>` +
+  return LEGAL_FONTS.map(f => `<div class="credit-item"><h4 aria-level="3">${obEsc(f.name)}</h4><dl>` +
     `<dt>Role</dt><dd>${f.role}</dd>` +
     `<dt>Source</dt><dd>${obEsc(f.source)}</dd>` +
     `<dt>Homepage</dt><dd>${legalLinkOrDash(f.homepage)}</dd>` +
@@ -151,7 +167,7 @@ function renderLegalFonts(){
     `</dl></div>`).join("");
 }
 function renderLegalThirdParty(){
-  return LEGAL_THIRD_PARTY.map(d => `<div class="credit-item"><h4>${obEsc(d.name)}</h4><dl>` +
+  return LEGAL_THIRD_PARTY.map(d => `<div class="credit-item"><h4 aria-level="3">${obEsc(d.name)}</h4><dl>` +
     `<dt>Purpose</dt><dd>${obEsc(d.purpose)}</dd>` +
     `<dt>Homepage</dt><dd>${legalLinkOrDash(d.homepage)}</dd>` +
     `<dt>License</dt><dd>${obEsc(d.license)}</dd>` +
@@ -161,7 +177,7 @@ function renderLegalThirdParty(){
 function renderLegalOpenSource(){
   return LEGAL_OPEN_SOURCE_GROUPS.map(group => {
     const body = group.entries.length
-      ? `<div class="credit-grid">${group.entries.map(e => `<div class="credit-item"><h4>${obEsc(e.name)}</h4><dl>` +
+      ? `<div class="credit-grid">${group.entries.map(e => `<div class="credit-item"><h4 aria-level="3">${obEsc(e.name)}</h4><dl>` +
           `<dt>Homepage</dt><dd>${legalLinkOrDash(e.homepage)}</dd>` +
           `<dt>License</dt><dd>${obEsc(e.license)}</dd>` +
           (e.notice ? `<dt>Notice</dt><dd>${obEsc(e.notice)}</dd>` : "") +

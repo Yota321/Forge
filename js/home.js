@@ -152,15 +152,19 @@ function renderLanding(){
         </div>
 
         <div class="lp-bento-canvas">
-          <div class="lp-hero-visual" aria-hidden="true">
-            <img class="lp-hero-photo" src="assets/Hero_Home.jpg" alt="" width="1328" height="1956" loading="eager" fetchpriority="high" />
-            <span class="lp-visual-caption lp-visual-caption-top">A more<br>thoughtful<br>you.</span>
-            <span class="lp-visual-caption lp-visual-caption-bottom">Not just answers.<br>A clearer tomorrow.<br>//</span>
+          <div class="lp-hero-stack" aria-hidden="true">
+            <div class="lp-hero-frame"></div>
+            <div class="lp-hero-rim"></div>
+            <div class="lp-hero-visual">
+              <img class="lp-hero-photo" src="assets/Hero_Home.jpg" alt="" width="1328" height="1956" loading="eager" fetchpriority="high" />
+              <span class="lp-visual-caption lp-visual-caption-top">A more<br>thoughtful<br>you.</span>
+              <span class="lp-visual-caption lp-visual-caption-bottom">Not just answers.<br>A clearer tomorrow.<br>//</span>
+            </div>
           </div>
 
           <button class="lp-card lp-card-01" onclick="retakeAssessment()">
             <div class="lp-card-top"><span class="lp-card-num">01</span><span class="lp-card-arrow">&nearr;</span></div>
-            <h3>Discover</h3>
+            <h3 aria-level="2">Discover</h3>
             <p>Answer real scenarios, not generic questions.</p>
             <span class="lp-card-foot">Real insights. Real you.</span>
           </button>
@@ -168,22 +172,20 @@ function renderLanding(){
             <span class="lp-plus">+</span>
             <p>Your mind is a system of connected parts.</p>
             <div class="lp-dark-shapes" aria-hidden="true">
-              <span class="lp-dshape ds1"></span>
-              <span class="lp-dshape ds2"></span>
-              <span class="lp-dshape ds3"></span>
+              <svg class="pz-art" viewBox="-2 -2 104 108" focusable="false"><path class="pz-lip" d="M6,0L6,0L44,0 A6,6 0 0 1 50,6L50,6L50,22 L51.68,22 A7,7 0 1 1 51.68,28 L50,28 L50,44 A6,6 0 0 1 44,50L44,50L28,50 L28,48.87 A7.5,7.5 0 1 0 22,48.87 L22,50 L6,50 A6,6 0 0 1 0,44L0,44L0,6 A6,6 0 0 1 6,0Z"/><path class="pz-lip" d="M56,0L56,0L94,0 A6,6 0 0 1 100,6L100,6L100,44 A6,6 0 0 1 94,50L94,50L78,50 L78,51.68 A7,7 0 1 1 72,51.68 L72,50 L56,50 A6,6 0 0 1 50,44L50,44L50,28 L51.13,28 A7.5,7.5 0 1 0 51.13,22 L50,22 L50,6 A6,6 0 0 1 56,0Z"/><path class="pz-lip" d="M56,50L56,50L72,50 L72,51.13 A7.5,7.5 0 1 0 78,51.13 L78,50 L94,50 A6,6 0 0 1 100,56L100,56L100,94 A6,6 0 0 1 94,100L94,100L56,100 A6,6 0 0 1 50,94L50,94L50,78 L48.32,78 A7,7 0 1 1 48.32,72 L50,72 L50,56 A6,6 0 0 1 56,50Z"/><path class="pz-lip" d="M6,50L6,50L22,50 L22,48.32 A7,7 0 1 1 28,48.32 L28,50 L44,50 A6,6 0 0 1 50,56L50,56L50,72 L48.87,72 A7.5,7.5 0 1 0 48.87,78 L50,78 L50,94 A6,6 0 0 1 44,100L44,100L6,100 A6,6 0 0 1 0,94L0,94L0,56 A6,6 0 0 1 6,50Z"/><path class="pz pz-1" d="M6,0L6,0L44,0 A6,6 0 0 1 50,6L50,6L50,22 L51.68,22 A7,7 0 1 1 51.68,28 L50,28 L50,44 A6,6 0 0 1 44,50L44,50L28,50 L28,48.87 A7.5,7.5 0 1 0 22,48.87 L22,50 L6,50 A6,6 0 0 1 0,44L0,44L0,6 A6,6 0 0 1 6,0Z"/><path class="pz pz-2" d="M56,0L56,0L94,0 A6,6 0 0 1 100,6L100,6L100,44 A6,6 0 0 1 94,50L94,50L78,50 L78,51.68 A7,7 0 1 1 72,51.68 L72,50 L56,50 A6,6 0 0 1 50,44L50,44L50,28 L51.13,28 A7.5,7.5 0 1 0 51.13,22 L50,22 L50,6 A6,6 0 0 1 56,0Z"/><path class="pz pz-3" d="M56,50L56,50L72,50 L72,51.13 A7.5,7.5 0 1 0 78,51.13 L78,50 L94,50 A6,6 0 0 1 100,56L100,56L100,94 A6,6 0 0 1 94,100L94,100L56,100 A6,6 0 0 1 50,94L50,94L50,78 L48.32,78 A7,7 0 1 1 48.32,72 L50,72 L50,56 A6,6 0 0 1 56,50Z"/><path class="pz pz-4" d="M6,50L6,50L22,50 L22,48.32 A7,7 0 1 1 28,48.32 L28,50 L44,50 A6,6 0 0 1 50,56L50,56L50,72 L48.87,72 A7.5,7.5 0 1 0 48.87,78 L50,78 L50,94 A6,6 0 0 1 44,100L44,100L6,100 A6,6 0 0 1 0,94L0,94L0,56 A6,6 0 0 1 6,50Z"/></svg>
             </div>
           </div>
 
           <div class="lp-bento-row">
             <button class="lp-card lp-card-02" onclick="click(380);navigate('compare')">
               <div class="lp-card-top"><span class="lp-card-num">02</span><span class="lp-card-arrow">&nearr;</span></div>
-              <h3>Compare</h3>
+              <h3 aria-level="2">Compare</h3>
               <p>See how you connect with friends, partners, and others.</p>
               <span class="lp-card-foot">Different people. Brighter connections.</span>
             </button>
             <button class="lp-card lp-card-03" onclick="click(380);navigate('growth')">
               <div class="lp-card-top"><span class="lp-card-num">03</span><span class="lp-card-arrow">&nearr;</span></div>
-              <h3>Evolve</h3>
+              <h3 aria-level="2">Evolve</h3>
               <p>Track your growth over time.</p>
               <span class="lp-card-foot">Same questions. A different you.</span>
             </button>
@@ -194,10 +196,10 @@ function renderLanding(){
       ${saved ? renderHomeDashboard() : ""}
 
       <section class="lp-features section" aria-label="Why Forge">
-        <div class="lp-feature"><span class="lp-feature-icon lp-fi-1">${ICONS.lock}</span><div><h4>Private</h4><p>Your data stays on your device.</p></div></div>
-        <div class="lp-feature"><span class="lp-feature-icon lp-fi-2">${ICONS.wifi}</span><div><h4>Works Offline</h4><p>Use it anytime, anywhere.</p></div></div>
-        <div class="lp-feature"><span class="lp-feature-icon lp-fi-3">${ICONS.layers}</span><div><h4>Built for You</h4><p>Adaptive and always evolving.</p></div></div>
-        <div class="lp-feature"><span class="lp-feature-icon lp-fi-4">${ICONS.people}</span><div><h4>Made for People</h4><p>Understand yourself and others.</p></div></div>
+        <div class="lp-feature"><span class="lp-feature-icon lp-fi-1">${ICONS.lock}</span><div><h4 aria-level="3">Private</h4><p>Your data stays on your device.</p></div></div>
+        <div class="lp-feature"><span class="lp-feature-icon lp-fi-2">${ICONS.wifi}</span><div><h4 aria-level="3">Works Offline</h4><p>Use it anytime, anywhere.</p></div></div>
+        <div class="lp-feature"><span class="lp-feature-icon lp-fi-3">${ICONS.layers}</span><div><h4 aria-level="3">Built for You</h4><p>Adaptive and always evolving.</p></div></div>
+        <div class="lp-feature"><span class="lp-feature-icon lp-fi-4">${ICONS.people}</span><div><h4 aria-level="3">Made for People</h4><p>Understand yourself and others.</p></div></div>
       </section>
 
       <section class="lp-cta-split section">
@@ -247,6 +249,7 @@ function renderLanding(){
   `;
   spawnAmbience();
   setupProgressiveReveal(document.querySelector(".landing-v2"));
+  initHeroReveal();
   initHeroParallax();
   initMagneticButtons(document.querySelector(".landing-v2"));
 }
@@ -263,6 +266,36 @@ function renderLanding(){
    different amount so the stack reads as layered rather than flat. Pure
    ambient motion (no content moves), and skipped entirely under
    prefers-reduced-motion. */
+/* Photo and frame reveal together: wait for the photo to decode, then flag the
+   stack. (See "FINAL ART-DIRECTION PASS A" in pages.css.) The timeout is a
+   failsafe so a slow/failed image can never leave the hero invisible. */
+function initHeroReveal(){
+  const stack = document.querySelector(".lp-hero-stack");
+  if (!stack) return;
+  const img = stack.querySelector(".lp-hero-photo");
+  let done = false;
+  const ready = () => { if (done) return; done = true; stack.classList.add("is-ready"); };
+  setTimeout(ready, 1800);
+  if (!img) { ready(); return; }
+  if (img.decode) img.decode().then(ready, ready);
+  else if (img.complete) ready();
+  else { img.addEventListener("load", ready); img.addEventListener("error", ready); }
+}
+/* Photo and frame reveal together: wait for the photo to decode, then flag the
+   stack (see "FINAL ART-DIRECTION PASS A" in pages.css). The timeout is a
+   failsafe so a slow or failed image can never leave the hero invisible. */
+function initHeroReveal(){
+  const stack = document.querySelector(".lp-hero-stack");
+  if (!stack) return;
+  const img = stack.querySelector(".lp-hero-photo");
+  let done = false;
+  const ready = () => { if (done) return; done = true; stack.classList.add("is-ready"); };
+  setTimeout(ready, 1800);
+  if (!img) { ready(); return; }
+  if (img.decode) img.decode().then(ready, ready);
+  else if (img.complete) ready();
+  else { img.addEventListener("load", ready); img.addEventListener("error", ready); }
+}
 function initHeroParallax(){
   const visual = document.querySelector(".lp-hero-visual");
   const photo = visual && visual.querySelector(".lp-hero-photo");

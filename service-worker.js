@@ -2,7 +2,7 @@
    Bump CACHE_VERSION when cached files or shell behavior changes.
    Profile data stays in localStorage; this worker only handles network responses. */
 
-   const CACHE_VERSION = "v7.2.0";
+   const CACHE_VERSION = "v7.9.6";
 
    const SHELL_CACHE = `personaforge-shell-${CACHE_VERSION}`;
    const STATIC_CACHE = `personaforge-static-${CACHE_VERSION}`;
@@ -12,14 +12,22 @@
    const SCOPE = self.registration.scope;
    const toURL = (path) => new URL(path, SCOPE).toString();
    
-   const APP_SHELL = [toURL("./"), toURL("index.html"), toURL("manifest.json")];
+   // Every page is precached, not just index.html: navigations are stored
+   // per-page (see shellKey/networkFirstShell below), so a page that was
+   // never visited online still has to exist in the shell cache for
+   // offline navigation to find it.
+   const PAGES = ["index.html","quiz.html","result.html","compare.html","profile.html","growth.html","improve.html","journal.html","frameworks.html","legal.html","404.html"];
+   const APP_SHELL = [toURL("manifest.json")];
+
+   // Same-origin code. cacheFirst() would pick these up at runtime anyway,
+   // but only after the first online visit to each page -- precaching is
+   // what makes a first-ever *offline* reload of, say, Growth work.
+   const CODE_ASSETS = ["css/global.css","css/pages.css","js/engine.js","js/global.js","js/home.js","js/quiz.js","js/result.js","js/compare.js","js/compatibility.js","js/profile.js","js/growth.js","js/improve.js","js/journal.js","js/frameworks.js","js/legal.js"];
    
    const STATIC_ASSETS = [
      "assets/BG.mp3",
      "assets/Logo_black.svg",
      "assets/Logo_white.svg",
-     "assets/Logo_black_192.png",
-     "assets/Logo_white_512.png",
      "assets/Icon_black.svg",
      "assets/Icon_white.svg",
      "assets/Icon_black_192.png",
@@ -27,6 +35,7 @@
      "assets/Icon_white_192.png",
      "assets/Icon_white_512.png",
      "assets/Open_Graph.png",
+     ...CODE_ASSETS,
    ].map(toURL);
    
    const STATIC_EXTENSIONS =
@@ -36,6 +45,7 @@
      "fonts.googleapis.com",
      "fonts.gstatic.com",
      "api.fontshare.com",
+     "cdn.fontshare.com", // the actual .woff2 files; api.fontshare.com only serves the CSS that points at them
    ]);
    
    // Install: cache the shell and static assets.
@@ -44,6 +54,15 @@
        (async () => {
          const shellCache = await caches.open(SHELL_CACHE);
          await shellCache.addAll(APP_SHELL);
+         await Promise.all(PAGES.map(async (page) => {
+           try {
+             const url = toURL(page);
+             const res = await fetch(url, { cache: "reload" });
+             if (res && res.ok && res.status === 200) await shellCache.put(shellKey(url), res);
+           } catch {
+             // A page missing at install time just falls back to being cached on first visit.
+           }
+         }));
    
          const staticCache = await caches.open(STATIC_CACHE);
          await Promise.all(
@@ -116,24 +135,39 @@
      }
    });
    
+   // One cache key per *page* (origin + path, no query string, always with
+   // an explicit .html), so /result?code=X, /result and /result.html all
+   // resolve to the same stored document. The old version stored every
+   // navigation response under index.html, which meant that offline,
+   // opening ANY url returned whichever page had been visited last
+   // (e.g. reloading Growth offline served the Result page).
+   function shellKey(href) {
+     const u = new URL(href);
+     let p = u.pathname;
+     if (p.endsWith("/")) p += "index.html";
+     else if (!/\.[a-z0-9]+$/i.test(p)) p += ".html";
+     return u.origin + p;
+   }
+
    async function networkFirstShell(request) {
      const shellCache = await caches.open(SHELL_CACHE);
-   
+     const key = shellKey(request.url);
+
      try {
        const fresh = await fetch(request);
        if (fresh && fresh.ok && fresh.status === 200) {
-         await shellCache.put(toURL("index.html"), fresh.clone());
+         await shellCache.put(key, fresh.clone());
        }
        return fresh;
      } catch {
        const cached =
-         (await shellCache.match(request, { ignoreSearch: true })) ||
-         (await shellCache.match(toURL("index.html")));
+         (await shellCache.match(key)) ||
+         (await shellCache.match(shellKey(toURL("index.html"))));
        if (cached) return cached;
        return Response.error();
      }
    }
-   
+
    async function cacheFirst(request, cacheName) {
      const cache = await caches.open(cacheName);
      const cached = await cache.match(request);

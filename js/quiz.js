@@ -41,13 +41,14 @@ function obStepIndicator(step){
 function obChipRow(group, options, selected){
   return `<div class="ob-chip-row">${options.map(opt => {
     const sel = opt === selected;
-    return `<button type="button" class="ob-chip${sel ? " selected" : ""}" data-group="${obEsc(group)}" data-value="${obEsc(opt)}" onclick="obSelectChip(this)">${obEsc(opt)}</button>`;
+    return `<button type="button" class="ob-chip${sel ? " selected" : ""}" aria-pressed="${sel}" data-group="${obEsc(group)}" data-value="${obEsc(opt)}" onclick="obSelectChip(this)">${obEsc(opt)}</button>`;
   }).join("")}</div>`;
 }
 function obSelectChip(el){
   const group = el.dataset.group;
-  document.querySelectorAll(`.ob-chip[data-group="${group}"]`).forEach(c => c.classList.remove("selected"));
+  document.querySelectorAll(`.ob-chip[data-group="${group}"]`).forEach(c => { c.classList.remove("selected"); c.setAttribute("aria-pressed", "false"); });
   el.classList.add("selected");
+  el.setAttribute("aria-pressed", "true");
   click(320);
   autosaveOnboarding(obCurrentStep());
 }
@@ -62,7 +63,7 @@ function obCardGroup(group, options, selected){
   return `<div class="ob-cards">${options.map(opt => {
     const sel = opt.value === selected;
     return `
-      <button type="button" class="ob-card${sel ? " selected" : ""}" data-group="${obEsc(group)}" data-value="${obEsc(opt.value)}" onclick="obSelectCard(this)">
+      <button type="button" class="ob-card${sel ? " selected" : ""}" aria-pressed="${sel}" data-group="${obEsc(group)}" data-value="${obEsc(opt.value)}" onclick="obSelectCard(this)">
         <span class="ob-card-check" aria-hidden="true">&check;</span>
         <span class="ob-card-title">${obEsc(opt.title)}${opt.badge ? `<span class="ob-card-badge">${obEsc(opt.badge)}</span>` : ""}</span>
         <span class="ob-card-desc">${opt.desc}</span>
@@ -71,8 +72,9 @@ function obCardGroup(group, options, selected){
 }
 function obSelectCard(el){
   const group = el.dataset.group;
-  document.querySelectorAll(`.ob-card[data-group="${group}"]`).forEach(c => c.classList.remove("selected"));
+  document.querySelectorAll(`.ob-card[data-group="${group}"]`).forEach(c => { c.classList.remove("selected"); c.setAttribute("aria-pressed", "false"); });
   el.classList.add("selected");
+  el.setAttribute("aria-pressed", "true");
   click(340);
   autosaveOnboarding(obCurrentStep());
 }
@@ -103,12 +105,12 @@ function renderNameScreen(){
           ${obStepIndicator(1)}
         </div>
         <div class="ns-panel-body">
-          <h2>Who am I <span class="accent-text">reading?</span></h2>
+          <h2 aria-level="1">Who am I <span class="accent-text">reading?</span></h2>
           <p>Your name goes at the front of your result and your personality code, so it's clearly yours if you ever share it.</p>
 
           <div class="ns-input-wrap">
             <svg class="ns-input-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="6.8" r="3.3"/><path d="M3.8 16.2c.7-3.6 2.9-5.6 6.2-5.6s5.5 2 6.2 5.6"/></svg>
-            <input type="text" id="nameField" class="ns-input" placeholder="e.g. Inori" maxlength="20" autocomplete="off" value="${obEsc(pendingName)}" />
+            <input type="text" id="nameField" class="ns-input" aria-label="Your name" placeholder="e.g. Inori" maxlength="20" autocomplete="off" value="${obEsc(pendingName)}" />
           </div>
 
           <button class="ns-extra-toggle" onclick="toggleExtraDetails()" id="extraToggleBtn">
@@ -119,8 +121,8 @@ function renderNameScreen(){
               <span class="ns-label">Age group</span>
               ${obChipRow("ageGroup", OB_AGE_GROUPS, pendingMeta.ageGroup)}
             </div>
-            <input type="text" id="occupationField" class="ns-input ns-input-sm" placeholder="Occupation" maxlength="30" autocomplete="off" value="${obEsc(pendingMeta.occupation)}" />
-            <input type="text" id="countryField" class="ns-input ns-input-sm" placeholder="Country" maxlength="30" autocomplete="off" value="${obEsc(pendingMeta.country)}" />
+            <input type="text" id="occupationField" aria-label="Occupation" class="ns-input ns-input-sm" placeholder="Occupation" maxlength="30" autocomplete="off" value="${obEsc(pendingMeta.occupation)}" />
+            <input type="text" id="countryField" aria-label="Country" class="ns-input ns-input-sm" placeholder="Country" maxlength="30" autocomplete="off" value="${obEsc(pendingMeta.country)}" />
             <p class="ns-extra-note">Used only to personalize your report, never your exact age or date of birth. No information ever leaves your device.</p>
           </div>
 
@@ -228,7 +230,7 @@ function renderAboutScreen(){
           ${obStepIndicator(2)}
         </div>
         <div class="ns-panel-body ns-panel-body--wide">
-          <h2>About <span class="accent-text">you.</span></h2>
+          <h2 aria-level="1">About <span class="accent-text">you.</span></h2>
           <p>Optional, and none of it touches your result, just a couple of details that help Forge speak to you more naturally.</p>
 
           <div class="ob-section">
@@ -288,7 +290,7 @@ function renderExperienceScreen(){
           ${obStepIndicator(3)}
         </div>
         <div class="ns-panel-body ns-panel-body--wide">
-          <h2>Choose your <span class="accent-text">depth.</span></h2>
+          <h2 aria-level="1">Choose your <span class="accent-text">depth.</span></h2>
           <p>One choice, then straight into the assessment.</p>
 
           <div class="ob-section">
@@ -347,7 +349,7 @@ function renderConfirmScreen(){
           ${obStepIndicator(4)}
         </div>
         <div class="ns-panel-body ns-panel-body--wide">
-          <h2>Ready to <span class="accent-text">begin.</span></h2>
+          <h2 aria-level="1">Ready to <span class="accent-text">begin.</span></h2>
           <p>One last thing.</p>
 
           <p style="margin-top:14px">PersonaForge stores your assessment locally on this device so your progress, personality history, and future comparisons are available even without an account.</p>
@@ -450,7 +452,7 @@ function renderResumeQuizPrompt(saved){
           <div class="eyebrow accent">WELCOME BACK</div>
         </div>
         <div class="ns-panel-body">
-          <h2>Resume your <span class="accent-text">assessment?</span></h2>
+          <h2 aria-level="1">Resume your <span class="accent-text">assessment?</span></h2>
           <p>${saved.name ? obEsc(saved.name) + ", y" : "Y"}ou answered ${saved.cursor} of ${Math.max(saved.cursor, (PACE_BOUNDS[saved.pace] || PACE_BOUNDS.balanced).min)}. Pick up on question ${saved.cursor + 1}, or start over from scratch.</p>
           <button class="btn btn-primary" onclick="acceptResumeQuiz()">Resume &rarr;</button>
           <div class="ns-divider">OR</div>
@@ -569,7 +571,10 @@ function qzQuestionIllustration(q){
 // entrance direction) before handing off to whatever actually advances
 // the session — used for Back/Next Question, which (unlike selecting an
 // answer) don't already have the calc overlay masking the swap.
+let qzBusy = false; // true from an answer/Back/Next until renderQuiz() redraws
 function qzExitThenRender(advance){
+  if (qzBusy) return;
+  qzBusy = true;
   if (reducedMotion()){ advance(); return; }
   const row = document.getElementById("answerRow");
   const heading = document.getElementById("qzQuestion");
@@ -585,6 +590,7 @@ function qzExitThenRender(advance){
   setTimeout(advance, 220);
 }
 function renderQuiz(){
+  qzBusy = false;
   setPageTitle("Assessment");
   if (!session){ session = new QuizSession(Date.now() % 100000, pendingName); }
   const q = session.current();
@@ -611,7 +617,7 @@ function renderQuiz(){
       </div>
       <div class="qz-progress2-meta" style="text-align:center; margin-bottom:8px;">${modeLabel} &bull; <span class="count-up" data-target="${pctDone}" data-suffix="%">0%</span></div>
       <div class="qz-illustration-wrap" aria-hidden="true">${qzQuestionIllustration(q)}</div>
-      <div class="qz-question2" id="qzQuestion">${q.text}</div>
+      <div class="qz-question2" id="qzQuestion" role="heading" aria-level="1">${q.text}</div>
       <div class="qz-cards" id="answerRow" role="listbox" aria-label="Answer options">
         ${q.options.map((opt, i) => `
           <button class="qz-card ${existing && existing.optionIndex === i ? "selected" : ""}" role="option" data-pos="${posName(i)}" onclick="selectOption(${i})">
@@ -672,6 +678,13 @@ function continueForward(){
 }
 
 function selectOption(idx){
+  // session.answer() advances the session immediately, but the next
+  // question isn't rendered until the lock-in pause + calc overlay finish.
+  // Without this, a double-click / double-tap (or "1" pressed twice) in
+  // that window answered the NEXT question with the same index, a
+  // question the person never saw -- silently corrupting the result.
+  if (qzBusy) return;
+  qzBusy = true;
   const opts = document.querySelectorAll(".qz-card");
   opts.forEach(o => o.classList.remove("selected"));
   if (opts[idx]){
@@ -704,7 +717,7 @@ function renderForging(){
   root.innerHTML = `
     <div class="forging">
       <div class="calc-bars"><span></span><span></span><span></span><span></span></div>
-      <h2>Putting it together</h2>
+      <h2 aria-level="1">Putting it together</h2>
       <p id="forge-line">${lines[0]}</p>
     </div>`;
   let i = 0;

@@ -1387,9 +1387,14 @@ button.lp-card{ width:100%; }
 .detail-overlay{
   position: fixed; inset: 0; z-index: 300; display:flex; align-items:center; justify-content:center;
   padding: 32px; background: rgba(8,10,16,.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  opacity: 0; pointer-events: none; transition: opacity .35s var(--ease);
+  opacity: 0; pointer-events: none; transition: opacity .35s var(--ease), visibility 0s linear .35s;
+  /* opacity:0 + pointer-events:none alone leaves the closed panel's Close /
+     Download buttons in the Tab order and the accessibility tree.
+     visibility flips only after the fade-out finishes (delay above) and
+     instantly on open (delay reset below). */
+  visibility: hidden;
 }
-.detail-overlay.open{ opacity: 1; pointer-events: auto; }
+.detail-overlay.open{ opacity: 1; pointer-events: auto; visibility: visible; transition-delay: 0s; }
 /* The panel itself no longer scrolls directly — its real scroll happens
    one level down, in .detail-panel-scroll, so the custom scrollbar
    overlay below can be a sibling that stays fixed over the whole panel
@@ -2222,7 +2227,7 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
    than left duplicated four times over, with no visual change: 185px was
    already what was rendering.) */
 @media (min-width:1101px){
-  .result-hero .ingot-actions{ grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .result-hero .ingot-actions{ grid-template-columns:repeat(5,minmax(0,1fr)); }
   .result-hero .ingot-actions .btn{ padding:8px 5px; font-size:9.5px; letter-spacing:-.01em; }
 }
 
@@ -2472,4 +2477,1178 @@ html.detail-lock-scroll, html.detail-lock-scroll body{ overflow:hidden; }
 @media (max-width:390px){
   .hero-bento > .ingot{ height:560px; min-height:560px; }
   .result-hero .ingot-name{ font-size:44px; }
+}
+
+
+/* =========================================================================
+   FORGE WEIGHT PASS — visual refinement only (no layout/structure changes).
+   Same palette, same pages; surfaces become solid and heavier: opaque fills
+   instead of translucent glass, clearer edges, layered shadows with a top
+   highlight and a bottom "lip", and calmer, deeper hover lift. Last in the
+   cascade on purpose so it refines earlier rules without rewriting them.
+   ========================================================================= */
+:root{
+  --lift-shadow: inset 0 1px 0 rgba(255,255,255,.07), inset 0 -2px 0 rgba(0,0,0,.22),
+                 0 2px 4px rgba(3,4,10,.5), 0 22px 40px -22px rgba(3,4,10,.85);
+  --lift-shadow-hover: inset 0 1px 0 rgba(255,255,255,.1), inset 0 -2px 0 rgba(0,0,0,.22),
+                 0 4px 8px rgba(3,4,10,.5), 0 32px 52px -22px rgba(3,4,10,.9),
+                 0 18px 44px -26px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+[data-theme="light"]{
+  --lift-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -2px 0 rgba(76,66,128,.1),
+                 0 2px 4px rgba(55,48,110,.14), 0 20px 36px -20px rgba(55,48,110,.4);
+  --lift-shadow-hover: inset 0 1px 0 rgba(255,255,255,.95), inset 0 -2px 0 rgba(76,66,128,.1),
+                 0 4px 8px rgba(55,48,110,.16), 0 30px 48px -22px rgba(55,48,110,.5),
+                 0 16px 40px -26px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Flat but rich background: one quiet vignette, no colour blobs. */
+body::before{ background: radial-gradient(70% 55% at 50% 0%, rgba(167,139,250,0.12), transparent 70%); }
+[data-theme="light"] body::before{ background: radial-gradient(70% 55% at 50% 0%, rgba(139,92,246,0.10), transparent 70%); }
+.lp-bg-flatten::after{ background: radial-gradient(70% 50% at 50% 0%, rgba(167,139,250,0.13), transparent 70%); }
+[data-theme="light"] .lp-bg-flatten::after{ background: radial-gradient(70% 50% at 50% 0%, rgba(139,92,246,0.10), transparent 70%); }
+.blind-bar{ opacity:.12; }
+
+/* Solid cards: no see-through blur, opaque fill, real edge, lifted weight. */
+.glass, [data-theme="light"] .glass{
+  background: var(--card);
+  backdrop-filter:none; -webkit-backdrop-filter:none;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--lift-shadow);
+}
+.glass::before{ background: radial-gradient(closest-side, rgba(255,255,255,0.035), transparent 70%); }
+.card:hover, .stat-tile:hover{ transform: translateY(-4px); box-shadow: var(--lift-shadow-hover); border-color: var(--border-strong); }
+
+.bento-card, [data-theme="light"] .bento-card, .lp-feature, .qz-card, .cmp-style-row, .lp-cta-dark{
+  border: 1.5px solid var(--border);
+  box-shadow: var(--lift-shadow);
+}
+.bento-card, .lp-feature, .qz-card{ background: var(--card); }
+.bento-card:hover, [data-theme="light"] .bento-card:hover, .lp-feature:hover, .qz-card:hover{
+  border-color: var(--border-strong); box-shadow: var(--lift-shadow-hover);
+}
+.bento-icon{ --icon-bg: color-mix(in srgb, var(--accent) 24%, var(--card)); }
+.lp-fi-1{ background: color-mix(in srgb, var(--accent) 28%, var(--card)); }
+.lp-fi-2{ background: color-mix(in srgb, var(--mint) 26%, var(--card)); }
+.lp-fi-3{ background: color-mix(in srgb, var(--peach) 26%, var(--card)); }
+.lp-fi-4{ background: color-mix(in srgb, var(--sky) 26%, var(--card)); }
+.lp-feature h4{ font-weight:700; }
+
+/* Quiz answers: filled, grounded blocks; the chosen one reads as solid. */
+.qz-card-icon{ opacity:.8; }
+.qz-card:hover{ background: var(--surface-strong); }
+.qz-card.selected{
+  background: var(--surface-strong);
+  box-shadow: var(--lift-shadow), 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 34px -8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.qz-cards:has(.qz-card.selected) .qz-card:not(.selected){ opacity:.7; }
+
+/* Landing bento: heavier colour cards (deeper saturation, rim + lip) and a
+   solid dark tile instead of floating ghost glass. */
+.lp-card{
+  border-width:1.5px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -3px 0 rgba(0,0,0,.14), 0 24px 40px -24px rgba(3,4,10,.75);
+}
+.lp-card-01{ background: linear-gradient(150deg, color-mix(in srgb, var(--user-accent-1) 88%, #3B2A9E), color-mix(in srgb, var(--user-accent-2) 90%, #1D6FA8)); }
+.lp-card-02{ background: linear-gradient(150deg, #F45F78, #FA9F55); }
+.lp-card-03{ background: linear-gradient(150deg, #3FD9A4, #4DB8F0); }
+.lp-card:hover{ transform: translateY(-5px) scale(1.01); }
+.lp-card-dark{ background: var(--surface-strong); border-color: var(--border-strong); }
+.lp-dshape{ opacity:.62; filter:none; }
+.lp-plus{ background: color-mix(in srgb, var(--accent) 20%, var(--surface-strong)); color: var(--accent-soft); }
+.lp-cta-dark{ background: var(--surface-strong); }
+.lp-cta-outline{
+  background: linear-gradient(150deg,
+    color-mix(in srgb, var(--user-accent-1) 34%, var(--surface)),
+    color-mix(in srgb, var(--sky) 26%, var(--surface)) 55%,
+    color-mix(in srgb, var(--user-accent-2) 30%, var(--surface)));
+  border: 1.5px solid var(--border-strong); box-shadow: var(--lift-shadow);
+}
+.lp-cta-panel:hover{ box-shadow: var(--lift-shadow-hover); }
+
+/* Chrome: top bar and menu become solid so nothing shows through them. */
+.top-bar, [data-theme="light"] .top-bar{
+  background: var(--card); backdrop-filter:none; -webkit-backdrop-filter:none;
+  border-width:1.5px; box-shadow: var(--lift-shadow);
+}
+.nav-menu, [data-theme="light"] .nav-menu{
+  background: var(--card); backdrop-filter:none; -webkit-backdrop-filter:none;
+  border-width:1.5px; box-shadow: var(--lift-shadow-hover);
+}
+.nav-menu-item:hover{ background: var(--surface-strong); }
+.icon-btn, .nav-pill{ background: var(--surface-strong); border-width:1.5px; }
+.btn-ghost{ background: var(--surface-strong); border-width:1.5px; }
+.btn{ font-weight:600; }
+.btn-primary, .btn-primary:hover{ box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -3px 0 rgba(0,0,0,.14), 0 16px 30px -14px rgba(167,139,250,.75); }
+.btn-primary:hover{ box-shadow: inset 0 1px 0 rgba(255,255,255,.4), inset 0 -3px 0 rgba(0,0,0,.14), 0 22px 40px -14px rgba(167,139,250,.85); }
+.modal-card{ background: var(--card); backdrop-filter:none; }
+.tag{ background: color-mix(in srgb, var(--accent) 14%, var(--card)); border-color: var(--border); }
+.stat-bar-track{ height:6px; background: color-mix(in srgb, var(--text) 14%, transparent); }
+.bento-head h3{ font-weight:700; }
+[data-theme="light"] .ns-step-active{ color: var(--accent-soft); }
+[data-theme="light"] .btn-ghost.danger{ color:#9F1239; border-color: rgba(190,18,60,0.5); }
+[data-theme="light"] .legal-placeholder{ color:#9A3412; border-color: rgba(154,52,18,0.45); }
+[data-theme="light"] .lp-plus{ background: var(--card); }
+
+/* ---- SOLID + BOLD pass: heavier fills, 2px edges, thick bottom lip ---- */
+:root{
+  --lift-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -4px 0 rgba(0,0,0,.32),
+                 0 3px 6px rgba(2,3,8,.6), 0 26px 44px -20px rgba(2,3,8,.95);
+  --lift-shadow-hover: inset 0 1px 0 rgba(255,255,255,.16), inset 0 -4px 0 rgba(0,0,0,.32),
+                 0 6px 12px rgba(2,3,8,.6), 0 36px 56px -20px rgba(2,3,8,1),
+                 0 20px 46px -22px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+[data-theme="light"]{
+  --lift-shadow: inset 0 1px 0 rgba(255,255,255,1), inset 0 -4px 0 rgba(60,50,120,.16),
+                 0 3px 6px rgba(55,48,110,.2), 0 24px 40px -18px rgba(55,48,110,.5);
+  --lift-shadow-hover: inset 0 1px 0 rgba(255,255,255,1), inset 0 -4px 0 rgba(60,50,120,.16),
+                 0 6px 12px rgba(55,48,110,.22), 0 34px 52px -20px rgba(55,48,110,.6),
+                 0 18px 44px -24px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.glass, [data-theme="light"] .glass, .bento-card, [data-theme="light"] .bento-card, .lp-feature, .qz-card,
+.cmp-style-row, .lp-cta-dark, .lp-cta-outline, .top-bar, [data-theme="light"] .top-bar{ border-width:2px; }
+.lp-card{ border-width:2px; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -5px 0 rgba(0,0,0,.2), 0 28px 44px -22px rgba(2,3,8,.85); }
+.bento-head h3, .lp-feature h4, .card h4{ font-weight:700; }
+.bento-card, .card.glass{ padding-bottom: 22px; }
+.stat-bar-track{ height:8px; border-radius:999px; }
+.bento-icon{ --icon-bg: color-mix(in srgb, var(--accent) 34%, var(--card)); }
+
+/* =========================================================================
+   FLAT SOLID BLOCKS (matches the bento references): every card is a single
+   flat, saturated fill with no border, no lip, no shadow. Five Forge-palette
+   fills cycle across cards; each variant re-points the colour tokens so all
+   text, icons, charts and nested panels inside it stay legible by default.
+   ========================================================================= */
+.glass, .bento-card, .lp-feature, .qz-card, .cmp-style-row, .lp-cta-panel, .lp-card-dark,
+.top-bar, .nav-menu, .modal-card{
+  border: 0 !important; box-shadow: none !important; border-radius: 28px;
+}
+.glass::before{ display:none; }
+.top-bar, .nav-menu{ border-radius: var(--radius-lg); }
+.card:hover, .stat-tile:hover, .bento-card:hover, .lp-feature:hover, .qz-card:hover, .lp-cta-panel:hover{
+  transform: translateY(-5px); box-shadow: 0 22px 34px -22px rgba(0,0,0,.55) !important;
+}
+.lp-card, .lp-card:hover{ border:0; box-shadow:none; }
+.lp-card:hover{ box-shadow: 0 24px 38px -22px rgba(0,0,0,.55); }
+
+/* variants */
+.v-indigo, .bento-card:nth-child(5n+1), .card.glass:nth-child(5n+1), .lp-feature:nth-child(5n+1), .lp-cta-dark, .qz-card:nth-child(3n+1){
+  --card:#1A1F6B; --surface:#262C8A; --surface-strong:#3139A8; --text:#F4F3FF; --text-muted:#CDD0F7; --text-dim:#AEB3EE;
+  --accent:#B4BAFF; --accent-soft:#C9CEFF; --border:rgba(244,243,255,.3); --border-strong:rgba(244,243,255,.55);
+  --icon-bg: rgba(180,186,255,.22); --icon-fg:#D6DAFF;
+}
+.v-cream, .bento-card:nth-child(5n+2), .card.glass:nth-child(5n+2), .lp-feature:nth-child(5n+2), .qz-card:nth-child(3n+2){
+  --card:#EFEDE6; --surface:#E0DDD1; --surface-strong:#D0CCBC; --text:#16171F; --text-muted:#3A3D4F; --text-dim:#50546A;
+  --accent:#4338CA; --accent-soft:#4338CA; --border:rgba(22,23,31,.28); --border-strong:rgba(22,23,31,.5);
+  --icon-bg: rgba(67,56,202,.16); --icon-fg:#4338CA;
+}
+.v-violet, .bento-card:nth-child(5n+3), .card.glass:nth-child(5n+3), .lp-feature:nth-child(5n+3), .lp-cta-outline, .qz-card:nth-child(3n+3){
+  --card:#9A8FF7; --surface:#AAA0FA; --surface-strong:#B9B1FC; --text:#100C2B; --text-muted:#1F1853; --text-dim:#2A2278;
+  --accent:#1A1360; --accent-soft:#1A1360; --border:rgba(16,12,43,.3); --border-strong:rgba(16,12,43,.55);
+  --icon-bg: rgba(16,12,43,.16); --icon-fg:#1A1360;
+}
+.v-mint, .bento-card:nth-child(5n+4), .card.glass:nth-child(5n+4), .lp-feature:nth-child(5n+4){
+  --card:#5FE0B0; --surface:#4CCB9C; --surface-strong:#3DB88A; --text:#062219; --text-muted:#0C3C2C; --text-dim:#115240;
+  --accent:#04503A; --accent-soft:#04503A; --border:rgba(6,34,25,.3); --border-strong:rgba(6,34,25,.55);
+  --icon-bg: rgba(6,34,25,.14); --icon-fg:#04503A;
+}
+.v-peach, .bento-card:nth-child(5n+5), .card.glass:nth-child(5n+5), .lp-feature:nth-child(5n+5){
+  --card:#FF9F73; --surface:#F58B5C; --surface-strong:#E8784A; --text:#280D04; --text-muted:#471C0B; --text-dim:#5C2611;
+  --accent:#7A1D00; --accent-soft:#7A1D00; --border:rgba(40,13,4,.3); --border-strong:rgba(40,13,4,.55);
+  --icon-bg: rgba(40,13,4,.14); --icon-fg:#7A1D00;
+}
+.bento-card, .card.glass, .lp-feature, .qz-card, .lp-cta-panel{ background: var(--card); color: var(--text); }
+.lp-cta-outline{ background: var(--card); }
+.lp-cta-dark{ background: var(--card); }
+.lp-fi-1, .lp-fi-2, .lp-fi-3, .lp-fi-4{ background: rgba(255,255,255,.2); color: var(--text); }
+.v-cream .lp-fi-1, .lp-feature:nth-child(5n+2) .lp-feature-icon{ background: rgba(22,23,31,.1); }
+.lp-feature-icon{ color: var(--text) !important; }
+.lp-checklist-muted li::before{ background: transparent; border-color: var(--text-dim); }
+.tag{ background: rgba(0,0,0,.14); color: var(--text); border-color: transparent; }
+.stat-bar-track{ background: rgba(0,0,0,.2); }
+.stat-bar-fill{ background: var(--accent); }
+.qz-card.selected{ outline: 4px solid var(--accent-soft); outline-offset: 3px; box-shadow:none !important; background: var(--card); }
+.qz-card:hover{ background: var(--card); }
+.qz-card-icon{ color: var(--text); opacity:.85; }
+.qz-card-letter{ color: var(--text); }
+.qz-cards:has(.qz-card.selected) .qz-card:not(.selected){ opacity:.6; }
+.btn-ghost, .icon-btn, .nav-pill{ border:0; background: var(--surface-strong); }
+.top-bar{ background: var(--card); }
+
+/* Landing hero bento: flat solid fills like the other cards. */
+.lp-card-01{ background:#9A8FF7; color:#100C2B; }
+.lp-card-02{ background:#FF9F73; color:#280D04; }
+.lp-card-03{ background:#5FE0B0; color:#062219; }
+.lp-card-dark{ background:#1A1F6B; color:#CDD0F7; }
+.lp-card-dark p{ color:#CDD0F7; }
+.lp-plus{ background:#3139A8; color:#F4F3FF; }
+[data-theme="light"] .lp-plus{ background:#3139A8; color:#F4F3FF; }
+.lp-dshape{ opacity:1; filter:none; box-shadow:none !important; }
+.lp-dshape.ds1{ background:#9A8FF7; }
+.lp-dshape.ds2{ background:#5FE0B0; }
+.lp-dshape.ds3{ background:#FF9F73; }
+.lp-card-01:hover, .lp-card-02:hover, .lp-card-03:hover, .lp-card-dark:hover{ box-shadow: 0 24px 38px -22px rgba(0,0,0,.55) !important; }
+.btn-ghost.danger{ color: color-mix(in srgb, #E11D48 55%, var(--text)); }
+[data-theme="light"] .btn-ghost.danger{ color: color-mix(in srgb, #E11D48 55%, var(--text)); }
+/* Buttons keep fixed brand colours regardless of the card variant they sit in. */
+.btn-primary{ background: linear-gradient(120deg, #A78BFA, #7DD3FC, #6EE7B7, #A78BFA); background-size:280% 280%; color:#0A0612; }
+.btn-accent{ background:#A78BFA; color:#14101F; }
+.btn-accent:hover{ background:#C4B5FD; }
+
+/* =========================================================================
+   FORGE IDENTITY PASS — typography, objects, texture, motion.
+   Clash Display (display) + Satoshi (body) + JetBrains Mono (labels):
+   a wide, sculptural display face against a calm, highly legible text face
+   gives the strong figure/ground hierarchy of editorial posters; mono
+   labels supply the "collector's card" metadata voice. Controls become
+   tactile "stickers" (ink outline + hard offset shadow) so the product is
+   recognisable from one screenshot even without the logo.
+   ========================================================================= */
+h1, h2, h3, h4, .ingot-name, .q-text, .qz-question2{ font-family: var(--font-display); letter-spacing: -0.02em; }
+h1{ letter-spacing: -0.035em; font-weight: 700; }
+h2{ letter-spacing: -0.03em; font-weight: 700; }
+.lp-card h3, .bento-head h3, .lp-cta-panel h3{ font-weight: 600; letter-spacing: -0.02em; }
+.lp-card h3{ font-size: 24px; }
+.lp-cta-panel h3{ font-size: 30px; line-height: 1.1; }
+.qz-question2{ font-weight: 600; font-size: clamp(28px, 4vw, 46px); line-height: 1.12; letter-spacing: -0.03em; max-width: 780px; }
+.lp-dashboard-head h2{ font-size: clamp(30px, 4.2vw, 48px); line-height: 1.05; letter-spacing: -0.035em; }
+.ingot-name, .result-hero .ingot-name{ font-weight: 700; }
+
+/* Giant numerals: the number IS the card's visual idea. */
+.lp-card-num{ font-family: var(--font-display); font-size: 34px; font-weight: 700; letter-spacing: -0.04em; opacity: 1; line-height: 1; }
+.stat-tile .stat-val, .profile-stat-val{ font-family: var(--font-display); font-size: clamp(40px, 5vw, 64px); font-weight: 700; letter-spacing: -0.04em; line-height: .95; }
+.ov-bignum .val{ font-size: clamp(40px, 4.4vw, 58px); font-weight: 700; letter-spacing: -0.04em; }
+.value-pct{ font-family: var(--font-display); font-weight: 700; letter-spacing: -0.03em; }
+.eyebrow{ font-weight: 500; }
+.eyebrow::before{ width: 8px; height: 8px; border-radius: 2px; }
+
+/* Tactile controls: ink outline + hard offset shadow, press-down on click. */
+:root{ --ink: #0A0612; --sticker: #C4B5FD; }
+[data-theme="light"]{ --ink: #17103F; --sticker: #17103F; }
+.btn{ font-family: var(--font-display); font-weight: 600; letter-spacing: 0; font-size: 15px; }
+.btn-primary, .btn-accent{
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--sticker);
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease), background .2s var(--ease);
+}
+.btn-primary:hover, .btn-accent:hover{
+  transform: translate(calc(var(--magnet-x, 0px) - 2px), calc(var(--magnet-y, 0px) - 2px));
+  box-shadow: 7px 7px 0 var(--sticker);
+}
+.btn-primary:active, .btn-accent:active{
+  transform: translate(calc(var(--magnet-x, 0px) + 3px), calc(var(--magnet-y, 0px) + 3px)) !important;
+  box-shadow: 1px 1px 0 var(--sticker);
+}
+.btn-ghost{
+  border: 2px solid var(--text); background: var(--surface-strong); color: var(--text);
+  box-shadow: 3px 3px 0 color-mix(in srgb, var(--text) 85%, transparent);
+  transition: transform .22s var(--ease), box-shadow .22s var(--ease), background .2s var(--ease);
+}
+.btn-ghost:hover{ transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--text); }
+.btn-ghost:active{ transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--text); }
+.btn-primary::after{ display: none; }
+.icon-btn, .nav-pill{ border: 2px solid var(--text); box-shadow: 2px 2px 0 var(--text); }
+.icon-btn:hover, .nav-pill:hover{ transform: translate(-1px,-1px); box-shadow: 3px 3px 0 var(--text); }
+
+/* Icons: inverted ink badges, heavier strokes — each section's glyph reads as
+   a small collectible seal rather than a borrowed dashboard icon. */
+.bento-icon, .lp-feature-icon{
+  background: var(--text) !important; color: var(--card) !important;
+  border-radius: 12px; box-shadow: none;
+}
+.bento-icon{ width: 38px; height: 38px; }
+.bento-icon svg, .lp-feature-icon svg{ width: 19px; height: 19px; filter: none; }
+.bento-icon svg *, .lp-feature-icon svg *{ stroke-width: 2.2; }
+.lp-feature:hover .lp-feature-icon, .bento-card:hover .bento-icon{ transform: rotate(-8deg) scale(1.08); }
+.tag{ border: 1.5px solid var(--text); background: transparent; font-weight: 600; border-radius: 999px; }
+
+/* Texture: very fine film grain on the page ground (beneath all content). */
+body::after{
+  content:''; position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@media print{ body::after{ display:none; } }
+
+/* Motion: calm breathing on the decorative shapes inside the dark tile. */
+@keyframes forgeBreathe{ 0%,100%{ transform: translate(0,0) scale(1); } 50%{ transform: translate(-4px,-6px) scale(1.05); } }
+.lp-dshape.ds1{ animation: forgeBreathe 7s ease-in-out infinite; }
+.lp-dshape.ds2{ animation: forgeBreathe 9s ease-in-out -3s infinite; }
+.lp-dshape.ds3{ animation: forgeBreathe 8s ease-in-out -5s infinite; }
+
+/* Clash Display runs ~25% wider than the previous face: scale the display
+   sizes so the original line breaks and layout hold exactly. */
+@media (min-width: 901px){ .lp-hero-text h1{ font-size: clamp(32px, 13.4cqw, 66px); letter-spacing: -0.04em; line-height: .98; } }
+.lp-hero-text h1{ letter-spacing: -0.04em; }
+.btn{ font-size: 14px; letter-spacing: -0.01em; }
+.btn-sm{ font-size: 12.5px; }
+.nav-pill, .nav-pill-label{ font-family: var(--font-display); }
+@media (min-width: 901px){ .lp-hero-text h1{ font-size: clamp(34px, 14.4cqw, 72px); letter-spacing: -0.025em; font-weight: 600; } }
+h1{ letter-spacing: -0.025em; font-weight: 600; }
+h2{ letter-spacing: -0.02em; font-weight: 600; }
+.lp-hero-text h1{ letter-spacing: -0.025em; }
+@media (min-width: 901px){
+  .lp-bento-canvas .lp-card-num{ font-size: clamp(16px, 3.6cqw, 28px); }
+  .lp-bento-canvas .lp-card h3{ font-size: clamp(16px, 3.3cqw, 24px); }
+}
+
+/* Arrows/diagonals come from a system face; Clash Display's own are too small. */
+@font-face{ font-family:"ForgeArrows"; src: local("Segoe UI Symbol"), local("Arial"), local("Helvetica Neue"); unicode-range: U+2190-21FF, U+2197; }
+:root{ --font-display: 'ForgeArrows', 'Clash Display', 'Cabinet Grotesk', 'Space Grotesk', sans-serif; }
+
+/* Profile hero stats: three giant-numeral tiles (these had no styles). */
+.profile-hero-stats{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; margin: 18px 0 6px; }
+.profile-stat{ display:flex; flex-direction:column; gap:6px; padding:14px 16px; border-radius:20px; background: rgba(0,0,0,.12); }
+.profile-stat-val{ font-size: clamp(34px, 4vw, 52px); }
+.profile-stat-label{ font-family: var(--font-mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color: var(--text-muted); }
+
+/* =========================================================================
+   TONES (assigned per card by js/global.js "BENTO TONE ASSIGNMENT" so that no
+   two touching cards share a colour family). Specificity is bumped with a
+   repeated attribute so these beat the nth-child fallback above.
+   ========================================================================= */
+html [data-tone="indigo"][data-tone][data-tone]{
+  --card:#1A1F6B; --surface:#262C8A; --surface-strong:#3139A8; --text:#F4F3FF; --text-muted:#CDD0F7; --text-dim:#AEB3EE;
+  --accent:#B4BAFF; --accent-soft:#C9CEFF; --border:rgba(244,243,255,.3); --border-strong:rgba(244,243,255,.55); --icon-bg:rgba(180,186,255,.22); --icon-fg:#D6DAFF;
+}
+html [data-tone="cream"][data-tone][data-tone]{
+  --card:#EFEDE6; --surface:#E0DDD1; --surface-strong:#D0CCBC; --text:#16171F; --text-muted:#3A3D4F; --text-dim:#50546A;
+  --accent:#4338CA; --accent-soft:#4338CA; --border:rgba(22,23,31,.28); --border-strong:rgba(22,23,31,.5); --icon-bg:rgba(67,56,202,.16); --icon-fg:#4338CA;
+}
+html[data-theme="light"] [data-tone="cream"][data-tone][data-tone]{
+  --card:#E9E1CC; --surface:#DCD3BB; --surface-strong:#CDC2A5;
+}
+html [data-tone="violet"][data-tone][data-tone]{
+  --card:#9A8FF7; --surface:#AAA0FA; --surface-strong:#B9B1FC; --text:#100C2B; --text-muted:#1F1853; --text-dim:#2A2278;
+  --accent:#1A1360; --accent-soft:#1A1360; --border:rgba(16,12,43,.3); --border-strong:rgba(16,12,43,.55); --icon-bg:rgba(16,12,43,.16); --icon-fg:#1A1360;
+}
+html [data-tone="mint"][data-tone][data-tone]{
+  --card:#5FE0B0; --surface:#4CCB9C; --surface-strong:#3DB88A; --text:#062219; --text-muted:#0C3C2C; --text-dim:#0F4A38;
+  --accent:#04503A; --accent-soft:#04503A; --border:rgba(6,34,25,.3); --border-strong:rgba(6,34,25,.55); --icon-bg:rgba(6,34,25,.14); --icon-fg:#04503A;
+}
+html [data-tone="peach"][data-tone][data-tone]{
+  --card:#FF9F73; --surface:#F58B5C; --surface-strong:#E8784A; --text:#280D04; --text-muted:#3E1809; --text-dim:#4E200E;
+  --accent:#7A1D00; --accent-soft:#7A1D00; --border:rgba(40,13,4,.3); --border-strong:rgba(40,13,4,.55); --icon-bg:rgba(40,13,4,.14); --icon-fg:#7A1D00;
+}
+html [data-tone="gold"][data-tone][data-tone]{
+  --card:#F6D54A; --surface:#EBC62F; --surface-strong:#DDB61E; --text:#241B00; --text-muted:#3A2D00; --text-dim:#4A3A00;
+  --accent:#5C4400; --accent-soft:#5C4400; --border:rgba(36,27,0,.3); --border-strong:rgba(36,27,0,.55); --icon-bg:rgba(36,27,0,.14); --icon-fg:#5C4400;
+}
+html [data-tone="sky"][data-tone][data-tone]{
+  --card:#7CCBF5; --surface:#66BCEA; --surface-strong:#52AEDD; --text:#04202F; --text-muted:#0A3248; --text-dim:#0E405C;
+  --accent:#073A57; --accent-soft:#073A57; --border:rgba(4,32,47,.3); --border-strong:rgba(4,32,47,.55); --icon-bg:rgba(4,32,47,.14); --icon-fg:#073A57;
+}
+[data-tone]{ transition: background-color .35s var(--ease); }
+.lp-feature[data-tone], .bento-card[data-tone], .card.glass[data-tone], .qz-card[data-tone], .lp-cta-panel[data-tone], .cmp-style-row[data-tone]{ background: var(--card); color: var(--text); }
+.cmp-style-row{ border:0; }
+
+/* Calm pointer parallax for the home bento's decorative shapes (set by JS). */
+.lp-bento-canvas .lp-dshape{ translate: calc(var(--px, 0) * 10px) calc(var(--py, 0) * 8px); transition: translate .5s var(--ease); }
+
+
+/* =========================================================================
+   TWO MOODS. Dark = cinematic: deep navy, electric ambient light that picks up
+   the visitor's archetype colour (--ambient, set by JS), soft vignette.
+   Light = editorial paper: warm cream, low-saturation tones, ink-brown
+   edges, visible paper grain, natural (soft, warm) shadows.
+   ========================================================================= */
+:root{ --ambient: #6366F1; }
+body::before{
+  background:
+    radial-gradient(62% 52% at 18% -8%, color-mix(in srgb, var(--ambient) 34%, transparent), transparent 70%),
+    radial-gradient(48% 42% at 92% 2%, rgba(56,189,248,.16), transparent 70%),
+    radial-gradient(70% 40% at 50% 112%, color-mix(in srgb, var(--ambient) 20%, transparent), transparent 70%);
+}
+.lp-bg-flatten::after{
+  background:
+    radial-gradient(62% 52% at 18% -8%, color-mix(in srgb, var(--ambient) 34%, transparent), transparent 70%),
+    radial-gradient(48% 42% at 92% 2%, rgba(56,189,248,.16), transparent 70%);
+}
+[data-theme="light"] body::before{
+  background:
+    radial-gradient(70% 50% at 50% -10%, color-mix(in srgb, var(--ambient) 12%, transparent), transparent 70%),
+    radial-gradient(60% 40% at 50% 112%, rgba(180,140,90,.14), transparent 70%);
+}
+[data-theme="light"] .lp-bg-flatten::after{
+  background: radial-gradient(70% 50% at 50% -10%, color-mix(in srgb, var(--ambient) 12%, transparent), transparent 70%);
+}
+[data-theme="light"] body::after{ opacity: .16; mix-blend-mode: multiply; }
+/* Light mode: calmer, lower-saturation tones (same families, printed-ink feel). */
+html[data-theme="light"] [data-tone="violet"][data-tone][data-tone], html[data-theme="light"] .nm-violet{ --card:#A596EF; --surface:#B3A7F2; --surface-strong:#C1B7F5; }
+html[data-theme="light"] [data-tone="mint"][data-tone][data-tone], html[data-theme="light"] .nm-mint{ --card:#78D8B0; --surface:#8BDEBD; --surface-strong:#9DE4C8; }
+html[data-theme="light"] [data-tone="peach"][data-tone][data-tone], html[data-theme="light"] .nm-peach{ --card:#F29E78; --surface:#F4AE8D; --surface-strong:#F6BDA1; }
+html[data-theme="light"] [data-tone="gold"][data-tone][data-tone], html[data-theme="light"] .nm-gold{ --card:#EDCB52; --surface:#F0D46E; --surface-strong:#F3DC88; }
+[data-theme="light"] .lp-card-01{ background:#A596EF; }
+[data-theme="light"] .lp-card-02{ background:#F29E78; }
+[data-theme="light"] .lp-card-03{ background:#78D8B0; }
+[data-theme="light"] .lp-dshape.ds1{ background:#A596EF; }
+[data-theme="light"] .lp-dshape.ds2{ background:#78D8B0; }
+[data-theme="light"] .lp-dshape.ds3{ background:#F29E78; }
+
+/* =========================================================================
+   NAVIGATION AS AN OBJECT: the bar is a raised slab with an ink edge and a
+   hard under-lip; the menu is a mini bento of numbered tiles (navigation
+   only; file import/export now lives in Profile → Profile files).
+   ========================================================================= */
+.top-bar, [data-theme="light"] .top-bar{
+  border: 2px solid var(--border-strong) !important;
+  box-shadow: 0 5px 0 rgba(0,0,0,.45), 0 22px 40px -18px rgba(0,0,0,.6) !important;
+}
+[data-theme="light"] .top-bar{ box-shadow: 0 5px 0 rgba(58,44,30,.28), 0 20px 34px -18px rgba(58,44,30,.35) !important; }
+.nav-menu, [data-theme="light"] .nav-menu{
+  width: min(92vw, 400px); min-width: 0; border: 2px solid var(--border-strong) !important;
+  box-shadow: 0 6px 0 rgba(0,0,0,.45), 0 30px 54px -20px rgba(0,0,0,.7) !important; border-radius: 26px;
+}
+[data-theme="light"] .nav-menu{ box-shadow: 0 6px 0 rgba(58,44,30,.28), 0 28px 48px -20px rgba(58,44,30,.4) !important; }
+.nav-menu.open .nav-menu-inner{ padding: 14px; gap: 8px; }
+.nm-label{ font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--text-dim); padding: 4px 4px 0; }
+.nm-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nm-stack{ display:flex; flex-direction:column; gap: 8px; }
+.nm-mint{ --t:#5FE0B0; --ink:#062219; }
+.nm-violet{ --t:#9A8FF7; --ink:#100C2B; }
+.nm-gold{ --t:#F6D54A; --ink:#241B00; }
+.nm-cream{ --t:#EFEDE6; --ink:#16171F; }
+.nm-indigo{ --t:#2A3299; --ink:#F4F3FF; }
+.nm-peach{ --t:#FF9F73; --ink:#280D04; }
+html[data-theme="light"] .nm-mint{ --t:#78D8B0; }
+html[data-theme="light"] .nm-violet{ --t:#A596EF; }
+html[data-theme="light"] .nm-gold{ --t:#EDCB52; }
+html[data-theme="light"] .nm-peach{ --t:#F29E78; }
+html[data-theme="light"] .nm-cream{ --t:#E3D8BD; }
+.nm-tile, .nm-wide{
+  background: var(--t); color: var(--ink); border-radius: 20px;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.nm-tile{ flex-direction: column; align-items: stretch; justify-content: space-between; min-height: 104px; padding: 12px 14px 13px; gap: 14px; }
+.nm-top{ display:flex; justify-content: space-between; align-items:center; }
+.nm-ico{ display:flex; width:34px; height:34px; border-radius:11px; align-items:center; justify-content:center; background: var(--ink); color: var(--t); }
+.nm-ico svg{ width:18px; height:18px; }
+.nm-num{ font-family: var(--font-mono); font-size: 11px; letter-spacing:.1em; opacity:.85; }
+.nm-name{ font-family: var(--font-display); font-weight:600; font-size: 19px; letter-spacing:-.02em; line-height:1; }
+.nm-wide{ padding: 10px 14px 10px 10px; gap: 12px; }
+.nm-wide .nm-name{ flex:1; font-size: 17px; }
+.nm-go{ display:flex; width:28px; height:28px; border-radius:50%; align-items:center; justify-content:center; background: var(--ink); color: var(--t); }
+.nm-go svg{ width:14px; height:14px; }
+.nm-tile:hover, .nm-wide:hover{ background: var(--t); transform: translateY(-3px) rotate(-.6deg); box-shadow: 0 4px 0 var(--ink); }
+.nm-tile:active, .nm-wide:active{ transform: translateY(1px); box-shadow:none; }
+.nav-menu-item.nm-tile:focus-visible, .nav-menu-item.nm-wide:focus-visible, .nm-chip:focus-visible{ outline: 3px solid var(--accent); outline-offset: 2px; }
+.nm-settings{ display:grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nm-chip{ justify-content:center; border-radius: 14px; background: var(--surface-strong); font-weight:600; font-size: 13px; min-height: 44px; }
+.nm-chip:hover{ background: var(--surface-strong); filter: brightness(1.12); }
+.nm-legal{ display:flex; gap: 6px; justify-content:center; }
+.nm-legal .nav-menu-item{ width:auto; font-family: var(--font-mono); font-size: 11.5px; letter-spacing:.06em; text-transform:uppercase; color: var(--text-muted); padding: 8px 12px; }
+.nm-legal .nav-menu-item:hover{ color: var(--text); background: transparent; text-decoration: underline; }
+.nav-menu-sep{ margin: 2px 4px; }
+
+/* Card tilt: restrained, spring-eased, driven by pointer position (JS). */
+.bento-card:hover, .card.glass:hover, .lp-feature:hover, .lp-cta-panel:hover{
+  transform: perspective(1000px) translateY(-5px) rotateX(calc(var(--ty, 0) * -4deg)) rotateY(calc(var(--tx, 0) * 5deg));
+}
+@media (hover: none){ .bento-card:hover, .card.glass:hover, .lp-feature:hover, .lp-cta-panel:hover{ transform: translateY(-3px); } }
+.nav-menu-inner{ max-height: calc(100vh - 120px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+
+/* Snapshot trio: equal-height cards. */
+.lp-dashboard-grid{ align-items: stretch; }
+.lp-dashboard-grid > *{ height: 100%; }
+
+
+/* =========================================================================
+   DOUBLE-SURFACE SYSTEM — one construction for every card, tile, panel and the
+   navigation. Each object = an OUTER FRAME (a deeper shade of its own colour,
+   6px) around an INNER FACE (the colour itself) with:
+     · a 1px light edge where face meets frame,
+     · a soft top-left sheen + faint grain on the face (depth, not flatness),
+     · an under-lip and a long ambient drop shadow outside.
+   It is expressed once, via custom properties, so nothing can drift:
+   --frame is derived from the card's own --card/--t, so frame, face and text
+   tone always stay in step with whichever tone the card was assigned.
+   ========================================================================= */
+:root{
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.5'/%3E%3C/svg%3E");
+  --shadow-ink: 2,3,8;
+  --frame-mix: #000;
+  --frame-amt: 78%;
+  --sheen: rgba(255,255,255,.16);
+}
+[data-theme="light"]{ --shadow-ink: 58,44,30; --frame-mix: #4A3822; --frame-amt: 88%; --sheen: rgba(255,255,255,.55); }
+
+.bento-card, .card.glass, .lp-feature, .lp-cta-panel, .qz-card, .cmp-style-row, .modal-card, .stat-tile, .lp-card{
+  --frame: color-mix(in srgb, var(--card) var(--frame-amt), var(--frame-mix));
+  background-color: var(--card);
+  background-image: linear-gradient(155deg, var(--sheen) 0%, rgba(255,255,255,0) 46%), var(--grain);
+  background-blend-mode: normal, soft-light;
+  box-shadow:
+    inset 0 0 0 6px var(--frame),
+    inset 0 0 0 7px rgba(255,255,255,.24),
+    inset 0 14px 20px -16px rgba(255,255,255,.4),
+    0 2px 0 rgba(var(--shadow-ink), .45),
+    0 24px 36px -20px rgba(var(--shadow-ink), .7) !important;
+}
+.bento-card:hover, .card.glass:hover, .lp-feature:hover, .lp-cta-panel:hover, .qz-card:hover, .stat-tile:hover, .lp-card:hover{
+  box-shadow:
+    inset 0 0 0 6px var(--frame),
+    inset 0 0 0 7px rgba(255,255,255,.34),
+    inset 0 14px 20px -16px rgba(255,255,255,.5),
+    0 3px 0 rgba(var(--shadow-ink), .5),
+    0 34px 48px -20px rgba(var(--shadow-ink), .85),
+    0 20px 46px -28px color-mix(in srgb, var(--card) 80%, transparent) !important;
+}
+/* Hero bento cards carry their fill on the element itself. */
+.lp-card-01{ --card:#9A8FF7; } .lp-card-02{ --card:#FF9F73; } .lp-card-03{ --card:#5FE0B0; } .lp-card-dark{ --card:#1A1F6B; }
+[data-theme="light"] .lp-card-01{ --card:#A596EF; } [data-theme="light"] .lp-card-02{ --card:#F29E78; } [data-theme="light"] .lp-card-03{ --card:#78D8B0; }
+.lp-card-01, .lp-card-02, .lp-card-03, .lp-card-dark{ background-color: var(--card); }
+.lp-card{ border: 0; }
+/* Navigation tiles use --t (their own tone) as the face. */
+.nm-tile, .nm-wide{
+  --frame: color-mix(in srgb, var(--t) var(--frame-amt), var(--frame-mix));
+  background-image: linear-gradient(155deg, var(--sheen) 0%, rgba(255,255,255,0) 46%), var(--grain); background-blend-mode: normal, soft-light;
+  box-shadow: inset 0 0 0 4px var(--frame), inset 0 0 0 5px rgba(255,255,255,.3), 0 2px 0 rgba(var(--shadow-ink), .4);
+}
+.nm-tile:hover, .nm-wide:hover{ box-shadow: inset 0 0 0 4px var(--frame), inset 0 0 0 5px rgba(255,255,255,.4), 0 5px 0 var(--ink); }
+/* Bar and menu: existing outer rim + the same inner ring = double surface. */
+.top-bar, .nav-menu, [data-theme="light"] .top-bar, [data-theme="light"] .nav-menu{
+  --frame: color-mix(in srgb, var(--card) var(--frame-amt), var(--frame-mix));
+  background-image: linear-gradient(180deg, var(--sheen) 0%, rgba(255,255,255,0) 60%), var(--grain); background-blend-mode: normal, soft-light;
+  box-shadow: inset 0 0 0 4px var(--frame), inset 0 0 0 5px rgba(255,255,255,.2), 0 5px 0 rgba(var(--shadow-ink), .5), 0 24px 40px -18px rgba(var(--shadow-ink), .7) !important;
+}
+.nav-menu, [data-theme="light"] .nav-menu{ box-shadow: inset 0 0 0 4px var(--frame), inset 0 0 0 5px rgba(255,255,255,.2), 0 6px 0 rgba(var(--shadow-ink), .5), 0 32px 56px -20px rgba(var(--shadow-ink), .8) !important; }
+
+/* Architectural bar: segmented zones separated by hairlines, deeper proportions. */
+.top-bar{ padding: 15px 30px; }
+.nav-center{ position: relative; padding: 0 28px; }
+.nav-center::before, .nav-center::after{ content:''; position:absolute; top:-6px; bottom:-6px; width:2px; background: var(--border); border-radius:2px; opacity:.7; }
+.nav-center::before{ left:0; } .nav-center::after{ right:0; }
+@media (max-width: 640px){ .nav-center::before, .nav-center::after{ display:none; } .nav-center{ padding:0; } .top-bar{ padding: 12px 16px; } }
+/* Hover/focus that feel like pressing real hardware. */
+.icon-btn:hover, .nav-pill:hover{ background: var(--text); color: var(--bg); }
+.icon-btn:hover svg, .nav-pill:hover svg{ color: var(--bg); }
+.top-bar a:focus-visible, .top-bar button:focus-visible, .nav-menu :focus-visible, .btn:focus-visible, .icon-btn:focus-visible{
+  outline: 3px solid var(--accent); outline-offset: 3px; border-radius: var(--radius-btn);
+}
+
+/* Inputs, selects, textareas share the same construction as buttons. */
+input[type="text"], input[type="search"], input[type="email"], textarea, select, .ns-input, .nav-menu-code input{
+  background: var(--surface); color: var(--text); border: 2px solid var(--border-strong); border-radius: 14px;
+  box-shadow: inset 0 3px 0 rgba(var(--shadow-ink), .18);
+}
+input:focus-visible, textarea:focus-visible, select:focus-visible{ outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* One icon family: same stroke weight everywhere an icon sits in UI chrome. */
+.icon-btn svg *, .nav-pill-icon svg *, .bento-icon svg *, .nm-ico svg *, .nm-go svg *, .lp-feature-icon svg *, .value-icon svg *, .nm-chip svg *{ stroke-width: 2.1; }
+
+/* Archetype ambience: glow position and breathing pace follow the soul colour
+   (set by JS from its hue), so The Oracle and The Warrior don't feel identical. */
+:root{ --ax: 18%; --ambient-dur: 11s; }
+@keyframes ambientBreathe{ 0%,100%{ opacity:.82; } 50%{ opacity:1; } }
+body::before{ animation: ambientBreathe var(--ambient-dur) ease-in-out infinite; }
+body::before{
+  background:
+    radial-gradient(62% 52% at var(--ax) -8%, color-mix(in srgb, var(--ambient) 34%, transparent), transparent 70%),
+    radial-gradient(48% 42% at calc(100% - var(--ax)) 2%, rgba(56,189,248,.16), transparent 70%),
+    radial-gradient(70% 40% at 50% 112%, color-mix(in srgb, var(--ambient) 20%, transparent), transparent 70%);
+}
+[data-theme="light"] body::before{
+  background:
+    radial-gradient(70% 50% at 50% -10%, color-mix(in srgb, var(--ambient) 12%, transparent), transparent 70%),
+    radial-gradient(60% 40% at 50% 112%, rgba(180,140,90,.14), transparent 70%);
+}
+/* Light sheen stays gentle; dark-faced tones (light text) get the faintest sheen so text never loses contrast. */
+[data-theme="light"]{ --sheen: rgba(255,255,255,.22); }
+html [data-tone="indigo"][data-tone][data-tone], .nm-indigo, .lp-card-dark{ --sheen: rgba(255,255,255,.08); }
+
+
+/* =========================================================================
+   FORGE FINAL POLISH
+   1. Central tokens (radius, motion, elevation tiers, icon slabs)
+   2. Card hierarchy: Primary / Feature / Information (each tier = frame width,
+      under-lip, drop shadow) — one construction, three weights
+   3. Result hero: landscape editorial rectangle, framed, parallax, solid chips
+   4. Button states, icon stroke rule, old-glass removal, scroll choreography
+   ========================================================================= */
+:root{
+  /* shape language */
+  --r-card: 28px; --r-panel: 20px; --r-btn: 14px; --r-icon: 12px; --r-input: 14px; --r-pill: 999px;
+  /* motion language: micro (press) / small (hover) / card / hero */
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --dur-micro: .16s; --dur-small: .28s; --dur-card: .5s; --dur-hero: .9s;
+  /* icon slabs: one size, one radius, inverse of the card face */
+  --slab: 38px;
+}
+/* Elevation tiers (consumed by the single shadow rule below). */
+.result-hero .ingot, .lp-card, .lp-cta-panel{ --fw: 8px; --lip: 3px; --drop: 0 34px 50px -22px; }
+.bento-card, .card.glass, .qz-card, .modal-card{ --fw: 6px; --lip: 2px; --drop: 0 24px 36px -20px; }
+.lp-feature, .cmp-style-row, .stat-tile{ --fw: 4px; --lip: 1px; --drop: 0 14px 24px -16px; }
+.bento-card, .card.glass, .qz-card, .modal-card, .lp-feature, .cmp-style-row, .stat-tile, .lp-card, .lp-cta-panel{ border-radius: var(--r-card); }
+.stat-tile, .cmp-style-row{ border-radius: var(--r-panel); }
+
+.bento-card, .card.glass, .qz-card, .modal-card, .lp-feature, .cmp-style-row, .stat-tile, .lp-card, .lp-cta-panel{
+  box-shadow:
+    inset 0 0 0 var(--fw) var(--frame),
+    inset 0 0 0 calc(var(--fw) + 1px) rgba(255,255,255,.24),
+    inset 0 14px 20px -16px rgba(255,255,255,.4),
+    0 var(--lip) 0 rgba(var(--shadow-ink), .45),
+    var(--drop) rgba(var(--shadow-ink), .7) !important;
+  transition: transform var(--dur-card) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), background-color var(--dur-small) var(--ease-out) !important;
+}
+.bento-card:hover, .card.glass:hover, .qz-card:hover, .lp-feature:hover, .cmp-style-row:hover, .stat-tile:hover, .lp-card:hover, .lp-cta-panel:hover{
+  box-shadow:
+    inset 0 0 0 var(--fw) var(--frame),
+    inset 0 0 0 calc(var(--fw) + 1px) rgba(255,255,255,.36),
+    inset 0 14px 20px -16px rgba(255,255,255,.5),
+    0 calc(var(--lip) + 2px) 0 rgba(var(--shadow-ink), .5),
+    0 calc(var(--lip) + 34px) 48px -20px rgba(var(--shadow-ink), .85),
+    0 20px 46px -28px color-mix(in srgb, var(--card) 80%, transparent) !important;
+}
+/* Modals and static panels don't lift. */
+.modal-card:hover, .cmp-style-row:hover{ transform: none; }
+.card.glass:active, .bento-card:active, .lp-feature:active, .qz-card:active{ transform: translateY(1px) scale(.992); transition-duration: var(--dur-micro) !important; }
+
+/* ---- Icon slabs: same size/radius/relationship everywhere ---- */
+.bento-icon, .lp-feature-icon{ width: var(--slab); height: var(--slab); border-radius: var(--r-icon); }
+.nm-ico{ width: 36px; height: 36px; border-radius: var(--r-icon); }
+.bento-icon, .lp-feature-icon, .nm-ico{ border: 2px solid color-mix(in srgb, var(--text) 100%, transparent); box-shadow: 0 2px 0 rgba(var(--shadow-ink), .35); }
+svg[aria-hidden="true"][stroke="currentColor"]:not(.qz-card-icon *):not(.qz-illustration-wrap *) :where(path, circle, rect, line, polyline, ellipse){
+  stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round;
+}
+.bento-icon:hover, .lp-feature-icon:hover{ transition: transform var(--dur-small) var(--ease-spring); }
+
+/* ---- RESULT HERO: editorial landscape, framed like a print ---- */
+@media (min-width: 1101px){
+  .hero-bento{ grid-template-rows: repeat(4, clamp(138px, 10.4vw, 156px)); }
+}
+.result-hero .ingot{
+  --card: color-mix(in srgb, var(--user-accent-1) 42%, #0A0E24);
+  --frame: color-mix(in srgb, var(--card) 70%, #000);
+  border: 8px solid var(--frame) !important;
+  border-radius: var(--r-card);
+  box-shadow: 0 3px 0 rgba(var(--shadow-ink), .5), 0 34px 60px -26px color-mix(in srgb, var(--user-accent-1) 60%, #000) !important;
+  background-color: #12141b;
+}
+@media (min-width: 721px){ .result-hero .ingot-desc{ max-width: 60ch; } .result-hero .ingot-name{ max-width: none; font-size: clamp(52px, 5.8vw, 84px); } }
+.result-hero .ingot-name{ letter-spacing: -.02em; }
+.result-hero .ingot-visual{
+  transform: translate3d(calc(var(--hx, 0) * -12px), calc(var(--hy, 0) * -9px - var(--hs, 0) * 1px), 0) scale(1.09);
+  transition: transform .7s var(--ease-out);
+  will-change: transform;
+}
+/* Hero chips: solid ink slabs, no glass. */
+.result-hero .ingot-icon{
+  background: #EFEDE6; color: #12141F; border: 2px solid #12141F; border-radius: 14px; backdrop-filter: none; -webkit-backdrop-filter: none;
+  box-shadow: 0 3px 0 rgba(0,0,0,.45);
+}
+.result-hero .ingot-confidence, .result-hero .ingot .tag, .result-hero .ingot-actions .btn{
+  background: rgba(9,10,18,.9); backdrop-filter: none; -webkit-backdrop-filter: none; border: 2px solid rgba(255,255,255,.3); color: #fff;
+}
+.result-hero .ingot-confidence{ border-radius: var(--r-panel); box-shadow: 0 3px 0 rgba(0,0,0,.45); }
+.result-hero .ingot-actions .btn{ font-family: var(--font-display); font-weight: 600; box-shadow: 0 2px 0 rgba(0,0,0,.5); }
+.result-hero .ingot-actions .btn:hover{ background: #fff; color: #0A0E24; transform: translateY(-2px); box-shadow: 0 4px 0 rgba(0,0,0,.5); }
+.result-hero .ingot-confidence .val{ font-size: 30px; }
+
+/* ---- Navigation: logo is the centrepiece ---- */
+.nav-logo{ height: 28px; }
+.nav-logo-fallback{ font-size: 26px; font-family: var(--font-display); font-weight: 700; }
+
+/* ---- Button states: default / hover / press / focus / disabled / loading / success ---- */
+.btn{ transition: transform var(--dur-small) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), background-color var(--dur-small) var(--ease-out), color var(--dur-small) var(--ease-out); }
+.btn:disabled, .btn[aria-disabled="true"]{
+  opacity: 1; background: var(--surface); color: var(--text-dim); border: 2px dashed var(--border-strong);
+  box-shadow: none !important; cursor: not-allowed; transform: none !important; filter: saturate(.5);
+}
+.btn.is-loading{ pointer-events: none; color: transparent !important; position: relative; }
+.btn.is-loading::before{
+  content: ''; position: absolute; inset: 0; margin: auto; width: 16px; height: 16px; border-radius: 50%;
+  border: 2.5px solid var(--ink, #0A0612); border-top-color: transparent; animation: forgeSpin .7s linear infinite;
+}
+.btn.is-success{ background: #5FE0B0 !important; color: #062219 !important; }
+@keyframes forgeSpin{ to{ transform: rotate(360deg); } }
+a:not(.btn):not(.nav-menu-item){ text-underline-offset: 3px; text-decoration-thickness: 1px; transition: text-decoration-thickness var(--dur-micro) var(--ease-out), color var(--dur-micro); }
+a:not(.btn):not(.nav-menu-item):hover{ text-decoration-thickness: 2.5px; }
+
+/* ---- Remaining glass → solid ---- */
+.audio-prompt{ background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none; border: 2px solid var(--border-strong); box-shadow: 0 3px 0 rgba(var(--shadow-ink), .5); }
+
+/* ---- Scroll choreography: rise + slight scale, staggered by card ---- */
+.section{ transform: translateY(22px) scale(.985); transition: opacity var(--dur-hero) var(--ease-out), transform var(--dur-hero) var(--ease-out); }
+.section.revealed{ transform: none; }
+@media (prefers-reduced-motion: reduce){
+  .result-hero .ingot-visual{ transform: scale(1.02) !important; transition: none; }
+  .section{ transform: none; }
+}
+
+/* Clash Display's native word space is very tight; restore a comfortable one
+   everywhere the display face is used so headlines and buttons never read
+   as run-together words. */
+h1, h2, h3, h4, .btn, .nav-pill, .nm-name, .lp-card-num, .ingot-name, .ingot-name-lead, .ingot-name-main, .ingot-title,
+.q-text, .qz-question2, .ob-card-title, .modal-card h3, .nav-logo-fallback, .stat-val, .profile-stat-val, .ov-bignum .val,
+.ingot-confidence .val, .value-pct, .bento-head h3, .lp-cta-panel h3, .lp-dashboard-head h2, .lp-feature h4{ word-spacing: .16em; }
+h1{ letter-spacing: -0.02em; }
+.result-hero .ingot-name{ letter-spacing: -0.02em; }
+.ingot-name-lead{ margin-right: .12em; }
+
+/* Archetype colour grade: the (often grayscale) hero photo is tinted with the
+   archetype's own accents, so each result looks like it belongs to its type. */
+.result-hero .ingot-split::after{
+  background: linear-gradient(135deg, color-mix(in srgb, var(--user-accent-1) 80%, transparent), color-mix(in srgb, var(--user-accent-2) 55%, transparent));
+  mix-blend-mode: color; opacity: .6;
+}
+/* Hero actions: readable size (was 9.5px) and a proper touch target. */
+@media (min-width:1101px){
+  .result-hero .ingot-actions .btn{ font-size: 11.5px; min-height: 40px; padding: 8px 6px; letter-spacing: 0; }
+}
+.result-hero .ingot-actions .btn{ min-height: 44px; }
+@media (max-width: 720px){
+  .result-hero .ingot-actions .btn{ font-size: 11px; white-space: normal; line-height: 1.15; padding: 6px 4px; text-align: center; letter-spacing: 0; }
+  .result-hero .ingot-content{ padding-top: 96px; }
+}
+/* Summary card: the number is the visual idea. */
+.result-hero .hero-summary .ov-bignum .val{ font-size: clamp(56px, 6.2vw, 92px); letter-spacing: -.045em; line-height: .9; }
+.result-hero .tap-hint{ font-size: 11px; font-weight: 500; color: var(--text-muted); }
+
+/* The hero is always a dark photographic surface, in both themes: its body text must never inherit the light theme's dark ink. */
+.result-hero .ingot .ingot-desc{ color: rgba(255,255,255,.9); }
+.result-hero .ingot .ingot-desc + .ingot-desc{ color: rgba(255,255,255,.8); }
+
+.result-hero .ingot .ingot-desc.ingot-desc-aside{ color: rgba(255,255,255,.8); }
+
+/* Real space now separates the two name spans, so the margin hack goes, and the title can wrap. */
+.ingot-name-lead{ margin-right: 0; }
+@media (max-width: 720px){
+  .result-hero .ingot-name{ max-width: none; font-size: clamp(30px, 9.4vw, 42px); line-height: 1; overflow-wrap: anywhere; }
+  .hero-bento > .ingot{ height: 620px; min-height: 620px; }
+  .result-hero .ingot-content{ padding-top: 84px; }
+}
+
+
+/* =========================================================================
+   FORGE ICON SYSTEM — one treatment, driven by tokens.
+   Every icon container (card icons, menu icons, hero icon, nav buttons) and
+   every circular action button is the SAME object: a deep ink slab holding a
+   cream glyph, edged with a cream ring and a hard under-lip. Because the
+   treatment is a fixed pair (ink + cream) and not derived from the card's
+   colour, it stays readable on every surface: the cream ring gives it edge on
+   dark cards, the ink slab gives it weight on light ones. The card colour
+   changes; the icon never does.
+   Variants (documented, size only): --icon-container-size-lg for the hero.
+   ========================================================================= */
+:root{
+  --icon-container-bg: #12141F;
+  --icon-container-fg: #F4F3FF;
+  --icon-container-border: rgba(244,243,255,.92);
+  --icon-container-shadow: 0 2px 0 rgba(0,0,0,.5);
+  --icon-container-shadow-hover: 0 4px 0 rgba(0,0,0,.5);
+  --icon-container-shadow-press: 0 1px 0 rgba(0,0,0,.5);
+  --icon-container-size: 38px;
+  --icon-container-size-lg: 48px;
+  --icon-container-radius: 12px;
+  --icon-size: 19px;
+  --icon-stroke: 2.1;
+  --action-button-bg: var(--icon-container-bg);
+  --action-button-fg: var(--icon-container-fg);
+  --action-button-border: var(--icon-container-border);
+  --action-button-size: 30px;
+}
+
+/* ---- Containers (rounded square) ---- */
+.bento-icon, .lp-feature-icon, .nm-ico, .result-hero .ingot-icon, .icon-btn, .nav-pill, .lp-plus{
+  background: var(--icon-container-bg) !important;
+  color: var(--icon-container-fg) !important;
+  border: 2px solid var(--icon-container-border) !important;
+  border-radius: var(--icon-container-radius) !important;
+  box-shadow: var(--icon-container-shadow) !important;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.bento-icon, .lp-feature-icon, .nm-ico, .lp-plus, .icon-btn{ width: var(--icon-container-size); height: var(--icon-container-size); }
+.result-hero .ingot-icon{ width: var(--icon-container-size-lg); height: var(--icon-container-size-lg); font-size: 24px; }
+.nav-pill{ height: var(--icon-container-size); padding: 0 14px 0 11px; gap: 7px; }
+.lp-plus{ font-size: 20px; }
+
+/* ---- Glyphs inside them ---- */
+.bento-icon svg, .lp-feature-icon svg, .nm-ico svg, .icon-btn svg, .nav-pill-icon svg, .nm-go svg{
+  width: var(--icon-size); height: var(--icon-size); color: inherit; filter: none;
+}
+.nav-pill-icon{ width: var(--icon-size); height: var(--icon-size); }
+.nav-pill-icon svg{ width: 100%; height: 100%; }
+.bento-icon svg *, .lp-feature-icon svg *, .nm-ico svg *, .icon-btn svg *, .nav-pill-icon svg *, .nm-go svg *{
+  stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ---- Circular action buttons (the arrows) ---- */
+.nm-go{
+  width: var(--action-button-size); height: var(--action-button-size); border-radius: 50%;
+  background: var(--action-button-bg) !important; color: var(--action-button-fg) !important;
+  border: 2px solid var(--action-button-border) !important; box-shadow: var(--icon-container-shadow) !important;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.nm-go svg{ width: 14px; height: 14px; }
+.nm-wide .nm-ico{ width: var(--icon-container-size); height: var(--icon-container-size); }
+
+/* ---- Interaction states: one physical object ---- */
+.bento-icon, .lp-feature-icon, .nm-ico, .nm-go, .lp-plus, .icon-btn, .nav-pill{
+  transition: transform var(--dur-small) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), filter var(--dur-small) var(--ease-out);
+}
+/* Interactive (buttons): lift on hover, press down on click. */
+.icon-btn:hover, .nav-pill:hover{
+  transform: translateY(-2px); filter: brightness(1.18); box-shadow: var(--icon-container-shadow-hover) !important;
+  background: var(--icon-container-bg) !important; color: var(--icon-container-fg) !important;
+}
+.icon-btn:hover svg, .nav-pill:hover svg{ color: var(--icon-container-fg); }
+.icon-btn:active, .nav-pill:active{ transform: translateY(1px) scale(.96); box-shadow: var(--icon-container-shadow-press) !important; filter: none; }
+/* Decorative (inside a card/tile): respond when their parent is hovered or pressed. */
+.bento-card:hover .bento-icon, .lp-feature:hover .lp-feature-icon, .nm-tile:hover .nm-ico, .nm-wide:hover .nm-ico{
+  transform: translateY(-2px) rotate(-6deg); box-shadow: var(--icon-container-shadow-hover) !important; filter: brightness(1.15);
+}
+.nm-tile:hover .nm-go, .nm-wide:hover .nm-go{ transform: translate(2px, -2px); box-shadow: var(--icon-container-shadow-hover) !important; filter: brightness(1.15); }
+.bento-card:active .bento-icon, .lp-feature:active .lp-feature-icon, .nm-tile:active .nm-ico, .nm-wide:active .nm-ico, .nm-wide:active .nm-go{
+  transform: translateY(1px) scale(.96); box-shadow: var(--icon-container-shadow-press) !important; filter: none;
+}
+/* Focus: two-tone ring (cream inside, ink outside) readable on any surface. */
+.icon-btn:focus-visible, .nav-pill:focus-visible{
+  outline: 3px solid var(--icon-container-bg); outline-offset: 2px; border-radius: var(--icon-container-radius);
+  box-shadow: 0 0 0 2px var(--icon-container-fg), var(--icon-container-shadow) !important;
+}
+@media (prefers-reduced-motion: reduce){
+  .icon-btn:hover, .nav-pill:hover, .nm-tile:hover .nm-ico, .nm-tile:hover .nm-go, .bento-card:hover .bento-icon, .lp-feature:hover .lp-feature-icon{ transform: none; }
+}
+/* Icon containers and action buttons never flex-shrink: size is a token, not a layout outcome. */
+.bento-icon, .lp-feature-icon, .nm-ico, .nm-go, .lp-plus, .icon-btn, .result-hero .ingot-icon{ flex: 0 0 auto; box-sizing: border-box; }
+.bento-icon, .lp-feature-icon, .nm-ico, .lp-plus, .icon-btn{ min-width: var(--icon-container-size); min-height: var(--icon-container-size); }
+.result-hero .ingot-icon{ min-width: var(--icon-container-size-lg); min-height: var(--icon-container-size-lg); }
+.nm-go{ min-width: var(--action-button-size); min-height: var(--action-button-size); }
+
+/* Card corner arrows join the same circular action-button family as the menu arrows. */
+.ov-arrow, .result-hero .ov-arrow{
+  width: var(--action-button-size); height: var(--action-button-size); min-width: var(--action-button-size); min-height: var(--action-button-size);
+  border-radius: 50%; flex: 0 0 auto; box-sizing: border-box;
+  background: var(--action-button-bg) !important; color: var(--action-button-fg) !important;
+  border: 2px solid var(--action-button-border) !important; box-shadow: var(--icon-container-shadow) !important;
+  display: flex; align-items: center; justify-content: center; padding: 0; opacity: 1;
+  transition: transform var(--dur-small) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), filter var(--dur-small) var(--ease-out);
+}
+.ov-arrow svg, .result-hero .ov-arrow svg{ width: 14px; height: 14px; color: inherit; stroke-width: var(--icon-stroke); }
+.ov-card:hover .ov-arrow{ transform: translate(2px, -2px); box-shadow: var(--icon-container-shadow-hover) !important; filter: brightness(1.15); }
+.ov-card:active .ov-arrow{ transform: translateY(1px) scale(.96); box-shadow: var(--icon-container-shadow-press) !important; filter: none; }
+/* Shared focus ring wins over the older per-region focus rules. */
+.top-bar .icon-btn:focus-visible, .top-bar .nav-pill:focus-visible, .modal-card .icon-btn:focus-visible, .icon-btn:focus-visible, .nav-pill:focus-visible{
+  outline: 3px solid var(--icon-container-bg); outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--icon-container-fg), var(--icon-container-shadow) !important;
+}
+
+
+/* =========================================================================
+   HOME HERO PHOTO — same double-surface frame as every card.
+   The photo is clipped to the notched silhouette by an SVG clipPath, and a
+   clipped element can't draw a border outside its own clip. So the frame is
+   built from two static layers sitting BEHIND the photo, each a solid copy of
+   the silhouette grown outward by a chain of zero-blur drop-shadows (a uniform
+   dilation, so the band is the same thickness along the notch as on the
+   straight edges):
+     rim   = 1px light edge hugging the photo
+     frame = 6px deeper-shade band, then the same under-lip + ambient shadow
+             the cards carry.
+   The photo itself (and its parallax) stays on top, untouched.
+   ========================================================================= */
+:root{
+  --hero-frame: color-mix(in srgb, var(--ambient) 38%, #0A0E24);
+  --hero-rim: color-mix(in srgb, var(--hero-frame) 45%, #fff);
+}
+[data-theme="light"]{
+  --hero-frame: color-mix(in srgb, var(--ambient) 40%, #2A2218);
+  --hero-rim: color-mix(in srgb, var(--hero-frame) 40%, #fff);
+}
+.lp-hero-stack{ position: relative; z-index: 3; }
+.lp-hero-frame, .lp-hero-rim{ display: none; }
+.lp-hero-visual:hover{ filter: none; }
+
+@media (min-width: 901px){
+  .lp-hero-stack{ position: absolute; left: 0; top: 0; width: 41%; height: 100%; }
+  .lp-hero-frame, .lp-hero-rim{ display: block; position: absolute; inset: 0; pointer-events: none; animation: revealIn 1s var(--ease) .1s backwards; }
+  .lp-hero-frame::before, .lp-hero-rim::before{ content: ''; position: absolute; inset: 0; clip-path: url(#lpHeroNotch); }
+  .lp-hero-frame::before{ background: var(--hero-frame); }
+  .lp-hero-rim::before{ background: var(--hero-rim); }
+  .lp-hero-rim{
+    filter:
+      drop-shadow(1px 0 0 var(--hero-rim)) drop-shadow(-1px 0 0 var(--hero-rim))
+      drop-shadow(0 1px 0 var(--hero-rim)) drop-shadow(0 -1px 0 var(--hero-rim));
+  }
+  .lp-hero-frame{
+    filter:
+      drop-shadow(3.5px 0 0 var(--hero-frame)) drop-shadow(-3.5px 0 0 var(--hero-frame))
+      drop-shadow(0 3.5px 0 var(--hero-frame)) drop-shadow(0 -3.5px 0 var(--hero-frame))
+      drop-shadow(3.5px 0 0 var(--hero-frame)) drop-shadow(-3.5px 0 0 var(--hero-frame))
+      drop-shadow(0 3.5px 0 var(--hero-frame)) drop-shadow(0 -3.5px 0 var(--hero-frame))
+      drop-shadow(0 3px 0 rgba(var(--shadow-ink), .5))
+      drop-shadow(0 28px 34px rgba(var(--shadow-ink), .55));
+  }
+  .lp-hero-stack .lp-hero-visual{ position: absolute; left: 0; top: 0; width: 100%; height: 100%; box-shadow: none; }
+}
+@media (max-width: 900px){
+  /* No notch here: the photo is a plain rounded card, so a real border does the job. */
+  .lp-hero-visual{
+    border: 6px solid var(--hero-frame);
+    box-shadow: 0 3px 0 rgba(var(--shadow-ink), .5), 0 24px 36px -20px rgba(var(--shadow-ink), .7);
+  }
+  .lp-hero-visual::after{
+    content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 3; pointer-events: none;
+    box-shadow: inset 0 0 0 1px var(--hero-rim);
+  }
+}
+
+
+/* =========================================================================
+   VISUAL REFINEMENT v3 — measured fixes only (no layout/behaviour changes).
+   Each rule answers a specific defect found in the baseline review:
+   1. Nav menu was transparent (blur over page text) -> solid block.
+   2. Home card arrows were bare glyphs -> same circular action chip as the
+      Result cards and menu rows (icon family).
+   3. Mono captions were 8-10px at 65% opacity -> legible.
+   4. Compact Result cards squashed their chips / clipped subtitles.
+   5. Chip labels were truncated mid-word -> only whole chips are shown.
+   6. Tall cards left a dead middle -> type scales up to carry the space.
+   7. Tablet: hero chips collided with the action buttons; the deep grid
+      left an empty third column in its last row.
+   8. Hero metadata chips and action buttons looked identical -> hierarchy.
+   ========================================================================= */
+
+/* 1 · Menu: a solid object, like the bar it hangs from (no bleed-through). */
+.nav-menu, [data-theme="light"] .nav-menu{
+  background-color: var(--card);
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+.nav-menu-backdrop{ backdrop-filter: none; -webkit-backdrop-filter: none; }
+/* Tiles settle in one after another when the menu opens. */
+@keyframes nmTileIn{ from{ opacity: 0; transform: translateY(8px) scale(.97); } to{ opacity: 1; transform: none; } }
+.nav-menu.open .nm-tile, .nav-menu.open .nm-wide{ animation: nmTileIn .5s var(--ease-out) backwards; }
+.nav-menu.open .nm-tile:nth-of-type(1){ animation-delay: .06s; }
+.nav-menu.open .nm-tile:nth-of-type(2){ animation-delay: .1s; }
+.nav-menu.open .nm-tile:nth-of-type(3){ animation-delay: .14s; }
+.nav-menu.open .nm-tile:nth-of-type(4){ animation-delay: .18s; }
+.nav-menu.open .nm-wide:nth-of-type(5){ animation-delay: .22s; }
+.nav-menu.open .nm-wide:nth-of-type(6){ animation-delay: .26s; }
+@media (prefers-reduced-motion: reduce){ .nav-menu.open .nm-tile, .nav-menu.open .nm-wide{ animation: none; } }
+
+/* 2 · Home bento arrows join the circular action-button family. */
+.lp-card-arrow, .lp-bento-canvas .lp-card-arrow{
+  width: var(--action-button-size); height: var(--action-button-size); min-width: var(--action-button-size);
+  border-radius: 50%; box-sizing: border-box; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--action-button-bg); color: var(--action-button-fg);
+  border: 2px solid var(--action-button-border); box-shadow: var(--icon-container-shadow);
+  font-size: 14px; font-weight: 700; line-height: 1; opacity: 1;
+  transition: transform var(--dur-small) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), filter var(--dur-small) var(--ease-out);
+}
+.lp-card:hover .lp-card-arrow{ transform: translate(2px, -2px); box-shadow: var(--icon-container-shadow-hover); filter: brightness(1.15); }
+.lp-card:active .lp-card-arrow{ transform: translateY(1px) scale(.96); box-shadow: var(--icon-container-shadow-press); filter: none; }
+@media (prefers-reduced-motion: reduce){ .lp-card:hover .lp-card-arrow{ transform: none; } }
+
+/* 3 · Captions: still quiet metadata, but readable. */
+.lp-card-foot, .lp-bento-canvas .lp-card-foot{ font-size: clamp(9.5px, 1.5cqw, 11px); opacity: .82; letter-spacing: .05em; }
+.lp-card-num{ opacity: 1; }
+
+/* 4/5 · Result cards: nothing shrinks into a sliver, no label is cut mid-word. */
+.ov-card .ov-subtitle{ flex-shrink: 0; }
+.ov-card .bento-head{ flex-shrink: 0; }
+.ov-chip{ flex-shrink: 0; }
+@media (min-width: 721px){
+  .ov-chip-row{ --chip-row-h: 28px; flex-wrap: wrap; row-gap: 20px; max-height: var(--chip-row-h); flex-shrink: 0; }
+  .result-hero .ov-chip-row{ --chip-row-h: 25px; }
+  .result-hero .hero-summary .ov-chip-row{ --chip-row-h: 28px; }
+  .result-hero .hero-traits .ov-chip-row{ max-height: none; row-gap: 6px; }
+}
+/* The two compact hero cards (150px rows) can't hold subtitle + chips +
+   hint; the circular arrow already says "tap", so the text hint steps aside. */
+@media (min-width: 1101px){
+  .result-hero .hero-map .tap-hint, .result-hero .hero-emotions .tap-hint{ display: none; }
+}
+
+/* 6 · Tall Relationships card: editorial type carries the space. */
+@media (min-width: 1101px){
+  .insight-bento .insight-relationships .ov-subtitle{
+    font-family: var(--font-display); font-weight: 600; letter-spacing: -.015em; word-spacing: .12em;
+    font-size: clamp(22px, 1.9vw, 28px); line-height: 1.18; max-width: 20ch; color: var(--text); -webkit-line-clamp: 4;
+  }
+  .insight-bento .insight-relationships .ov-chip{ font-size: 12px; padding: 6px 12px; }
+  .insight-bento .insight-relationships .ov-chip-row{ --chip-row-h: 32px; }
+}
+
+/* 7 · Tablet. */
+@media (min-width: 721px) and (max-width: 1100px){
+  .result-hero .ingot-content{ padding-bottom: 156px; }
+}
+@media (min-width: 641px) and (max-width: 1080px){
+  /* Deep grid is 3-up; a last row with 2 (or 1) cards gets stretched, not left with a hole. */
+  .deep-wrap > .bento-card:nth-last-child(3):nth-child(3n+1),
+  .deep-wrap > .bento-card:nth-last-child(2):nth-child(3n+2){ grid-column: span 3; }
+  .deep-wrap > .bento-card:nth-last-child(2):nth-child(3n+1){ grid-column: span 6; }
+}
+
+/* 8 · Hero: metadata is quiet, actions are solid. */
+.result-hero .ingot .tag{
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); box-shadow: none; font-weight: 500;
+}
+.result-hero .ingot-actions .btn:active{ transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.5); }
+
+/* 9 · Quick-link pills join the tactile family: lift on hover, press on click. */
+.lp-quick-link{
+  border-width: 2px; border-color: var(--border-strong);
+  box-shadow: 0 2px 0 rgba(var(--shadow-ink), .35);
+  transition: transform var(--dur-small) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), color var(--dur-small) var(--ease-out), background-color var(--dur-small) var(--ease-out), border-color var(--dur-small) var(--ease-out);
+}
+.lp-quick-link:hover{ transform: translateY(-2px); box-shadow: 0 4px 0 rgba(var(--shadow-ink), .4); background: var(--surface-strong); }
+.lp-quick-link:active{ transform: translateY(1px); box-shadow: 0 1px 0 rgba(var(--shadow-ink), .4); transition-duration: var(--dur-micro); }
+@media (prefers-reduced-motion: reduce){ .lp-quick-link:hover{ transform: none; } }
+
+
+/* =========================================================================
+   FINAL ART-DIRECTION PASS
+   ========================================================================= */
+
+/* ---- A · Hero photo + its custom frame appear as ONE object ----
+   Root cause of the "frame shows up later" bug: the shared `revealIn`
+   keyframe animates `filter`, and the frame/rim are built from a
+   `filter: drop-shadow()` chain (that chain IS the coloured band). While the
+   animation ran, its blur() replaced the chain, so the photo arrived without
+   its band and the band popped in when the animation ended. These three
+   pieces now (1) wait until the photo is decoded (JS adds .is-ready) and
+   (2) share one opacity/transform-only keyframe, so nothing swaps `filter`. */
+@keyframes forgeHeroIn{
+  from{ opacity: 0; transform: translateY(14px) scale(.985); }
+  to{ opacity: 1; transform: none; }
+}
+.lp-hero-stack .lp-hero-frame, .lp-hero-stack .lp-hero-rim, .lp-hero-stack .lp-hero-visual{ animation: none; opacity: 0; }
+.lp-hero-stack.is-ready .lp-hero-frame, .lp-hero-stack.is-ready .lp-hero-rim, .lp-hero-stack.is-ready .lp-hero-visual{
+  opacity: 1; animation: forgeHeroIn .85s var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce){
+  .lp-hero-stack.is-ready .lp-hero-frame, .lp-hero-stack.is-ready .lp-hero-rim, .lp-hero-stack.is-ready .lp-hero-visual{ animation: none; }
+}
+
+/* ---- B · Connected parts: four interlocking pieces (SVG built in home.js) ---- */
+.lp-dark-shapes{ display: flex; justify-content: flex-end; align-items: center; }
+.pz-art{
+  --pz-ink: #0C0F33;
+  --pz1: #9A8FF7; --pz2: #5FE0B0; --pz3: #FF9F73; --pz4: #F6D54A;
+  height: 100%; max-height: 138px; width: auto; overflow: visible;
+  translate: calc(var(--px, 0) * 8px) calc(var(--py, 0) * 6px); transition: translate .5s var(--ease-out);
+}
+.pz-art .pz{ stroke: var(--pz-ink); stroke-width: 2; stroke-linejoin: round; transition: translate var(--dur-card) var(--ease-spring); }
+.pz-art .pz-1{ fill: var(--pz1); } .pz-art .pz-2{ fill: var(--pz2); } .pz-art .pz-3{ fill: var(--pz3); } .pz-art .pz-4{ fill: var(--pz4); }
+.pz-art .pz-lip{ fill: var(--pz-ink); opacity: .55; translate: 0 3px; }
+/* The pieces ease apart a hair on hover, then settle back: "connected, not fused". */
+.lp-card-dark:hover .pz-1{ translate: -2px -2px; } .lp-card-dark:hover .pz-2{ translate: 2px -2px; }
+.lp-card-dark:hover .pz-3{ translate: 2px 2px; }   .lp-card-dark:hover .pz-4{ translate: -2px 2px; }
+@media (prefers-reduced-motion: reduce){ .lp-card-dark:hover .pz{ translate: none; } .pz-art{ translate: none; } }
+@media (max-width: 900px){ .pz-art{ max-height: 110px; } }
+
+/* ---- C · Two moods. Light = warm paper + pastel blocks (new families, not dimmed dark ones). ---- */
+html[data-theme="light"] [data-tone="violet"][data-tone][data-tone], html[data-theme="light"] .nm-violet{ --card:#CDC5FB; --surface:#BEB4F8; --surface-strong:#AFA3F4; }
+html[data-theme="light"] [data-tone="mint"][data-tone][data-tone], html[data-theme="light"] .nm-mint{ --card:#AEEBCF; --surface:#9CE3C2; --surface-strong:#8ADAB4; }
+html[data-theme="light"] [data-tone="peach"][data-tone][data-tone], html[data-theme="light"] .nm-peach{ --card:#FBC9AC; --surface:#F8BA96; --surface-strong:#F4A981; }
+html[data-theme="light"] [data-tone="gold"][data-tone][data-tone], html[data-theme="light"] .nm-gold{ --card:#F8E396; --surface:#F4D97A; --surface-strong:#EFCE5F; }
+html[data-theme="light"] [data-tone="sky"][data-tone][data-tone]{ --card:#BFE0F7; --surface:#AED5F2; --surface-strong:#9CC9EC; }
+/* Deep indigo becomes powder blue in light mode, with ink text. */
+html[data-theme="light"] [data-tone="indigo"][data-tone][data-tone], html[data-theme="light"] .nm-indigo{
+  --card:#C3DBF6; --surface:#B2CFF0; --surface-strong:#9FC2EA; --text:#0B2447; --text-muted:#1D3F6E; --text-dim:#2C527F;
+  --accent:#16408A; --accent-soft:#16408A; --border:rgba(11,36,71,.28); --border-strong:rgba(11,36,71,.5);
+  --icon-bg:rgba(11,36,71,.14); --icon-fg:#16408A; --t:#C3DBF6; --ink:#0B2447; --sheen: rgba(255,255,255,.35);
+}
+html[data-theme="light"] .nm-mint{ --t:#AEEBCF; } html[data-theme="light"] .nm-violet{ --t:#CDC5FB; }
+html[data-theme="light"] .nm-gold{ --t:#F8E396; }  html[data-theme="light"] .nm-peach{ --t:#FBC9AC; }
+html[data-theme="light"] .lp-card-01{ --card:#CDC5FB; background-color: var(--card); }
+html[data-theme="light"] .lp-card-02{ --card:#FBC9AC; background-color: var(--card); }
+html[data-theme="light"] .lp-card-03{ --card:#AEEBCF; background-color: var(--card); }
+html[data-theme="light"] .lp-card-dark{ --card:#C3DBF6; --sheen: rgba(255,255,255,.35); background-color: var(--card); color:#0B2447; }
+html[data-theme="light"] .lp-card-dark p{ color:#1D3F6E; }
+html[data-theme="light"] .pz-art{ --pz-ink:#1B1840; --pz1:#B3A7F8; --pz2:#6ADBAE; --pz3:#FF9B6E; --pz4:#F2CB3E; }
+/* Home hero card text on pastel faces: strong ink, not the dark theme's tinted greys. */
+html[data-theme="light"] .lp-card-01, html[data-theme="light"] .lp-card-02, html[data-theme="light"] .lp-card-03{ color:#1A1632; }
+html[data-theme="light"] .lp-card-foot{ opacity: .78; }
+/* Dark mode keeps the saturated, cinematic blocks. */
+
+/* ---- D · Hero photo: art-directed, not merely placed ---- */
+.lp-hero-visual::before{
+  background:
+    linear-gradient(180deg, rgba(8,10,46,.92) 0%, rgba(8,10,46,.7) 16%, rgba(8,10,46,.26) 32%, rgba(8,10,46,0) 48%, rgba(8,10,46,0) 60%, rgba(14,14,64,.3) 76%, rgba(10,10,50,.9) 100%);
+}
+.lp-hero-photo{ filter: saturate(1.1) contrast(1.05); }
+.lp-visual-caption{
+  font-family: var(--font-display); text-transform: none; letter-spacing: -.015em; font-weight: 600;
+  line-height: 1.04; font-size: clamp(18px, 1.8cqw, 26px); max-width: 70%; text-shadow: 0 2px 18px rgba(4,6,30,.55);
+}
+.lp-visual-caption-bottom{ font-size: clamp(13px, 1.25cqw, 17px); font-weight: 500; opacity: .94; }
+@media (max-width: 900px){ .lp-visual-caption{ font-size: 22px; } .lp-visual-caption-bottom{ font-size: 15px; } }
+
+/* ---- E · One icon grammar: glyphs that sat bare in pills now sit in the same ink container ---- */
+.lp-quick-link svg, .nm-chip svg{
+  width: 24px; height: 24px; padding: 4.5px; box-sizing: border-box; flex: 0 0 auto;
+  border-radius: 8px; background: var(--icon-container-bg); color: var(--icon-container-fg);
+  border: 1.5px solid var(--icon-container-border); box-shadow: 0 1px 0 rgba(0,0,0,.45);
+}
+.lp-quick-link{ padding: 6px 14px 6px 6px; gap: 9px; }
+.nm-chip svg{ margin-right: 2px; }
+
+/* ---- F · Card tiers: summary is primary, the long tail is quieter ---- */
+.result-hero .hero-summary{ --fw: 8px; --lip: 3px; --drop: 0 34px 50px -22px; }
+.deep-wrap .bento-card, .fun-ranking-row .bento-card{ --fw: 5px; --lip: 2px; --drop: 0 16px 26px -18px; }
+
+/* ---- G · The archetype has a colour: its name and eyebrow pick it up ---- */
+.result-hero .ingot-name-main{ color: color-mix(in srgb, var(--user-accent-1) 34%, #fff); }
+.result-hero .archetype-eyebrow{ color: color-mix(in srgb, var(--user-accent-1) 55%, #fff); }
+.lp-visual-caption{ word-spacing: .16em; }
+.lp-dark-shapes{ padding-right: 8px; }
+.pz-art{ max-height: 124px; }
+
+/* ---- H · Hero grade: let the photograph keep more of its own light ---- */
+.result-hero .ingot-split::after{ opacity: .44; }
+.result-hero .ingot-visual{ filter: saturate(1.12) contrast(1.06); }
+
+/* ---- I · Interaction-state coverage (found by the state audit) ---- */
+.footer-nav a:active, .footer-nav button:active{ transform: translateY(1px); opacity: .85; }
+.confidence-tip-btn:active, .soul-hint-tag:active, .ns-extra-toggle:active{ transform: scale(.95); }
+.confidence-tip-btn, .soul-hint-tag, .ns-extra-toggle{ transition: transform var(--dur-small) var(--ease-spring); }
+/* Text-style buttons (no class): underline on hover, press down on click. */
+#app button:not([class]){ text-underline-offset: 3px; transition: opacity var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out); }
+#app button:not([class]):hover{ text-decoration: underline; text-decoration-thickness: 2px; }
+#app button:not([class]):active{ transform: translateY(1px); opacity: .85; }
+/* Journal mood picker: tactile like every other chip. */
+.journal-mood-btn{ transition: transform var(--dur-small) var(--ease-spring), box-shadow var(--dur-small) var(--ease-out), background-color var(--dur-small) var(--ease-out); }
+.journal-mood-btn:not(:disabled):hover{ transform: translateY(-2px); box-shadow: 0 3px 0 rgba(var(--shadow-ink), .35); }
+.journal-mood-btn:not(:disabled):active{ transform: translateY(1px) scale(.97); box-shadow: none; }
+.journal-mood-btn:focus-visible{ outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Legal accordion headers: they were the only interactive objects with no states at all. */
+#app details > summary{ cursor: pointer; transition: background-color var(--dur-small) var(--ease-out), transform var(--dur-micro) var(--ease-out); border-radius: var(--r-panel); }
+#app details > summary:hover{ background-color: color-mix(in srgb, var(--text) 6%, transparent); }
+#app details > summary:active{ transform: translateY(1px); }
+#app details > summary:focus-visible{ outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce){
+  .journal-mood-btn:not(:disabled):hover, #app details > summary:active, #app button:not([class]):active{ transform: none; }
+}
+
+/* ---- J · Tall hero card (Core Traits): lead with the headline stat in display type ---- */
+@media (min-width: 1101px){
+  .result-hero .hero-traits .ov-subtitle{
+    font-family: var(--font-display); font-weight: 600; letter-spacing: -.012em; word-spacing: .12em;
+    font-size: 19px; line-height: 1.15; color: var(--text); margin-bottom: 4px; -webkit-line-clamp: 3;
+  }
+  .result-hero .hero-traits .ov-chip-row{ gap: 8px; margin-top: 14px; }
+  .result-hero .hero-traits .ov-chip{ padding: 6px 10px; font-size: 11.5px; }
+}
+
+/* ---- K · Icon grammar, documented. Four sizes, ONE construction (ink slab, cream glyph, cream ring, hard lip):
+   sm 24 (glyph inside a pill) · md 38 (card / menu / nav) · lg 48 (hero) · circle 30 (every arrow). ---- */
+:root{ --icon-container-size-sm: 24px; }
+
+/* ---- L · Light palette, separated perceptually (CIE ΔE audit: peach~cream and lavender~powder were < 20) ---- */
+html[data-theme="light"] [data-tone="violet"][data-tone][data-tone], html[data-theme="light"] .nm-violet{ --card:#C9B8F9; --surface:#BBA8F6; --surface-strong:#AC98F2; }
+html[data-theme="light"] [data-tone="mint"][data-tone][data-tone], html[data-theme="light"] .nm-mint{ --card:#9FE6C4; --surface:#8DDDB6; --surface-strong:#7BD3A8; }
+html[data-theme="light"] [data-tone="peach"][data-tone][data-tone], html[data-theme="light"] .nm-peach{ --card:#F9B48E; --surface:#F6A57B; --surface-strong:#F29469; }
+html[data-theme="light"] [data-tone="indigo"][data-tone][data-tone], html[data-theme="light"] .nm-indigo{ --card:#B4D6F7; --surface:#A3CBF3; --surface-strong:#91BFEE; --t:#B4D6F7; }
+html[data-theme="light"] .nm-mint{ --t:#9FE6C4; } html[data-theme="light"] .nm-violet{ --t:#C9B8F9; } html[data-theme="light"] .nm-peach{ --t:#F9B48E; }
+html[data-theme="light"] .lp-card-01{ --card:#C9B8F9; } html[data-theme="light"] .lp-card-02{ --card:#F9B48E; }
+html[data-theme="light"] .lp-card-03{ --card:#9FE6C4; } html[data-theme="light"] .lp-card-dark{ --card:#B4D6F7; }
+
+/* ---- M · Phone: the trust line wraps as items (no bullet left dangling at a line end) ---- */
+@media (max-width: 520px){
+  .lp-trust-row{ display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .lp-trust-row .dot-sep{ display: none; }
 }

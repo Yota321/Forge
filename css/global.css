@@ -16,16 +16,16 @@
    ========================================================================= */
 
 :root{
-  --bg: #0F1117;
-  --bg-alt: #12141C;
-  --surface: #171A22;
-  --surface-strong: #1E2230;
-  --card: #1E2230;
-  --border: rgba(167,139,250,0.14);
-  --border-strong: rgba(167,139,250,0.28);
+  --bg: #0A0E24;
+  --bg-alt: #0E1330;
+  --surface: #232A4D;
+  --surface-strong: #303A6C;
+  --card: #262E58;
+  --border: rgba(167,139,250,0.5);
+  --border-strong: rgba(167,139,250,0.8);
   --text: #F8FAFC;
-  --text-muted: #A7B0C2;
-  --text-dim: #6B7385;
+  --text-muted: #C3CADA;
+  --text-dim: #A6AEC3;
   --accent: #A78BFA;
   --accent-soft: #C4B5FD;
   --sky: #7DD3FC;
@@ -57,10 +57,10 @@
      stay well under half the height of every button size it's used on
      (~34-46px tall), so corners read as rounded-square, never a pill. */
   --radius-btn: 14px;
-  --shadow-soft: 0 24px 60px -20px rgba(8,9,14,0.6);
+  --shadow-soft: 0 28px 64px -22px rgba(4,5,12,0.8);
   --ease: cubic-bezier(.22,1,.36,1);
-  --font-display: 'Cabinet Grotesk', 'Space Grotesk', sans-serif;
-  --font-body: 'Cabinet Grotesk', 'Manrope', system-ui, sans-serif;
+  --font-display: 'Clash Display', 'Cabinet Grotesk', 'Space Grotesk', sans-serif;
+  --font-body: 'Satoshi', 'Cabinet Grotesk', 'Manrope', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'Geist Mono', 'Courier New', monospace;
 }
 
@@ -69,16 +69,16 @@
    stays the default (it's what's been built and refined so far), but
    both are fully implemented and switching is instant and saved locally. */
 [data-theme="light"]{
-  --bg: #FFFFFF;
-  --bg-alt: #F8FAFC;
-  --surface: #F1F5F9;
-  --surface-strong: #E2E8F0;
-  --card: #FFFFFF;
-  --border: rgba(100,116,139,0.16);
-  --border-strong: rgba(100,116,139,0.32);
-  --text: #0F172A;
-  --text-muted: #475569;
-  --text-dim: #64748B;
+  --bg: #F4EEE2;
+  --bg-alt: #ECE5D5;
+  --surface: #E8E0CE;
+  --surface-strong: #DCD2BA;
+  --card: #FFFBF2;
+  --border: rgba(58,44,30,0.42);
+  --border-strong: rgba(58,44,30,0.7);
+  --text: #1B1712;
+  --text-muted: #4A4338;
+  --text-dim: #5A5246;
   --accent: #8B5CF6;
   /* Was #A78BFA — measured 2.72:1 against this theme's white page
      background (WCAG AA needs 4.5:1 for normal text), confirmed by a
@@ -92,7 +92,7 @@
      *decorative* use of this token (borders, gradient stops, hover
      backgrounds) is unaffected in spirit — a richer violet reads as more
      premium there too, not flatter. */
-  --accent-soft: #7C3AED;
+  --accent-soft: #6D28D9;
   --sky: #0EA5E9;
   --mint: #10B981;
   --peach: #F97316;
@@ -101,7 +101,7 @@
   --success: #059669;
   --silver: #475569;
   --good: #059669;
-  --shadow-soft: 0 24px 50px -22px rgba(100,116,139,0.35);
+  --shadow-soft: 0 24px 50px -20px rgba(55,48,110,0.38);
 }
 [data-theme="light"] body::before{
   background:
@@ -303,16 +303,27 @@ html::-webkit-scrollbar{ display:none; }
 }
 
 /* ---------- Surfaces ---------- */
+/* Refinement pass: this card had been reading thin/hollow -- a blur
+   heavy enough to feel like looking through glass, paired with a fill
+   barely a shade off the page background (--surface vs --bg) and a
+   border at 14% opacity. None of those individually looked wrong, but
+   together they gave every .glass card across the site (Home, Growth,
+   Profile, Journal) less weight than the material was meant to have.
+   Backdrop blur is cut roughly a third (less "see-through"), the border
+   and shadow are both stronger (clearer edge, more depth), and --surface
+   itself (redefined above) now sits further from --bg so the card reads
+   as a solid block sitting ON the page rather than a faint pane floating
+   over it -- same hue family throughout, nothing recolored. */
 .glass{
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 24px;
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
-  box-shadow: 0 20px 44px -28px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+  backdrop-filter: blur(11px) saturate(140%);
+  -webkit-backdrop-filter: blur(11px) saturate(140%);
+  box-shadow: 0 26px 54px -26px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.05);
   position: relative; overflow: hidden;
 }
-[data-theme="light"] .glass{ box-shadow: 0 20px 44px -28px rgba(100,116,139,0.28), inset 0 1px 0 rgba(255,255,255,0.6); }
+[data-theme="light"] .glass{ box-shadow: 0 26px 54px -26px rgba(71,85,105,0.32), inset 0 1px 0 rgba(255,255,255,0.7); }
 /* a faint light reflection that drifts across the card, very slowly */
 .glass::before{
   content:''; position:absolute; inset:-40%; pointer-events:none; z-index:0;
@@ -376,7 +387,10 @@ html::-webkit-scrollbar{ display:none; }
 
 
 .footer-nav{ position:relative; z-index:1; display:flex; justify-content:center; gap:18px; margin-top:56px; flex-wrap:wrap; }
-.footer-nav button, .footer-nav a{ font-size:13px; color: var(--text-dim); text-decoration: underline; text-underline-offset:3px; }
+/* min-height:24px: these measured 20px tall, under WCAG 2.5.8's 24x24
+   minimum target size (AA). Padding rather than a bigger font keeps the
+   visual weight of the footer identical. */
+.footer-nav button, .footer-nav a{ font-size:13px; color: var(--text-dim); text-decoration: underline; text-underline-offset:3px; display:inline-flex; align-items:center; min-height:24px; padding:2px 4px; }
 .footer-nav button:hover, .footer-nav a:hover{ color: var(--text-muted); }
 .lp-footer .footer-nav{ margin-top:0; }
 

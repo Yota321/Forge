@@ -58,7 +58,7 @@ Quick Read results show a reduced report (primary archetype, soul type, confiden
 Results can be:
 - **Shared** as a compact `PF5-...` code (the internal code-format version; public-facing copy calls the product "PersonaForge 1" — see the versioning note in `js/engine.js`) or a direct link
 - **Compared** against another person's result, one-on-one or as a 3-5 person party compare — a warning appears if either profile is a Quick Read
-- **Exported** as a Story or Post image, a PDF report, or a scannable QR code
+- **Exported** as a Story or Post image, or a scannable QR code
 
 ---
 
@@ -80,7 +80,6 @@ Forge is plain static HTML/CSS/JS — no build step, no bundler, no framework.
 | `js/global.js` | Theme, sound, nav, toasts, the custom scrollbar, clean-URL handling |
 | `js/home.js`, `js/quiz.js`, `js/result.js`, `js/compare.js`, `js/legal.js` | Per-page rendering |
 | `js/compatibility.js` | Compare-result rendering shared by `result.js` and `compare.js` |
-| `js/vendor/jspdf.umd.min.js` | Vendored PDF library (lazy-loaded only when exporting a PDF) |
 | `service-worker.js` | Offline caching |
 | `manifest.json` | PWA install manifest |
 | `assets/` | Images, audio, icons, and per-archetype artwork |

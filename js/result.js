@@ -187,7 +187,7 @@ function resultChips(items){
 function splitArchetypeName(name){
   const m = /^(\S+)\s+(.+)$/.exec(name || "");
   if (!m) return obEsc(name || "");
-  return `<span class="ingot-name-lead">${obEsc(m[1])}</span><span class="ingot-name-main">${obEsc(m[2])}</span>`;
+  return `<span class="ingot-name-lead">${obEsc(m[1])}</span> <span class="ingot-name-main">${obEsc(m[2])}</span>`;
 }
 
 // A card with no Layer 2 — either it's already a single short action
@@ -203,7 +203,7 @@ function resultUtilityCard(iconKey, title, innerHtml, opts){
   const i = resultCardIdx++;
   return `
       <div class="section bento-card util-card${span}${extraClass}"${idAttr} style="--i:${i};--tint:var(--${tint})">
-        <div class="bento-head">${resultIcon(iconKey, tint)}<h3>${title.trim()}</h3></div>
+        <div class="bento-head">${resultIcon(iconKey, tint)}<h3 aria-level="2">${title.trim()}</h3></div>
         <div class="bento-body">${innerHtml}</div>
       </div>`;
 }
@@ -240,7 +240,7 @@ function resultDetailCard(id, iconKey, title, subtitle, highlights, detailHtml, 
   const tapHint = `<span class="tap-hint">Tap for detail<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>`;
   return `
       <button type="button" class="section bento-card ov-card${span}${extraClass}" id="ov-${id}" style="--i:${i};--tint:var(--${tint})" onclick="openResultDetail('${id}')" aria-haspopup="dialog">
-        <div class="bento-head">${resultIcon(iconKey, tint)}<h3>${title.trim()}</h3>${arrow}</div>
+        <div class="bento-head">${resultIcon(iconKey, tint)}<h3 aria-level="2">${title.trim()}</h3>${arrow}</div>
         ${bignum}
         ${subtitle ? `<p class="ov-subtitle">${subtitle.trim()}</p>` : ""}
         ${preview}
@@ -440,7 +440,7 @@ function renderResult(){
   resultDetailRegistry = {};
   registerDetailOnly("qr", "qrCode", "Scan to Share", `
     <div class="card" style="text-align:center">
-      <canvas id="qrCanvas"></canvas>
+      <canvas id="qrCanvas" role="img" aria-label="QR code that opens this result"></canvas>
       <p style="margin-top:10px;font-size:13px;color:var(--text-muted)">Scans to a link that loads this exact result, no app required.</p>
       <button class="btn btn-ghost" style="margin-top:10px" onclick="downloadQR()">Download QR</button>
     </div>
@@ -497,10 +497,10 @@ function renderResult(){
               <div class="ingot-confidence"><span class="val count-up" data-target="${r.confidence.confidencePct}" data-suffix="%">0%</span><span class="lbl">Result Confidence<button type="button" class="confidence-tip-btn" aria-label="What does Result Confidence mean?" onclick="event.stopPropagation()"><span aria-hidden="true">?</span><span class="confidence-tip-bubble" role="tooltip">Several nearby archetypes also scored highly. Higher values mean your result stood out more clearly.</span></button></span></div>
             </div>
             <div class="archetype-eyebrow">Primary Archetype</div>
-            <h2 class="ingot-name">${splitArchetypeName(a.name)}</h2>
+            <h2 class="ingot-name" aria-level="1">${splitArchetypeName(a.name)}</h2>
             <div class="ingot-title">${a.title}</div>
             <p class="ingot-desc">${a.description}</p>
-            <p class="ingot-desc" style="margin-top:10px;color:var(--text-muted);font-size:14px">${buildBlendedInsight(r, a, growth)}</p>
+            <p class="ingot-desc ingot-desc-aside" style="margin-top:10px;font-size:14px">${buildBlendedInsight(r, a, growth)}</p>
             <div class="extras-row" style="justify-content:flex-start">
               <span class="tag">${r.extras.animal}</span>
               <span class="tag">${r.extras.element}</span>
@@ -517,7 +517,6 @@ function renderResult(){
         <div class="export-row ingot-actions">
           <button class="btn btn-ghost btn-sm" onclick="exportPNG('story')">Export Story</button>
           <button class="btn btn-ghost btn-sm" onclick="exportPNG('post')">Export Post</button>
-          <button class="btn btn-ghost btn-sm" onclick="savePDF()">Save as PDF</button>
           <button class="btn btn-ghost btn-sm" onclick="copyShareLink()">Copy Link</button>
           <button class="btn btn-ghost btn-sm" onclick="compareThisResult()">Compare</button>
           <button class="btn btn-ghost btn-sm" onclick="openResultDetail('qr')">Share QR</button>
@@ -596,7 +595,7 @@ function renderResult(){
         <div class="bento-head" style="margin-bottom:2px">${resultIcon("drama", "coral")}<h3 style="font-size:16px">Sins &amp; Virtues</h3></div>
         <p class="center-note" style="text-align:left;margin-top:0">Not a moral report card, everyone carries all seven of each, just in different amounts. This is a playful, dramatic read of where yours currently lean, not a real assessment. Flip the card to see the other side.</p>
         <div class="sinvirtue-wrap">
-          <canvas id="sinVirtueRadar"></canvas>
+          <canvas id="sinVirtueRadar" role="img" aria-label="Radar chart of your virtue and vice scores"></canvas>
           <button class="sinvirtue-flip" id="sinVirtueFlipBtn" onclick="flipSinVirtue()" aria-label="Flip between Sins and Virtues">Flip</button>
         </div>
         <div class="sinvirtue-caption" id="sinVirtueCaption">Seven Deadly Sins</div>
@@ -1771,7 +1770,7 @@ function exportIdentityPanel(ctx, r, a, x, y, w, h, opts){
 }
 
 async function exportPNG(kind){
-  // Same try/catch/toast shape as savePDF() below -- this used to have
+  // Wrapped in try/catch + toast -- this used to have
   // none, so a thrown canvas error (e.g. a tainted canvas, or the image
   // failing in a way loadExportImage's own resolve(null) didn't already
   // absorb) would silently do nothing: no download, no error, no
@@ -1812,241 +1811,5 @@ async function exportPNG(kind){
   } catch(e){
     console.error(`${kind} export failed:`, e);
     showToast("Couldn't generate that image — try again.");
-  }
-}
-
-/* ---------------- EXPORT: PDF ---------------------------------------------
-   A real generated PDF document (jsPDF, vendored locally in
-   js/vendor/jspdf.umd.min.js so it works fully offline — never a CDN
-   dependency), not the browser's print dialog. The library itself is
-   loaded lazily on first use so it never costs anything on normal page
-   load; every value drawn comes straight from `lastResult`. */
-let jsPDFLoadPromise = null;
-function loadJsPDF(){
-  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
-  if (jsPDFLoadPromise) return jsPDFLoadPromise;
-  jsPDFLoadPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = "js/vendor/jspdf.umd.min.js";
-    script.onload = () => {
-      if (window.jspdf && window.jspdf.jsPDF) resolve(window.jspdf.jsPDF);
-      else reject(new Error("jsPDF loaded but window.jspdf.jsPDF is missing"));
-    };
-    script.onerror = () => reject(new Error("Failed to load jsPDF"));
-    document.head.appendChild(script);
-  });
-  return jsPDFLoadPromise;
-}
-
-// jsPDF can't embed WebP directly, so the archetype photo (the project's
-// only WebP asset) is redrawn onto an offscreen canvas and re-exported
-// as a JPEG data URL purely for this one PDF — the source .webp file
-// itself is never touched.
-async function loadImageAsJpegDataURL(src){
-  const img = await loadExportImage(src);
-  if (!img) return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth || img.width;
-  canvas.height = img.naturalHeight || img.height;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  return { dataUrl: canvas.toDataURL("image/jpeg", 0.9), w: canvas.width, h: canvas.height };
-}
-
-function pdfWrap(doc, text, maxWidth){
-  return doc.splitTextToSize(String(text || ""), maxWidth);
-}
-
-// A labeled horizontal bar (the PDF's stand-in for .stat-bar-track),
-// returns the y position just below it.
-function pdfStatBar(doc, label, pct, x, y, w, color){
-  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-  doc.setTextColor(90, 96, 112);
-  doc.text(label, x, y);
-  doc.setTextColor(...color);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${pct}%`, x + w, y, { align: "right" });
-  const barY = y + 2.4, barH = 2.6;
-  doc.setFillColor(232, 234, 240);
-  doc.roundedRect(x, barY, w, barH, barH/2, barH/2, "F");
-  doc.setFillColor(...color);
-  doc.roundedRect(x, barY, Math.max(barH, w * (pct/100)), barH, barH/2, barH/2, "F");
-  return barY + barH + 7;
-}
-
-function pdfSectionTitle(doc, text, x, y, color){
-  doc.setFont("helvetica", "bold"); doc.setFontSize(15);
-  doc.setTextColor(...color);
-  doc.text(text, x, y);
-  doc.setDrawColor(...color);
-  doc.setLineWidth(0.6);
-  doc.line(x, y + 2.5, x + 26, y + 2.5);
-  return y + 12;
-}
-
-function pdfFooter(doc, pageNum, r, pageW, pageH){
-  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5);
-  doc.setTextColor(150, 155, 168);
-  doc.text("Generated with Forge — everything computed locally, on your device.", 20, pageH - 12);
-  doc.text(String(pageNum), pageW - 20, pageH - 12, { align: "right" });
-}
-
-function hexToRgbTriple(hex){
-  const h = (hex || "#A78BFA").replace("#", "");
-  const full = h.length === 3 ? h.split("").map(c => c+c).join("") : h;
-  return [parseInt(full.substring(0,2),16)||0, parseInt(full.substring(2,4),16)||0, parseInt(full.substring(4,6),16)||0];
-}
-
-async function savePDF(){
-  const btn = document.querySelector('[onclick="savePDF()"]');
-  const prevLabel = btn ? btn.textContent : null;
-  if (btn){ btn.textContent = "Preparing…"; btn.disabled = true; }
-  try {
-    const JsPDFCtor = await loadJsPDF();
-    const r = lastResult, a = r.archetype;
-    // Values/Career Fits/Relationships below are exactly the cards Quick
-    // Read never showed on screen (see isQuickRead in renderResult()) --
-    // the PDF should never hand out data the report itself withheld, so
-    // Quick Read gets the cover + Core Traits only, everyone else gets
-    // the same four-section export this always was.
-    const isQuickReadExport = !!(r.meta && r.meta.resultDepth === "short");
-    const accent = hexToRgbTriple(a.colors[0]);
-    const accent2 = hexToRgbTriple(a.colors[1]);
-    const dark = [20, 22, 31];
-
-    const doc = new JsPDFCtor({ unit: "mm", format: "a4" });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const marginX = 20;
-    const contentW = pageW - marginX*2;
-    let page = 1;
-
-    // ---- Page 1: cover ----------------------------------------------
-    doc.setFillColor(...dark);
-    doc.rect(0, 0, pageW, 58, "F");
-    doc.setFont("helvetica", "bold"); doc.setFontSize(20);
-    doc.setTextColor(255,255,255);
-    doc.text("FORGE", pageW/2, 22, { align: "center" });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-    doc.setTextColor(190, 195, 205);
-    doc.text(r.name ? `${r.name}'s Result` : "Your Result", pageW/2, 30, { align: "center" });
-
-    const photo = await loadImageAsJpegDataURL(a.image);
-    let y = 70;
-    if (photo){
-      const maxW = 90, maxH = 90;
-      const scale = Math.min(maxW/photo.w, maxH/photo.h);
-      const iw = photo.w*scale, ih = photo.h*scale;
-      doc.addImage(photo.dataUrl, "JPEG", (pageW-iw)/2, y, iw, ih, undefined, "FAST");
-      y += ih + 12;
-    }
-
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-    doc.setTextColor(...accent);
-    doc.text("PRIMARY ARCHETYPE", pageW/2, y, { align: "center" });
-    y += 10;
-    doc.setFont("helvetica", "bold"); doc.setFontSize(26);
-    doc.setTextColor(20,22,31);
-    doc.text(a.name, pageW/2, y, { align: "center" });
-    y += 9;
-    doc.setFont("helvetica", "italic"); doc.setFontSize(13);
-    doc.setTextColor(...accent);
-    doc.text(a.title, pageW/2, y, { align: "center" });
-    y += 6;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
-    doc.setTextColor(60, 64, 76);
-    doc.text(`${r.confidence.confidencePct}% match confidence`, pageW/2, y, { align: "center" });
-    y += 10;
-
-    doc.setFontSize(11);
-    const descLines = pdfWrap(doc, a.description, contentW - 30);
-    doc.text(descLines, pageW/2, y, { align: "center" });
-    y += descLines.length * 5.5 + 10;
-
-    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5);
-    doc.setTextColor(120, 125, 138);
-    doc.text(r.code, pageW/2, pageH - 22, { align: "center" });
-    pdfFooter(doc, page, r, pageW, pageH);
-
-    // Content below the cover flows across as many pages as it needs —
-    // trait/value/career counts vary per result, so a fixed 3-page layout
-    // can overrun the last page (the bug this replaced). Every row checks
-    // its own space first and starts a fresh page, footer included, rather
-    // than letting a row collide with the footer or spill off the bottom.
-    const bottomSafe = pageH - 26;
-    function ensureSpace(needed){
-      if (y + needed > bottomSafe){
-        pdfFooter(doc, page, r, pageW, pageH);
-        doc.addPage(); page++;
-        y = 24;
-      }
-    }
-
-    // ---- Core traits + values ------------------------------------------
-    doc.addPage(); page++;
-    y = 24;
-    ensureSpace(20);
-    y = pdfSectionTitle(doc, "Core Traits", marginX, y, accent);
-    y += 2;
-    Object.entries(r.traits).forEach(([k,v]) => {
-      ensureSpace(12);
-      y = pdfStatBar(doc, k, v, marginX, y, contentW, accent);
-    });
-
-    if (!isQuickReadExport){
-      y += 8;
-      ensureSpace(20);
-      y = pdfSectionTitle(doc, "Values", marginX, y, accent2);
-      y += 2;
-      r.humanValues.slice(0, 6).forEach(v => {
-        ensureSpace(12);
-        y = pdfStatBar(doc, v.name, v.pct, marginX, y, contentW, accent2);
-      });
-
-      // ---- Career fits + relationships ------------------------------------
-      y += 8;
-      ensureSpace(20);
-      y = pdfSectionTitle(doc, "Career Fits", marginX, y, accent);
-      y += 2;
-      r.careers.slice(0, 6).forEach(c => {
-        ensureSpace(12);
-        y = pdfStatBar(doc, c.name, c.fit, marginX, y, contentW, accent);
-      });
-
-      y += 8;
-      ensureSpace(20);
-      y = pdfSectionTitle(doc, "Relationships", marginX, y, accent2);
-      y += 2;
-
-      const attLines = pdfWrap(doc, `${r.relationship.attachmentStyle.name} — ${r.relationship.attachmentStyle.description}`, contentW);
-      ensureSpace(attLines.length * 5 + 12);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(20,22,31);
-      doc.text("Attachment Style", marginX, y);
-      doc.setFont("helvetica", "normal"); doc.setTextColor(90,96,112);
-      doc.text(attLines, marginX, y + 5.5);
-      y += attLines.length * 5 + 12;
-
-      const confLines = pdfWrap(doc, `${r.relationship.conflictStyle.name} — ${r.relationship.conflictStyle.description}`, contentW);
-      ensureSpace(confLines.length * 5 + 12);
-      doc.setFont("helvetica", "bold"); doc.setFontSize(10.5); doc.setTextColor(20,22,31);
-      doc.text("Conflict Style", marginX, y);
-      doc.setFont("helvetica", "normal"); doc.setTextColor(90,96,112);
-      doc.text(confLines, marginX, y + 5.5);
-    } else {
-      y += 6;
-      ensureSpace(16);
-      doc.setFont("helvetica", "italic"); doc.setFontSize(10); doc.setTextColor(120,125,138);
-      const noteLines = pdfWrap(doc, "This is a Quick Read export. Take the full assessment on Forge for Values, Career Fits, Relationships, and the rest of your complete profile.", contentW);
-      doc.text(noteLines, marginX, y);
-    }
-    pdfFooter(doc, page, r, pageW, pageH);
-
-    doc.save(`forge-${(r.name || "result").toLowerCase().replace(/[^a-z0-9]+/g,"-")}.pdf`);
-    click(760);
-  } catch(e){
-    console.error("PDF export failed:", e);
-    showToast("Couldn't generate the PDF — try again.");
-  } finally {
-    if (btn){ btn.textContent = prevLabel; btn.disabled = false; }
   }
 }

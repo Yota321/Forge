@@ -17,14 +17,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://api.fontshare.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/global.css">
 <link rel="stylesheet" href="css/pages.css">
 </head>
 <body>
 <div id="embers" aria-hidden="true"></div>
-<div id="app"></div>
-<audio id="bgMusic" src="assets/BG.mp3" loop preload="auto"></audio>
+<main id="app" tabindex="-1"></main>
+<audio id="bgMusic" src="assets/BG.mp3" loop preload="none"></audio>
 <div class="scrollbar-rail" id="sbRail" aria-hidden="true">
   <div class="scrollbar-track" id="sbTrack"></div>
   <div class="scrollbar-thumb" id="sbThumb"></div>
@@ -39,27 +39,42 @@ const PF_PAGE = "result";
 applyTheme(currentTheme);
 useCleanURL("result");
 (function boot(){
-  const freshResult = sessionStorage.getItem("pf_fresh_result");
+  // Anything that can't be turned into a result sends the person Home WITH
+  // an explanation (shown as a toast there, see showPendingFlash() in
+  // global.js) instead of a silent redirect -- and a throw while building
+  // or rendering a result (malformed share code, corrupted session data)
+  // takes this same path rather than leaving a blank page.
+  function bounce(message){
+    try{ if (message) sessionStorage.setItem("pf_flash", message); } catch(e){ /* storage blocked */ }
+    location.href = "index.html";
+  }
+  function show(code, decoded, celebrate){
+    lastResult = buildResultFromDecoded(decoded, code);
+    careersExpanded = false; funStatsOpen = false;
+    renderResult();
+    if (celebrate) fireConfetti();
+  }
+  let freshResult = null;
+  try{ freshResult = sessionStorage.getItem("pf_fresh_result"); } catch(e){ /* storage blocked */ }
   if (freshResult){
-    sessionStorage.removeItem("pf_fresh_result");
+    try{ sessionStorage.removeItem("pf_fresh_result"); } catch(e){}
     try{
       lastResult = JSON.parse(freshResult);
       careersExpanded = false; funStatsOpen = false;
       renderResult();
       fireConfetti();
       return;
-    } catch(e){ /* fall through */ }
+    } catch(e){ /* fall through to the share-code paths below */ }
   }
-  const viewSharedCode = sessionStorage.getItem("pf_view_shared_code");
+  let viewSharedCode = null;
+  try{ viewSharedCode = sessionStorage.getItem("pf_view_shared_code"); } catch(e){}
   if (viewSharedCode){
-    sessionStorage.removeItem("pf_view_shared_code");
-    const decoded = decodeCode(viewSharedCode);
-    if (decoded){
-      lastResult = buildResultFromDecoded(decoded, viewSharedCode);
-      careersExpanded = false; funStatsOpen = false;
-      renderResult();
-      return;
-    }
+    try{ sessionStorage.removeItem("pf_view_shared_code"); } catch(e){}
+    try{
+      const decoded = decodeCode(viewSharedCode);
+      if (decoded && decoded.obsolete) return bounce(OBSOLETE_CODE_MESSAGE);
+      if (decoded){ show(viewSharedCode, decoded, false); return; }
+    } catch(e){ return bounce("That result couldn't be opened. Try it again, or retake the assessment."); }
   }
   // A result page reloaded, bookmarked, or reopened from a copied address
   // bar URL carries no sessionStorage (that's a one-shot handoff from
@@ -68,15 +83,14 @@ useCleanURL("result");
   // your own result" working and silently bouncing to the landing page.
   const urlCode = getProfileCodeFromURL();
   if (urlCode){
-    const decoded = decodeCode(urlCode);
-    if (decoded){
-      lastResult = buildResultFromDecoded(decoded, urlCode);
-      careersExpanded = false; funStatsOpen = false;
-      renderResult();
-      return;
-    }
+    try{
+      const decoded = decodeCode(urlCode);
+      if (decoded && decoded.obsolete) return bounce(OBSOLETE_CODE_MESSAGE);
+      if (decoded){ show(urlCode, decoded, false); return; }
+    } catch(e){ /* falls through to the generic message below */ }
+    return bounce("That link's result code couldn't be read. Check it for typos, or ask whoever sent it to share it again.");
   }
-  location.href = "index.html";
+  bounce("There's no result to show yet. Take the assessment, or open a saved result from Home.");
 })();
 </script>
 </body>

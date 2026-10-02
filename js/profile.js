@@ -134,8 +134,8 @@ function renderProfileSwitcherList(){
       ${s.id === activeId
         ? `<span class="tag profile-switcher-active-tag">Active</span>`
         : `<button class="btn btn-ghost btn-sm" data-action="switch">Switch</button>`}
-      <button class="icon-btn profile-switcher-rename" data-action="rename" aria-label="Rename">${ICONS.edit || "&#9998;"}</button>
-      <button class="icon-btn profile-switcher-delete" data-action="delete" aria-label="Delete">${ICONS.close}</button>
+      <button class="icon-btn profile-switcher-rename" data-action="rename" aria-label="Rename ${obEsc(s.name || "profile")}">${ICONS.edit || "&#9998;"}</button>
+      <button class="icon-btn profile-switcher-delete" data-action="delete" aria-label="Delete ${obEsc(s.name || "profile")}">${ICONS.close}</button>
     </div>`).join("") : `<p style="color:var(--text-muted)">No profiles yet.</p>`;
   list.querySelectorAll("[data-action]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -303,7 +303,7 @@ function renderProfile(){
       <div class="container">
         ${topBar(true)}
         <div class="eyebrow accent">PROFILE</div>
-        <h2 style="margin:10px 0 6px">No Local Profile Yet</h2>
+        <h2 aria-level="1" style="margin:10px 0 6px">No Local Profile Yet</h2>
         <p class="tagline" style="text-align:left;color:var(--text-muted)">Tap "Get Started" up top to create one, or just take the assessment, either one sets a profile up automatically, right here on this device. No account, no signup form.</p>
         <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
           <button class="btn btn-primary" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button>
@@ -339,7 +339,7 @@ function renderProfile(){
     <div class="container">
       ${topBar(true)}
       <div class="eyebrow accent">YOUR PROFILE</div>
-      <h2 style="margin:10px 0 6px">Your Local Space in Forge</h2>
+      <h2 aria-level="1" style="margin:10px 0 6px">Your Local Space in Forge</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Everything here lives only on this device. There's no account behind it, and nothing here is sent anywhere.</p>
 
       <div class="card glass profile-hero profile-hero-v2" style="margin-top:18px;--hero-glow:${heroGlow}">
@@ -348,7 +348,7 @@ function renderProfile(){
             ${profileAvatarMarkup(profile, soul ? soul.hex : null)}
           </div>
           <div class="profile-hero-info">
-            <h3>${obEsc(profile.name) || "Unnamed"}${profile.nickname ? ` <span class="profile-nickname">"${obEsc(profile.nickname)}"</span>` : ""}</h3>
+            <h3 aria-level="2">${obEsc(profile.name) || "Unnamed"}${profile.nickname ? ` <span class="profile-nickname">"${obEsc(profile.nickname)}"</span>` : ""}</h3>
             ${tagline ? `<p class="profile-tagline">${obEsc(tagline)}</p>` : ""}
             <p style="color:var(--text-muted);margin-top:2px">${hasResult ? `${archetype.icon} ${archetype.name} &bull; ${obEsc(soul ? soul.name : "")} Soul` : "Not assessed yet"}</p>
             ${hasResult ? `
@@ -376,7 +376,7 @@ function renderProfile(){
 
       ${!hasResult ? `
       <div class="card glass improve-checkin" style="margin-top:14px">
-        <h4>No Result on This Profile Yet</h4>
+        <h4 aria-level="2">No Result on This Profile Yet</h4>
         <p>The rest of this page fills in the moment you take the assessment, archetype, soul type, growth history, all of it.</p>
         <div class="cta-row" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button></div>
       </div>` : ""}
@@ -385,7 +385,7 @@ function renderProfile(){
         <div class="progress-head">
           <div>
             <div class="eyebrow accent">LEVEL ${progress.level}</div>
-            <h4 style="margin-top:2px">${progress.title}</h4>
+            <h4 aria-level="2" style="margin-top:2px">${progress.title}</h4>
           </div>
           <div class="progress-xp">${progress.xp} XP</div>
         </div>
@@ -395,16 +395,16 @@ function renderProfile(){
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Retakes</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${retakeCount}" data-suffix="">0</div><p style="color:var(--text-muted)">Total assessments on this device</p></div>
-        <div class="card glass"><h4>Match Confidence</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${profile.confidencePct || 0}" data-suffix="%">0%</div><p style="color:var(--text-muted)">Most recent read</p></div>
+        <div class="card glass"><h4 aria-level="2">Retakes</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${retakeCount}" data-suffix="">0</div><p style="color:var(--text-muted)">Total assessments on this device</p></div>
+        <div class="card glass"><h4 aria-level="2">Match Confidence</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${profile.confidencePct || 0}" data-suffix="%">0%</div><p style="color:var(--text-muted)">Most recent read</p></div>
       </div>
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Journal Streak</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${journalStreak.current}" data-suffix="">0</div><p style="color:var(--text-muted)">Longest: ${journalStreak.longest} day${journalStreak.longest===1?"":"s"}</p></div>
-        <div class="card glass"><h4>Journal</h4><p style="margin-top:4px">${journalStreak.totalEntries} entr${journalStreak.totalEntries===1?"y":"ies"} logged.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('journal')">Open Journal</button></div></div>
+        <div class="card glass"><h4 aria-level="2">Journal Streak</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${journalStreak.current}" data-suffix="">0</div><p style="color:var(--text-muted)">Longest: ${journalStreak.longest} day${journalStreak.longest===1?"":"s"}</p></div>
+        <div class="card glass"><h4 aria-level="2">Journal</h4><p style="margin-top:4px">${journalStreak.totalEntries} entr${journalStreak.totalEntries===1?"y":"ies"} logged.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('journal')">Open Journal</button></div></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Recent History</h4>
+        <h4 aria-level="2">Recent History</h4>
         ${history.length ? history.slice().reverse().slice(0, 5).map(h => `
           <div class="mini-bar-row"><span>${new Date(h.timestamp).toLocaleDateString()}</span><span>${h.archetype || ""}${h.soul ? ` &bull; ${h.soul}` : ""}</span></div>`).join("")
           : `<p>No history yet.</p>`}
@@ -412,16 +412,16 @@ function renderProfile(){
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Compare</h4><p>See how you and someone else line up.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('compare')">Compare Two</button><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('party')">Party Compare</button></div></div>
-        <div class="card glass"><h4>Improve</h4><p>Suggestions built around your actual result.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('improve')">Open Improve</button></div></div>
+        <div class="card glass"><h4 aria-level="2">Compare</h4><p>See how you and someone else line up.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('compare')">Compare Two</button><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('party')">Party Compare</button></div></div>
+        <div class="card glass"><h4 aria-level="2">Improve</h4><p>Suggestions built around your actual result.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('improve')">Open Improve</button></div></div>
       </div>
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Frameworks</h4><p>MBTI, Big Five, DISC, and Enneagram, unpacked in full.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('frameworks')">Open Frameworks</button></div></div>
-        <div class="card glass"><h4>Groups</h4><p>Saved party rosters for people you compare often.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('party')">Manage Groups</button></div></div>
+        <div class="card glass"><h4 aria-level="2">Frameworks</h4><p>MBTI, Big Five, DISC, and Enneagram, unpacked in full.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('frameworks')">Open Frameworks</button></div></div>
+        <div class="card glass"><h4 aria-level="2">Groups</h4><p>Saved party rosters for people you compare often.</p><div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="click(380);navigate('party')">Manage Groups</button></div></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Privacy &amp; Data</h4>
+        <h4 aria-level="2">Privacy &amp; Data</h4>
         <p style="color:var(--text-muted)">Everything below acts only on this device. ${legacyHistory.length ? `${legacyHistory.length} legacy result${legacyHistory.length===1?"":"s"} archived from an earlier PersonaForge.` : "No legacy results on this device."}</p>
         <div class="cta-row" style="margin-top:8px;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="confirmResetOnboarding()">Reset Onboarding</button>
@@ -437,26 +437,27 @@ function renderProfile(){
       </div>
 
       <div class="card glass profile-files-card" style="margin-top:12px">
-        <div class="eyebrow accent">PROFILE FILES</div>
-        <h4 style="margin-top:2px">Your data, as a file</h4>
-        <p style="color:var(--text-muted)">.pf stores your complete PersonaForge profile, completely offline. Nothing here ever touches a server.</p>
+        <div class="eyebrow accent">SAVE FILES</div>
+        <h4 aria-level="2" style="margin-top:2px">Profiles are save files</h4>
+        <p style="color:var(--text-muted)">Create a new profile, switch between saved ones, or move a profile in and out as a .pf file. Everything stays on this device; nothing touches a server.</p>
         <div class="profile-files-grid">
+          <button class="btn btn-primary btn-sm" onclick="promptCreateNewProfile()">+ New Profile</button>
+          <button class="btn btn-ghost btn-sm" onclick="showProfileSwitcherModal()">Switch Profile</button>
           <button class="btn btn-ghost btn-sm" onclick="exportProfile()">Export Persona (.pf)</button>
           <button class="btn btn-ghost btn-sm" onclick="importProfile()">Import Persona (.pf)</button>
-          ${hasResult ? `<button class="btn btn-ghost btn-sm" onclick="viewMyLastResult()">Export Summary PDF</button>` : `<button class="btn btn-ghost btn-sm" disabled title="Take the assessment first">Export Summary PDF</button>`}
           ${hasResult ? `<button class="btn btn-ghost btn-sm" onclick="copyProfileShareCode()">Copy Share Code</button>` : `<button class="btn btn-ghost btn-sm" disabled title="Take the assessment first">Copy Share Code</button>`}
           ${hasResult ? `<button class="btn btn-ghost btn-sm" onclick="viewMyLastResult()">Generate QR</button>` : `<button class="btn btn-ghost btn-sm" disabled title="Take the assessment first">Generate QR</button>`}
         </div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Settings</h4>
+        <h4 aria-level="2">Settings</h4>
         <div class="mini-bar-row"><span>Theme</span><button class="btn btn-ghost btn-sm" onclick="toggleTheme();renderProfile()">${currentTheme === "light" ? "Switch to dark" : "Switch to light"}</button></div>
         <div class="mini-bar-row"><span>Sound</span><button class="btn btn-ghost btn-sm" onclick="toggleSound();renderProfile()">${soundOn ? "Turn off" : "Turn on"}</button></div>
       </div>
 
       <div class="card glass" style="margin-top:12px;text-align:center">
-        <h4>About Forge</h4>
+        <h4 aria-level="2">About Forge</h4>
         <p style="color:var(--text-muted)">Local-first, no account, no server. Your data never leaves this device unless you export it yourself.</p>
         <div class="cta-row" style="justify-content:center;margin-top:8px">
           <a class="btn btn-ghost btn-sm" href="legal.html">Terms &amp; Credits</a>

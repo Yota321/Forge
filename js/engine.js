@@ -1,3 +1,38 @@
+/* ---- Blocked-storage safety net -------------------------------------------
+   Every page's first script. With site data blocked (some private modes,
+   "block all cookies", locked-down managed browsers) merely *reading*
+   window.localStorage throws a SecurityError -- which, since global.js
+   reads it at load, took the whole app down to a blank page. If either
+   store is unusable, swap in an in-memory stand-in so Forge still runs
+   (just without persisting across reloads) and flag it so the UI can say
+   so. No-op, and zero cost, when storage works normally. */
+(function ensureUsableStorage(){
+  function memoryStorage(){
+    const m = new Map();
+    return {
+      get length(){ return m.size; },
+      key(i){ return Array.from(m.keys())[i] ?? null; },
+      getItem(k){ return m.has(String(k)) ? m.get(String(k)) : null; },
+      setItem(k, v){ m.set(String(k), String(v)); },
+      removeItem(k){ m.delete(String(k)); },
+      clear(){ m.clear(); },
+    };
+  }
+  ["localStorage", "sessionStorage"].forEach(name => {
+    let ok = true;
+    try {
+      const s = window[name];
+      const probe = "__pf_probe__";
+      s.setItem(probe, "1");
+      s.removeItem(probe);
+    } catch(e){ ok = false; }
+    if (!ok){
+      try { Object.defineProperty(window, name, { value: memoryStorage(), configurable: true }); } catch(e){ /* nothing more to do */ }
+      window.PF_STORAGE_VOLATILE = true;
+    }
+  });
+})();
+
 /* =========================================================================
    FORGE - PERSONALITY ENGINE
    Archetype/question/content data, scoring, QuizSession, compatibility,
@@ -4634,11 +4669,17 @@ function clearOnboardingProgress(){
    PF4 code arriving via a bookmarked/shared path-segment URL. */
 function getProfileCodeFromURL(){
   const params = new URLSearchParams(location.search);
+  // URLSearchParams.get() has already percent-decoded this. It used to be
+  // run through decodeURIComponent() a second time, which throws an
+  // uncaught URIError on any value containing a literal "%" (e.g.
+  // ?code=abc%25) -- a blank page from a link someone could type by hand.
   const fromQuery = params.get("code");
-  if (fromQuery) return decodeURIComponent(fromQuery);
+  if (fromQuery) return fromQuery;
   const segments = location.pathname.split("/").filter(Boolean);
   const last = segments[segments.length - 1] || "";
-  if (/-PF\d+-/.test(last)) return decodeURIComponent(last);
+  if (/-PF\d+-/.test(last)){
+    try { return decodeURIComponent(last); } catch(e){ return last; }
+  }
   return null;
 }
 
@@ -4957,7 +4998,14 @@ function switchToProfile(id){
     localStorage.setItem(`pf_profile_data:${idx.activeProfileId}`, JSON.stringify(snapshotActiveProfileData()));
   }
   const incomingRaw = localStorage.getItem(`pf_profile_data:${id}`);
-  restoreProfileData(incomingRaw ? JSON.parse(incomingRaw) : null);
+  // A corrupted stored blob used to throw here -- after the outgoing
+  // profile had already been snapshotted, and leaving that profile
+  // permanently unswitchable-to. Treating unreadable data as "empty
+  // profile" keeps the switcher working; the person loses only the one
+  // profile's unreadable data, not the ability to use it again.
+  let incoming = null;
+  try { incoming = incomingRaw ? JSON.parse(incomingRaw) : null; } catch(e){ incoming = null; }
+  restoreProfileData(incoming);
   localStorage.removeItem(`pf_profile_data:${id}`);
   idx.activeProfileId = id;
   saveProfilesIndex(idx);
@@ -4982,6 +5030,9 @@ function createNewProfile(name){
 // own pf_profile_data:<id> snapshot), both kept in sync so a later switch
 // never shows a stale name.
 function renameProfile(id, name){
+  // Same 20-char ceiling as the quiz name field and sanitizeImportedLocalProfile();
+  // the only caller is a native prompt() with no maxlength of its own.
+  name = typeof name === "string" ? name.trim().slice(0, 20) : "";
   const idx = ensureProfilesIndex();
   const summary = idx.profiles.find(s => s.id === id);
   if (!summary) return false;
@@ -5368,7 +5419,9 @@ const JOURNAL_KEY = "pf_journal_entries";
 function getJournalEntries(){
   try{
     const raw = JSON.parse(localStorage.getItem(JOURNAL_KEY) || "[]");
-    return Array.isArray(raw) ? raw.sort((a,b) => a.timestamp - b.timestamp) : [];
+    // One malformed record (null, wrong type) used to make the sort throw
+    // and the catch below hide the ENTIRE journal; drop just the bad ones.
+    return Array.isArray(raw) ? raw.filter(e => e && typeof e === "object" && typeof e.timestamp === "number").sort((a,b) => a.timestamp - b.timestamp) : [];
   } catch(e){ return []; }
 }
 function saveJournalEntries(entries){

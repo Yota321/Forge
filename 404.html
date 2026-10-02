@@ -4,9 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="robots" content="noindex" />
-<meta name="theme-color" content="#0F1117" />
+<meta name="theme-color" content="#0A0E24" />
 <title>Forge · Recalibrating…</title>
 <meta name="description" content="This route did not make it through the forge. Redirecting you back to PersonaForge." />
+<link rel="preconnect" href="https://api.fontshare.com">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
 <style>
   /* =====================================================================
      Same design language as the main app: dark-first, soft purple accent,
@@ -15,13 +17,13 @@
      ever having loaded.
      ===================================================================== */
   :root{
-    --bg: #0F1117;
-    --bg-alt: #12141C;
-    --card: rgba(30,34,48,0.55);
-    --border: rgba(167,139,250,0.18);
+    --bg: #0A0E24;
+    --bg-alt: #0E1330;
+    --card: #262E58;
+    --border: rgba(167,139,250,0.8);
     --text: #F8FAFC;
     --text-muted: #A7B0C2;
-    --text-dim: #6B7385;
+    --text-dim: #A6AEC3;
     --accent: #A78BFA;
     --accent-soft: #C4B5FD;
     --sky: #7DD3FC;
@@ -29,13 +31,13 @@
     --ease: cubic-bezier(.22,1,.36,1);
   }
   [data-theme="light"]{
-    --bg: #FFFFFF;
-    --bg-alt: #F8FAFC;
-    --card: rgba(255,255,255,0.6);
-    --border: rgba(100,116,139,0.22);
-    --text: #0F172A;
-    --text-muted: #475569;
-    --text-dim: #64748B;
+    --bg: #F4EEE2;
+    --bg-alt: #ECE5D5;
+    --card: #FFFBF2;
+    --border: rgba(58,44,30,0.7);
+    --text: #1B1712;
+    --text-muted: #4A4338;
+    --text-dim: #5A5246;
     --accent: #8B5CF6;
     --accent-soft: #A78BFA;
     --sky: #0EA5E9;
@@ -43,9 +45,9 @@
   }
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
-      --bg: #FFFFFF; --bg-alt: #F8FAFC; --card: rgba(255,255,255,0.6);
-      --border: rgba(100,116,139,0.22); --text: #0F172A; --text-muted: #475569;
-      --text-dim: #64748B; --accent: #8B5CF6; --accent-soft: #A78BFA; --sky: #0EA5E9;
+      --bg: #F4EEE2; --bg-alt: #ECE5D5; --card: #FFFBF2;
+      --border: rgba(58,44,30,0.7); --text: #1B1712; --text-muted: #4A4338;
+      --text-dim: #5A5246; --accent: #8B5CF6; --accent-soft: #A78BFA; --sky: #0EA5E9;
       --shadow: 0 24px 50px -22px rgba(100,116,139,0.35);
     }
   }
@@ -55,7 +57,7 @@
   body{
     background: var(--bg);
     color: var(--text);
-    font-family: 'Cabinet Grotesk', 'Manrope', system-ui, -apple-system, sans-serif;
+    font-family: 'Satoshi', 'Cabinet Grotesk', 'Manrope', system-ui, -apple-system, sans-serif;
     min-height: 100dvh;
     display:flex;
     align-items:center;
@@ -78,11 +80,9 @@
     position:relative; z-index:1;
     width:100%; max-width: 420px;
     background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 24px;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    box-shadow: var(--shadow);
+    border: 2px solid var(--border);
+    border-radius: 28px;
+    box-shadow: 0 6px 0 rgba(0,0,0,.45), var(--shadow);
     padding: 44px 32px 36px;
     text-align:center;
     animation: rise .6s var(--ease) both;
@@ -98,7 +98,7 @@
   }
   .mark img{ width:30px; height:30px; display:block; }
 
-  h1{
+  h1{ font-family: 'Clash Display', 'Cabinet Grotesk', sans-serif;
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.01em;
@@ -358,7 +358,9 @@
         if (!params.get("code") && segments.length) {
           var last = segments[segments.length - 1];
           if (/-PF\d+-/.test(last)) {
-            params.set("code", decodeURIComponent(last));
+            var decodedLast = last;
+            try { decodedLast = decodeURIComponent(last); } catch (e) { /* malformed %-sequence: carry the raw segment instead of throwing and stranding the person on this screen */ }
+            params.set("code", decodedLast);
           } else {
             params.set("path", segments.join("/"));
           }

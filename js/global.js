@@ -470,8 +470,14 @@ function updateThemeIcon(){
   const item = document.getElementById("navThemeItem");
   if (item) item.innerHTML = `${currentTheme === "light" ? ICONS.moon : ICONS.sun}<span>${currentTheme === "light" ? "Dark mode" : "Light mode"}</span>`;
 }
+// Each page's own authored <title> (e.g. index.html's keyword-bearing
+// "PersonaForge, Discover. Compare. Evolve.") was being overwritten to a
+// bare "Forge" on every no-argument call -- which is what Home calls --
+// so search engines and browser tabs/history never saw the real title
+// once JS ran. Capturing it once at load restores it for those calls.
+const AUTHORED_TITLE = document.title || "Forge";
 function setPageTitle(suffix){
-  document.title = suffix ? `Forge \u2022 ${suffix}` : "Forge";
+  document.title = suffix ? `Forge \u2022 ${suffix}` : AUTHORED_TITLE;
 }
 
 function updateBrandLogo(){
@@ -661,20 +667,23 @@ function pickLines(n, sourcePool){
    library, since this environment has no live network access to fetch
    one, but the visual language stays cohesive across every use. */
 const ICONS = {
-  home: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 10 3l7 6.5"/><path d="M5 8.5V17h10V8.5"/><path d="M8 17v-5h4v5"/></svg>`,
-  sun: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="10" cy="10" r="3.4"/><path d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1 4.7 4.7"/></svg>`,
-  moon: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 12.2A6.8 6.8 0 1 1 7.8 3.5a6 6 0 0 0 8.7 8.7Z"/></svg>`,
-  soundOn: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5h3l4-3.2v11.4l-4-3.2H3z"/><path d="M13 7.3a4 4 0 0 1 0 5.4M15.3 5a7.2 7.2 0 0 1 0 10"/></svg>`,
-  soundOff: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5h3l4-3.2v11.4l-4-3.2H3z"/><path d="M13 7.5l4 5M17 7.5l-4 5"/></svg>`,
-  menu: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h14"/></svg>`,
-  close: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 5l10 10M15 5 5 15"/></svg>`,
-  lock: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="9" width="11" height="8" rx="2.4"/><path d="M6.5 9V6.5a3.5 3.5 0 0 1 7 0V9"/></svg>`,
-  wifi: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a10 10 0 0 1 14 0M5.6 10.6a6.2 6.2 0 0 1 8.8 0M8.4 13.6a2.4 2.4 0 0 1 3.2 0"/><circle cx="10" cy="16.2" r="1" fill="currentColor" stroke="none"/></svg>`,
-  layers: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 17 8l-7 4.5L3 8z"/><path d="m4.6 10.8-1.6 1 7 4.5 7-4.5-1.6-1"/></svg>`,
-  people: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.2" cy="7" r="2.6"/><path d="M2.5 16c.5-3 2.3-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="14.4" cy="7.4" r="2.1"/><path d="M13 11.6c2 .1 3.5 1.6 3.9 4"/></svg>`,
-  trendUp: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l4.5-5 3.5 3L17 5"/><path d="M12.5 5H17v4.5"/></svg>`,
-  spark: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5c.6 3 1.9 4.9 4.9 5.5-3 .6-4.3 1.9-4.9 4.9-.6-3-1.9-4.3-4.9-4.9 3-.6 4.3-2.5 4.9-5.5Z"/><path d="M15.5 13.5c.3 1.4.9 2.2 2.2 2.5-1.3.3-1.9.9-2.2 2.2-.3-1.3-.9-1.9-2.2-2.2 1.3-.3 1.9-1.1 2.2-2.5Z"/></svg>`,
-  restart: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-1.9-4.4"/><path d="M16 3.5v3.6h-3.6"/></svg>`,
+  home: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 10 3l7 6.5"/><path d="M5 8.5V17h10V8.5"/><path d="M8 17v-5h4v5"/></svg>`,
+  sun: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="10" cy="10" r="3.4"/><path d="M10 2.5v2M10 15.5v2M17.5 10h-2M4.5 10h-2M15.3 4.7l-1.4 1.4M6.1 13.9l-1.4 1.4M15.3 15.3l-1.4-1.4M6.1 6.1 4.7 4.7"/></svg>`,
+  moon: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 12.2A6.8 6.8 0 1 1 7.8 3.5a6 6 0 0 0 8.7 8.7Z"/></svg>`,
+  soundOn: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5h3l4-3.2v11.4l-4-3.2H3z"/><path d="M13 7.3a4 4 0 0 1 0 5.4M15.3 5a7.2 7.2 0 0 1 0 10"/></svg>`,
+  soundOff: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5h3l4-3.2v11.4l-4-3.2H3z"/><path d="M13 7.5l4 5M17 7.5l-4 5"/></svg>`,
+  menu: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M3 6h14M3 10h14M3 14h14"/></svg>`,
+  close: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M5 5l10 10M15 5 5 15"/></svg>`,
+  lock: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="9" width="11" height="8" rx="2.4"/><path d="M6.5 9V6.5a3.5 3.5 0 0 1 7 0V9"/></svg>`,
+  wifi: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5a10 10 0 0 1 14 0M5.6 10.6a6.2 6.2 0 0 1 8.8 0M8.4 13.6a2.4 2.4 0 0 1 3.2 0"/><circle cx="10" cy="16.2" r="1" fill="currentColor" stroke="none"/></svg>`,
+  layers: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3.5 17 8l-7 4.5L3 8z"/><path d="m4.6 10.8-1.6 1 7 4.5 7-4.5-1.6-1"/></svg>`,
+  people: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.2" cy="7" r="2.6"/><path d="M2.5 16c.5-3 2.3-4.6 4.7-4.6s4.2 1.6 4.7 4.6"/><circle cx="14.4" cy="7.4" r="2.1"/><path d="M13 11.6c2 .1 3.5 1.6 3.9 4"/></svg>`,
+  trendUp: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l4.5-5 3.5 3L17 5"/><path d="M12.5 5H17v4.5"/></svg>`,
+  spark: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5c.6 3 1.9 4.9 4.9 5.5-3 .6-4.3 1.9-4.9 4.9-.6-3-1.9-4.3-4.9-4.9 3-.6 4.3-2.5 4.9-5.5Z"/><path d="M15.5 13.5c.3 1.4.9 2.2 2.2 2.5-1.3.3-1.9.9-2.2 2.2-.3-1.3-.9-1.9-2.2-2.2 1.3-.3 1.9-1.1 2.2-2.5Z"/></svg>`,
+  restart: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-1.9-4.4"/><path d="M16 3.5v3.6h-3.6"/></svg>`,
+  book: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3.5h8.5A2.5 2.5 0 0 1 15 6v10.5H6.5A2.5 2.5 0 0 1 4 14z"/><path d="M4 14a2.5 2.5 0 0 1 2.5-2.5H15"/></svg>`,
+  party: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="2.3"/><circle cx="14" cy="7" r="2.3"/><circle cx="10" cy="14" r="2.3"/><path d="M8 8.4l1 3.3M12 8.4l-1 3.3M8.3 7h3.4"/></svg>`,
+  arrow: `<svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15 15 5M7 5h8v8"/></svg>`
 };
 
 // Once a local profile exists (the moment a first result exists — see
@@ -722,20 +731,26 @@ function topBar(showBack){
     <div class="nav-menu" id="navMenu" hidden>
      <div class="nav-menu-inner">
       <button class="nav-menu-item nav-menu-signup" onclick="closeNavMenu();${pillOnclick}"><span>${obEsc(pillLabel)} &rarr;</span></button>
-      <button class="nav-menu-item" onclick="closeNavMenu();click(380);navigate('growth')"><span>Growth</span></button>
-      <button class="nav-menu-item" onclick="closeNavMenu();click(380);navigate('improve')"><span>Improve</span></button>
-      <button class="nav-menu-item" onclick="closeNavMenu();click(380);navigate('journal')"><span>Journal</span></button>
-      <button class="nav-menu-item" onclick="closeNavMenu();click(380);navigate('frameworks')"><span>Frameworks</span></button>
-      <button class="nav-menu-item" id="navThemeItem" onclick="toggleTheme()">${currentTheme === "light" ? ICONS.moon : ICONS.sun}<span>${currentTheme === "light" ? "Dark mode" : "Light mode"}</span></button>
-      <button class="nav-menu-item" id="navSoundItem" onclick="toggleSound()">${soundOn ? ICONS.soundOn : ICONS.soundOff}<span>Sound ${soundOn ? "on" : "off"}</span></button>
-      <div class="nav-menu-sep"></div>
-      <button class="nav-menu-item" onclick="closeNavMenu();click(380);navigate('compare')"><span>Compare Results</span></button>
-      <button class="nav-menu-item" onclick="closeNavMenu();click(380);navigate('party')"><span>Party Compare</span></button>
-      <a class="nav-menu-item" href="legal.html"><span>Terms of Service</span></a>
-      <button class="nav-menu-item" onclick="closeNavMenu();showPrivacyModal()"><span>Privacy</span></button>
-      <div class="nav-menu-sep"></div>
-      <button class="nav-menu-item" onclick="closeNavMenu();exportProfile()"><span>Export Profile (.pf)</span></button>
-      <button class="nav-menu-item" onclick="closeNavMenu();importProfile()"><span>Import Profile (.pf)</span></button>
+      <div class="nm-label">Explore</div>
+      <div class="nm-grid">
+        <button class="nav-menu-item nm-tile nm-mint" onclick="closeNavMenu();click(380);navigate('growth')"><span class="nm-top"><span class="nm-ico">${ICONS.trendUp}</span><span class="nm-num">01</span></span><span class="nm-name">Growth</span></button>
+        <button class="nav-menu-item nm-tile nm-violet" onclick="closeNavMenu();click(380);navigate('improve')"><span class="nm-top"><span class="nm-ico">${ICONS.spark}</span><span class="nm-num">02</span></span><span class="nm-name">Improve</span></button>
+        <button class="nav-menu-item nm-tile nm-gold" onclick="closeNavMenu();click(380);navigate('journal')"><span class="nm-top"><span class="nm-ico">${ICONS.book}</span><span class="nm-num">03</span></span><span class="nm-name">Journal</span></button>
+        <button class="nav-menu-item nm-tile nm-cream" onclick="closeNavMenu();click(380);navigate('frameworks')"><span class="nm-top"><span class="nm-ico">${ICONS.layers}</span><span class="nm-num">04</span></span><span class="nm-name">Frameworks</span></button>
+      </div>
+      <div class="nm-label">Together</div>
+      <div class="nm-stack">
+        <button class="nav-menu-item nm-wide nm-indigo" onclick="closeNavMenu();click(380);navigate('compare')"><span class="nm-ico">${ICONS.people}</span><span class="nm-name">Compare Results</span><span class="nm-go">${ICONS.arrow}</span></button>
+        <button class="nav-menu-item nm-wide nm-peach" onclick="closeNavMenu();click(380);navigate('party')"><span class="nm-ico">${ICONS.party}</span><span class="nm-name">Party Compare</span><span class="nm-go">${ICONS.arrow}</span></button>
+      </div>
+      <div class="nm-settings">
+        <button class="nav-menu-item nm-chip" id="navThemeItem" onclick="toggleTheme()">${currentTheme === "light" ? ICONS.moon : ICONS.sun}<span>${currentTheme === "light" ? "Dark mode" : "Light mode"}</span></button>
+        <button class="nav-menu-item nm-chip" id="navSoundItem" onclick="toggleSound()">${soundOn ? ICONS.soundOn : ICONS.soundOff}<span>Sound ${soundOn ? "on" : "off"}</span></button>
+      </div>
+      <div class="nm-legal">
+        <a class="nav-menu-item" href="legal.html"><span>Terms</span></a>
+        <button class="nav-menu-item" onclick="closeNavMenu();showPrivacyModal()"><span>Privacy</span></button>
+      </div>
       <div class="nav-menu-sep"></div>
       <div class="nav-menu-code">
         <label for="quickCode">Have someone's code?</label>
@@ -1051,6 +1066,10 @@ function importProfile(){
           // whatever id the source file happened to carry -- see the
           // comment above freshProfileId for why.
           if (freshProfileId) safeProfile.profileId = freshProfileId;
+          // The imported code is the source of truth. A hand-edited/partial
+          // localProfile without one would otherwise leave this profile
+          // reading "not assessed yet" next to a perfectly valid pf_last_code.
+          if (!safeProfile.code) safeProfile.code = code;
           try{ saveLocalProfile(safeProfile); } catch(e){ /* ignore */ }
         }
       }
@@ -1094,8 +1113,23 @@ function showToast(message){
   void el.offsetWidth;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+  // A fixed 3.2s was too short for the longer messages (the obsolete-code
+  // explanation is ~290 characters) -- text people can't finish reading
+  // is a WCAG 2.2.1 timing problem, not just a polish one. Scales with
+  // length, capped so it never lingers.
+  const hold = Math.min(9000, Math.max(3200, 1800 + message.length * 45));
+  toastTimer = setTimeout(() => el.classList.remove("show"), hold);
 }
+// One-shot message carried across a redirect (e.g. result.html bouncing
+// an unreadable share link back to Home) -- without this the person just
+// lands on the homepage with no idea their link was rejected.
+function showPendingFlash(){
+  let msg = null;
+  try { msg = sessionStorage.getItem("pf_flash"); sessionStorage.removeItem("pf_flash"); } catch(e){ /* storage blocked */ }
+  if (msg) showToast(msg);
+  else if (window.PF_STORAGE_VOLATILE) showToast("Your browser is blocking site storage, so Forge can't save anything between visits. Everything still works while this tab stays open.");
+}
+window.addEventListener("load", () => setTimeout(showPendingFlash, 350));
 function showComingSoon(feature){
   click(420);
   showToast(`${feature} aren't built yet. Forge stays fully on-device for now. Star the repo to hear when that changes.`);
@@ -1794,3 +1828,202 @@ function showUpdateToast(waitingWorker){
   });
   document.body.appendChild(toast);
 }
+
+
+/* =============================================================================
+   BENTO TONE ASSIGNMENT
+   Gives every bento card one of seven flat Forge tones so that no two cards
+   that touch (edge-to-edge, or corner-to-corner within the grid gap) ever
+   share a colour family or a near-identical hue. It reads the real rendered
+   geometry, so it holds at every breakpoint (desktop 12-col grids, tablet
+   2-up, mobile single column) and for cards that are rendered later by
+   page scripts. Pure greedy graph colouring: neighbours' tones (and tones
+   similar to them) are forbidden, then the least-used remaining tone wins
+   so colour spreads evenly across the page. CSS owns what each tone looks
+   like (see [data-tone] rules in css/pages.css); this only picks which.
+   ============================================================================= */
+(function forgeBentoTones(){
+  const SEL = ".bento-card, .card.glass, .lp-feature, .lp-cta-panel, .qz-card, .cmp-style-row";
+  const TONES = ["indigo", "mint", "cream", "peach", "violet", "gold"];
+  const FAMILY = { indigo:"blue", violet:"purple", cream:"neutral", mint:"green", peach:"orange", gold:"yellow", sky:"cyan" };
+  // Families that read as "the same colour" to the eye even though they differ.
+  const SIMILAR = [["blue","purple"], ["blue","cyan"], ["orange","yellow"]];
+  const clash = (a, b) => {
+    const fa = FAMILY[a], fb = FAMILY[b];
+    return fa === fb || SIMILAR.some(([x, y]) => (x === fa && y === fb) || (x === fb && y === fa));
+  };
+  const NEAR = 44; // px: wider than any grid gap in the app, narrower than a card
+  function touches(a, b){
+    const gapX = Math.max(a.left - b.right, b.left - a.right);
+    const gapY = Math.max(a.top - b.bottom, b.top - a.bottom);
+    return gapX < NEAR && gapY < NEAR;
+  }
+  // Seeded PRNG so a given layout always resolves to the same colours (no flicker between recalculations).
+  function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function assign(){
+    const all = Array.from(document.querySelectorAll(SEL)).filter(el => {
+      if (el.parentElement && el.parentElement.closest(SEL)) return false; // nested panels inherit
+      if (el.closest("[hidden], .hidden")) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 8 && r.height > 8;
+    });
+    const rects = all.map(el => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY };
+    });
+    // Neighbour graph: edge neighbours (share a side) are weighted heavily, corner neighbours lightly.
+    const nb = all.map(() => []);
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++){
+      const A = rects[i], B = rects[j];
+      const gapX = Math.max(A.left - B.right, B.left - A.right);
+      const gapY = Math.max(A.top - B.bottom, B.top - A.bottom);
+      if (gapX >= NEAR || gapY >= NEAR) continue;
+      const overlapX = Math.min(A.right, B.right) - Math.max(A.left, B.left);
+      const overlapY = Math.min(A.bottom, B.bottom) - Math.max(A.top, B.top);
+      const w = (overlapX > 8 || overlapY > 8) ? 4 : 1;
+      nb[i].push([j, w]); nb[j].push([i, w]);
+    }
+    const cost = (ti, tj, w) => (ti === tj ? 10 * w : clash(ti, tj) ? 3 * w : 0);
+    let best = null, bestCost = Infinity;
+    for (let attempt = 0; attempt < 80 && bestCost > 0; attempt++){
+      const rand = rng(attempt * 7919 + 13);
+      const used = Object.fromEntries(TONES.map(t => [t, 0]));
+      const chosen = new Array(all.length);
+      let total = 0;
+      for (let i = 0; i < all.length; i++){
+        const scored = TONES.map(t => {
+          let c = 0;
+          nb[i].forEach(([j, w]) => { if (j < i) c += cost(t, chosen[j], w); });
+          return { t, c, k: used[t] + rand() * 1.5 };
+        });
+        scored.sort((x, y) => x.c - y.c || x.k - y.k);
+        chosen[i] = scored[0].t; used[scored[0].t]++; total += scored[0].c;
+      }
+      if (total < bestCost){ bestCost = total; best = chosen; }
+    }
+    all.forEach((el, i) => { if (el.dataset.tone !== best[i]) el.dataset.tone = best[i]; });
+  }
+  let t = null;
+  let t2 = null;
+  const schedule = () => { clearTimeout(t); clearTimeout(t2); t = setTimeout(assign, 90); t2 = setTimeout(assign, 650); };
+  const start = () => {
+    assign();
+    window.addEventListener("resize", schedule);
+    window.addEventListener("load", schedule);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    // Layout reflows (breakpoint changes, fonts, late content) change the body size even when no resize event is seen.
+    if (window.ResizeObserver) new ResizeObserver(schedule).observe(document.body);
+    new MutationObserver(schedule).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    [400, 1200, 2600].forEach(ms => setTimeout(assign, ms));
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+
+/* Gentle pointer parallax on the home bento's decorative shapes. */
+(function forgeParallax(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !matchMedia("(hover: hover)").matches) return;
+  const canvas = document.querySelector(".lp-bento-canvas");
+  if (!canvas) return;
+  canvas.addEventListener("pointermove", e => {
+    const r = canvas.getBoundingClientRect();
+    canvas.style.setProperty("--px", ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+    canvas.style.setProperty("--py", ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+  });
+  canvas.addEventListener("pointerleave", () => { canvas.style.setProperty("--px", 0); canvas.style.setProperty("--py", 0); });
+})();
+
+
+/* Archetype ambience: tint the page's ambient light with the visitor's own
+   soul colour so the whole product subtly takes on their result. Falls back
+   to the default indigo when there is no result yet. */
+(function forgeAmbient(){
+  function apply(){
+    try{
+      const profile = typeof getLocalProfile === "function" ? getLocalProfile() : null;
+      const decoded = profile && profile.code && typeof decodeCode === "function" ? decodeCode(profile.code) : null;
+      if (!decoded || decoded.obsolete) return;
+      const hex = computeSoulType(decoded.normDims).hex;
+      if (/^#[0-9a-f]{6}$/i.test(hex)){
+        const root = document.documentElement;
+        root.style.setProperty("--ambient", hex);
+        const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+        let h = 0;
+        if (d){ h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360; }
+        const warm = h < 70 || h > 300;               // warm souls: livelier light, cool souls: slower, deeper
+        root.style.setProperty("--ambient-dur", (warm ? 7 : 13) + "s");
+        root.style.setProperty("--ax", (10 + (h / 360) * 40).toFixed(0) + "%");
+      }
+    } catch(e){ /* decorative only */ }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply); else apply();
+})();
+
+/* Card tilt: pointer position inside a card nudges it a few degrees. */
+(function forgeTilt(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !matchMedia("(hover: hover)").matches) return;
+  const SEL = ".bento-card, .card.glass, .lp-feature, .lp-cta-panel";
+  document.addEventListener("pointermove", e => {
+    const el = e.target.closest && e.target.closest(SEL);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--tx", (((e.clientX - r.left) / r.width - .5) * 2).toFixed(2));
+    el.style.setProperty("--ty", (((e.clientY - r.top) / r.height - .5) * 2).toFixed(2));
+  }, { passive: true });
+  document.addEventListener("pointerout", e => {
+    const el = e.target.closest && e.target.closest(SEL);
+    if (el && !el.contains(e.relatedTarget)) { el.style.removeProperty("--tx"); el.style.removeProperty("--ty"); }
+  });
+})();
+
+
+/* Result hero parallax: the framed image drifts against pointer and scroll,
+   so foreground type and background image sit on different planes. Off for
+   touch and reduced motion. */
+(function forgeHeroParallax(){
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !matchMedia("(hover: hover)").matches) return;
+  function bind(){
+    const hero = document.querySelector(".result-hero .ingot");
+    if (!hero || hero.dataset.parallax) return;
+    hero.dataset.parallax = "1";
+    hero.addEventListener("pointermove", e => {
+      const r = hero.getBoundingClientRect();
+      hero.style.setProperty("--hx", (((e.clientX - r.left) / r.width - .5) * 2).toFixed(2));
+      hero.style.setProperty("--hy", (((e.clientY - r.top) / r.height - .5) * 2).toFixed(2));
+    }, { passive: true });
+    hero.addEventListener("pointerleave", () => { hero.style.setProperty("--hx", 0); hero.style.setProperty("--hy", 0); });
+    let ticking = false;
+    window.addEventListener("scroll", () => {
+      if (ticking) return; ticking = true;
+      requestAnimationFrame(() => {
+        const r = hero.getBoundingClientRect();
+        hero.style.setProperty("--hs", Math.max(-40, Math.min(40, -r.top * 0.08)).toFixed(1));
+        ticking = false;
+      });
+    }, { passive: true });
+  }
+  bind();
+  new MutationObserver(bind).observe(document.body, { childList: true, subtree: true });
+})();
+
+/* Auto ink: any element tagged [data-auto-ink] (or an avatar fallback) picks
+   black or white text from its own background luminance, so text over a
+   per-user colour is always readable. */
+(function forgeAutoInk(){
+  const SEL = "[data-auto-ink], .profile-avatar-fallback";
+  const lin = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+  function apply(){
+    document.querySelectorAll(SEL).forEach(el => {
+      const m = getComputedStyle(el).backgroundColor.match(/[\d.]+/g);
+      if (!m) return;
+      const L = .2126 * lin(+m[0]) + .7152 * lin(+m[1]) + .0722 * lin(+m[2]);
+      const dark = "#0B0E1F", light = "#FFFFFF";
+      const cDark = (L + .05) / (lin(11) * .2126 + lin(14) * .7152 + lin(31) * .0722 + .05);
+      const cLight = 1.05 / (L + .05);
+      el.style.color = cDark >= cLight ? dark : light;
+    });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply); else apply();
+  new MutationObserver(apply).observe(document.body || document.documentElement, { childList: true, subtree: true });
+})();

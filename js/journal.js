@@ -41,7 +41,7 @@ function renderJournal(){
       <div class="container">
         ${topBar(true)}
         <div class="eyebrow accent">JOURNAL</div>
-        <h2 style="margin:10px 0 6px">Nothing to Check In On Yet</h2>
+        <h2 aria-level="1" style="margin:10px 0 6px">Nothing to Check In On Yet</h2>
         <p class="tagline" style="text-align:left;color:var(--text-muted)">Take the assessment once, and Forge can start tying your day-to-day check-ins to your actual read, not just a blank notebook.</p>
         <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
           <button class="btn btn-primary" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button>
@@ -66,28 +66,28 @@ function renderJournal(){
     <div class="container">
       ${topBar(true)}
       <div class="eyebrow accent">JOURNAL</div>
-      <h2 style="margin:10px 0 6px">A Quick Check-In</h2>
+      <h2 aria-level="1" style="margin:10px 0 6px">A Quick Check-In</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Thirty seconds, most days. Not a diary you have to keep up perfectly, just a real trail of how things actually went.</p>
 
       <div class="grid-2" style="margin-top:16px">
-        <div class="card glass"><h4>Current Streak</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${streak.current}" data-suffix=" ${streak.current === 1 ? "day" : "days"}">0</div></div>
-        <div class="card glass"><h4>Longest Streak</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${streak.longest}" data-suffix=" ${streak.longest === 1 ? "day" : "days"}">0</div></div>
+        <div class="card glass"><h4 aria-level="2">Current Streak</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${streak.current}" data-suffix=" ${streak.current === 1 ? "day" : "days"}">0</div></div>
+        <div class="card glass"><h4 aria-level="2">Longest Streak</h4><div class="ingot-name count-up" style="font-size:32px" data-target="${streak.longest}" data-suffix=" ${streak.longest === 1 ? "day" : "days"}">0</div></div>
       </div>
 
       <div class="card glass" style="margin-top:14px" id="journalTodayCard">
         <div class="eyebrow accent">TODAY</div>
-        <h4>${today ? "Already checked in" : "How's today going?"}</h4>
+        <h4 aria-level="2">${today ? "Already checked in" : "How's today going?"}</h4>
         <div class="journal-mood-row" id="journalMoodRow">
           ${JOURNAL_MOODS.map(m => `<button type="button" class="journal-mood-btn${journalSelectedMood === m.v ? " selected" : ""}" data-mood="${m.v}" onclick="selectJournalMood(${m.v})" ${today ? "disabled" : ""}>${m.emoji}<span>${m.label}</span></button>`).join("")}
         </div>
         <p style="color:var(--text-muted);font-size:13px;margin-top:10px">Today's prompt: ${obEsc(journalTodayPromptText)}</p>
-        <textarea id="journalTextField" class="ns-input" style="width:100%;min-height:90px;resize:vertical;margin-top:8px" placeholder="Optional, a sentence or two is plenty." ${today ? "disabled" : ""}>${today ? obEsc(today.text) : ""}</textarea>
+        <textarea id="journalTextField" aria-label="Journal entry (optional)" class="ns-input" style="width:100%;min-height:90px;resize:vertical;margin-top:8px" placeholder="Optional, a sentence or two is plenty." ${today ? "disabled" : ""}>${today ? obEsc(today.text) : ""}</textarea>
         ${today ? `<p style="color:var(--text-dim);font-size:12px;margin-top:6px">Logged at ${new Date(today.timestamp).toLocaleTimeString()}. One check-in per day, come back tomorrow.</p>`
           : `<div class="cta-row" style="margin-top:10px"><button class="btn btn-primary btn-sm" onclick="saveJournalCheckIn()">Save Today's Entry</button></div>`}
       </div>
 
       <div class="card glass" style="margin-top:14px">
-        <h4>Past Entries</h4>
+        <h4 aria-level="2">Past Entries</h4>
         ${entries.length ? entries.slice(0, 30).map(e => {
           const mood = JOURNAL_MOODS.find(m => m.v === e.mood) || JOURNAL_MOODS[2];
           return `<div class="journal-entry-row">
@@ -99,7 +99,7 @@ function renderJournal(){
       </div>
 
       <div class="card glass" style="margin-top:14px;text-align:center">
-        <h4>Want Suggestions Instead?</h4>
+        <h4 aria-level="2">Want Suggestions Instead?</h4>
         <p>Improve has habits, reading, and reflection prompts built around your actual read.</p>
         <div class="cta-row" style="justify-content:center;margin-top:8px">
           <button class="btn btn-ghost btn-sm" onclick="click(380);navigate('improve')">Open Improve</button>

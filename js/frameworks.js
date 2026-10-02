@@ -18,7 +18,7 @@ function renderFrameworks(){
       <div class="container">
         ${topBar(true)}
         <div class="eyebrow accent">FRAMEWORKS</div>
-        <h2 style="margin:10px 0 6px">Nothing to Break Down Yet</h2>
+        <h2 aria-level="1" style="margin:10px 0 6px">Nothing to Break Down Yet</h2>
         <p class="tagline" style="text-align:left;color:var(--text-muted)">Take the assessment once, and this page unpacks your MBTI, Big Five, DISC, and Enneagram reads letter by letter and trait by trait.</p>
         <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
           <button class="btn btn-primary" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button>
@@ -34,18 +34,18 @@ function renderFrameworks(){
     <div class="container">
       ${topBar(true)}
       <div class="eyebrow accent">FRAMEWORKS</div>
-      <h2 style="margin:10px 0 6px">Every Framework, Unpacked</h2>
+      <h2 aria-level="1" style="margin:10px 0 6px">Every Framework, Unpacked</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">A quick disclaimer first: none of this is a licensed or certified MBTI/DISC/Enneagram/Big Five instrument. It's Forge's own model projected onto those frameworks' language, because the language is familiar even when the underlying test isn't the official one.</p>
 
       <div class="section-divider"><span>MBTI</span></div>
       <div class="card glass" style="text-align:center">
         <div class="eyebrow accent">CLOSEST TYPE</div>
-        <h3 style="margin-top:4px">${deep.mbti.type}</h3>
+        <h3 aria-level="2" style="margin-top:4px">${deep.mbti.type}</h3>
       </div>
       <div class="grid-2" style="margin-top:12px">
         ${deep.mbti.axes.map(a => `
           <div class="card glass">
-            <h4>${a.letter} vs ${a.otherLetter}</h4>
+            <h4 aria-level="2">${a.letter} vs ${a.otherLetter}</h4>
             <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${a.strengthPct}%"></div></div>
             <p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${a.strengthPct}% ${a.letter}</p>
             <p style="margin-top:6px">${a.meaning}</p>
@@ -55,7 +55,7 @@ function renderFrameworks(){
       <div class="section-divider"><span>Big Five</span></div>
       ${deep.bigFive.map(t => `
         <div class="card glass" style="margin-top:10px">
-          <h4>${t.name}</h4>
+          <h4 aria-level="2">${t.name}</h4>
           <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${t.pct}%"></div></div>
           <p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${t.pct}%</p>
           <p style="margin-top:6px">${t.explanation}</p>
@@ -64,7 +64,7 @@ function renderFrameworks(){
       <div class="section-divider"><span>DISC</span></div>
       ${deep.disc.map(d => `
         <div class="card glass${d.isPrimary ? " improve-checkin" : ""}" style="margin-top:10px">
-          <h4>${d.name}${d.isPrimary ? " (Primary)" : ""}</h4>
+          <h4 aria-level="2">${d.name}${d.isPrimary ? " (Primary)" : ""}</h4>
           <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${d.pct}%"></div></div>
           <p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${d.pct}%</p>
           <p style="margin-top:6px">${d.explanation}</p>
@@ -73,17 +73,17 @@ function renderFrameworks(){
       <div class="section-divider"><span>Enneagram</span></div>
       <div class="card glass">
         <div class="eyebrow accent">CORE TYPE</div>
-        <h4 style="margin-top:4px">${deep.enneagram.core.name}</h4>
+        <h4 aria-level="2" style="margin-top:4px">${deep.enneagram.core.name}</h4>
         <p style="margin-top:6px">${deep.enneagram.coreExplanation}</p>
       </div>
       <div class="card glass" style="margin-top:12px">
         <div class="eyebrow accent">CLOSEST WING</div>
-        <h4 style="margin-top:4px">${deep.enneagram.wing.name}</h4>
+        <h4 aria-level="2" style="margin-top:4px">${deep.enneagram.wing.name}</h4>
         <p style="margin-top:6px">${deep.enneagram.wingExplanation}</p>
       </div>
 
       <div class="card glass" style="margin-top:14px;text-align:center">
-        <h4>Want the Rest of Your Read?</h4>
+        <h4 aria-level="2">Want the Rest of Your Read?</h4>
         <p>These four frameworks are just one lens. Your full result has the archetype, soul type, and everything else built from the same answers.</p>
         <div class="cta-row" style="justify-content:center;margin-top:8px">
           <button class="btn btn-ghost btn-sm" onclick="click(380);viewMyLastResult()">See Full Result</button>

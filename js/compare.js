@@ -24,11 +24,11 @@ function renderCompare(){
     <div class="container">
       ${topBar(true)}
       <div class="eyebrow accent">COMPARE</div>
-      <h2 style="margin:10px 0 6px">Two Codes, One Read</h2>
+      <h2 aria-level="1" style="margin:10px 0 6px">Two Codes, One Read</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Paste two Forge codes to see how the two of you actually line up. Everything decodes locally, right here in the browser.</p>
       <div class="compare-inputs" style="margin-top:20px">
-        <div><label>Person A code</label><textarea id="codeA" placeholder="Name-PF4-...">${myCode}</textarea></div>
-        <div><label>Person B code</label><textarea id="codeB" placeholder="Name-PF4-...">${prefillB}</textarea></div>
+        <div><label for="codeA">Person A code</label><textarea id="codeA" placeholder="Name-PF4-...">${myCode}</textarea></div>
+        <div><label for="codeB">Person B code</label><textarea id="codeB" placeholder="Name-PF4-...">${prefillB}</textarea></div>
       </div>
       <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
         <button class="btn btn-primary" onclick="runCompare()">Compare</button>
@@ -78,17 +78,17 @@ function renderParty(){
     <div class="container">
       ${topBar(true)}
       <div class="eyebrow accent">PARTY COMPARE</div>
-      <h2 style="margin:10px 0 6px">The Whole Group</h2>
+      <h2 aria-level="1" style="margin:10px 0 6px">The Whole Group</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Paste 3 to 5 Forge codes to see how the whole group lines up together, not just pair by pair.</p>
       <div class="compare-inputs party-inputs" style="margin-top:20px">
-        <div><label>Person 1</label><textarea id="partyCode0" placeholder="Name-PF4-...">${localStorage.getItem("pf_last_code") || ""}</textarea></div>
-        <div><label>Person 2</label><textarea id="partyCode1" placeholder="Name-PF4-..."></textarea></div>
-        <div><label>Person 3</label><textarea id="partyCode2" placeholder="Name-PF4-..."></textarea></div>
+        <div><label for="partyCode0">Person 1</label><textarea id="partyCode0" placeholder="Name-PF4-...">${localStorage.getItem("pf_last_code") || ""}</textarea></div>
+        <div><label for="partyCode1">Person 2</label><textarea id="partyCode1" placeholder="Name-PF4-..."></textarea></div>
+        <div><label for="partyCode2">Person 3</label><textarea id="partyCode2" placeholder="Name-PF4-..."></textarea></div>
       </div>
       <button class="btn btn-ghost" style="margin-top:12px" onclick="toggleMorePartySlots()" id="partyToggleBtn">+ Add up to 2 more people</button>
       <div id="extraPartySlots" class="hidden compare-inputs party-extra-inputs" style="margin-top:12px">
-        <div><label>Person 4</label><textarea id="partyCode3" placeholder="Name-PF4-..."></textarea></div>
-        <div><label>Person 5</label><textarea id="partyCode4" placeholder="Name-PF4-..."></textarea></div>
+        <div><label for="partyCode3">Person 4</label><textarea id="partyCode3" placeholder="Name-PF4-..."></textarea></div>
+        <div><label for="partyCode4">Person 5</label><textarea id="partyCode4" placeholder="Name-PF4-..."></textarea></div>
       </div>
       <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
         <button class="btn btn-primary" onclick="runPartyCompare()">Compare Group</button>
@@ -113,7 +113,7 @@ function renderSavedGroupsList(){
   if (!groups.length) return "";
   return `
     <div class="card glass" style="margin-top:20px">
-      <h4>My Groups</h4>
+      <h4 aria-level="2">My Groups</h4>
       ${groups.map(g => `
         <div class="mini-bar-row">
           <span>${obEsc(g.name)} <span style="color:var(--text-dim)">(${g.codes.length})</span></span>
@@ -206,7 +206,7 @@ function renderPartyResult(){
       ${quickReadCompareWarningHtml(decoded.map(d => d.depthTier))}
       <div class="card glass" style="text-align:center">
         <div class="eyebrow accent">GROUP IDENTITY</div>
-        <h4>${group.identity}</h4>
+        <h4 aria-level="2">${group.identity}</h4>
         <div class="extras-row" style="justify-content:center;margin-top:10px">
           ${decoded.map((d,i) => `<span class="tag">${d.archetype.icon} ${names[i]}</span>`).join("")}
         </div>
@@ -232,12 +232,12 @@ function renderPartyResult(){
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Dominant Archetype</h4><p>${group.dominantArchetype ? `${group.dominantArchetype.archetype.icon} ${group.dominantArchetype.archetype.name} (${group.dominantArchetype.count} of ${group.n})` : "No single type repeats, everyone reads differently"}</p></div>
-        <div class="card glass"><h4>Dominant Soul</h4><p>${group.dominantSoul ? `${group.dominantSoul.soul.name} • ${group.dominantSoul.soul.trait} (${group.dominantSoul.count} of ${group.n})` : "No single soul type repeats"}</p></div>
+        <div class="card glass"><h4 aria-level="2">Dominant Archetype</h4><p>${group.dominantArchetype ? `${group.dominantArchetype.archetype.icon} ${group.dominantArchetype.archetype.name} (${group.dominantArchetype.count} of ${group.n})` : "No single type repeats, everyone reads differently"}</p></div>
+        <div class="card glass"><h4 aria-level="2">Dominant Soul</h4><p>${group.dominantSoul ? `${group.dominantSoul.soul.name} • ${group.dominantSoul.soul.trait} (${group.dominantSoul.count} of ${group.n})` : "No single soul type repeats"}</p></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Team Metrics</h4>
+        <h4 aria-level="2">Team Metrics</h4>
         ${meterRow("Creativity Index", m.creativityIndex)}
         ${meterRow("Leadership Balance", m.leadershipBalance)}
         ${meterRow("Empathy Balance", m.empathyBalance)}
@@ -255,47 +255,47 @@ function renderPartyResult(){
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Group Strengths</h4><div class="tag-list">${group.groupStrengths.length ? group.groupStrengths.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>Nothing everyone shares strongly</span>"}</div></div>
-        <div class="card glass"><h4>Group Weaknesses</h4><div class="tag-list">${group.groupWeaknesses.length ? group.groupWeaknesses.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>Nothing everyone is weak on</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">Group Strengths</h4><div class="tag-list">${group.groupStrengths.length ? group.groupStrengths.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>Nothing everyone shares strongly</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">Group Weaknesses</h4><div class="tag-list">${group.groupWeaknesses.length ? group.groupWeaknesses.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>Nothing everyone is weak on</span>"}</div></div>
       </div>
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Missing Personality Types</h4><div class="tag-list">${group.missingArchetypes.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
-        <div class="card glass"><h4>Shared Blind Spots</h4><div class="tag-list">${group.sharedBlindSpots.length ? group.sharedBlindSpots.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>No trait everyone's weak on</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">Missing Personality Types</h4><div class="tag-list">${group.missingArchetypes.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
+        <div class="card glass"><h4 aria-level="2">Shared Blind Spots</h4><div class="tag-list">${group.sharedBlindSpots.length ? group.sharedBlindSpots.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>No trait everyone's weak on</span>"}</div></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Group Report</h4>
+        <h4 aria-level="2">Group Report</h4>
         ${group.report.map(l => `<p style="margin-top:8px">${l}</p>`).join("")}
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Strongest Pair</h4><p>${group.bestPair.nameA} and ${group.bestPair.nameB}<br><span style="color:var(--text-dim);font-family:var(--font-mono);font-size:12px">${group.bestPair.score}%</span></p></div>
-        <div class="card glass"><h4>Most Friction</h4><p>${group.toughestPair.nameA} and ${group.toughestPair.nameB}<br><span style="color:var(--text-dim);font-family:var(--font-mono);font-size:12px">${group.toughestPair.score}%</span></p></div>
+        <div class="card glass"><h4 aria-level="2">Strongest Pair</h4><p>${group.bestPair.nameA} and ${group.bestPair.nameB}<br><span style="color:var(--text-dim);font-family:var(--font-mono);font-size:12px">${group.bestPair.score}%</span></p></div>
+        <div class="card glass"><h4 aria-level="2">Most Friction</h4><p>${group.toughestPair.nameA} and ${group.toughestPair.nameB}<br><span style="color:var(--text-dim);font-family:var(--font-mono);font-size:12px">${group.toughestPair.score}%</span></p></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Who Brings What</h4>
+        <h4 aria-level="2">Who Brings What</h4>
         ${group.roles.map(r => `<div class="mini-bar-row"><span>${r.name}</span><span>${r.direction} ${r.standoutTrait} than the group average</span></div>`).join("")}
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>What the Whole Group Shares</h4><div class="tag-list">${group.groupSharedStrengths.length ? group.groupSharedStrengths.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>No single trait everyone's strong in, and that's fine</span>"}</div></div>
-        <div class="card glass"><h4>Where the Group Differs Most</h4><div class="tag-list">${group.groupFriction.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
+        <div class="card glass"><h4 aria-level="2">What the Whole Group Shares</h4><div class="tag-list">${group.groupSharedStrengths.length ? group.groupSharedStrengths.map(s=>`<span class="tag">${s}</span>`).join("") : "<span class='tag'>No single trait everyone's strong in, and that's fine</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">Where the Group Differs Most</h4><div class="tag-list">${group.groupFriction.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Every Pair, Ranked</h4>
+        <h4 aria-level="2">Every Pair, Ranked</h4>
         ${sortedPairs.map(p => `<div class="mini-bar-row"><span>${p.nameA} + ${p.nameB}</span><span>${p.score}%</span></div>`).join("")}
       </div>
 
-      <div class="card glass" style="margin-top:12px"><h4>Advice</h4><p>Lean on your strongest pair to help smooth over the toughest one, and use the shared strengths as the group's default mode when plans need to come together fast.</p></div>
+      <div class="card glass" style="margin-top:12px"><h4 aria-level="2">Advice</h4><p>Lean on your strongest pair to help smooth over the toughest one, and use the shared strengths as the group's default mode when plans need to come together fast.</p></div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Save This Group</h4>
+        <h4 aria-level="2">Save This Group</h4>
         <p>Name it once, and next time you don't have to re-paste every code.</p>
         <div class="cta-row" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="promptSaveGroup()">Save Group</button></div>
         <div id="saveGroupPanel" class="hidden" style="margin-top:10px">
-          <input type="text" id="saveGroupName" class="ns-input ns-input-sm" maxlength="40" placeholder="e.g. Book Club" />
+          <input type="text" id="saveGroupName" aria-label="Group name" class="ns-input ns-input-sm" maxlength="40" placeholder="e.g. Book Club" />
           <div class="cta-row" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="confirmSaveGroup()">Confirm</button></div>
         </div>
       </div>

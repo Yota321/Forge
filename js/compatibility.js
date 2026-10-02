@@ -211,10 +211,10 @@ function buildCompareDynamicSummary(deep, nameA, nameB){
 }
 
 function compareStyleRow(label, a, b){
-  return `<div class="cmp-style-row"><h4>${label}</h4><div class="grid-2"><p>${a}</p><p>${b}</p></div></div>`;
+  return `<div class="cmp-style-row"><h4 aria-level="2">${label}</h4><div class="grid-2"><p>${a}</p><p>${b}</p></div></div>`;
 }
 function compareTagPair(label, aTags, bTags){
-  return `<div class="cmp-style-row"><h4>${label}</h4><div class="grid-2">
+  return `<div class="cmp-style-row"><h4 aria-level="2">${label}</h4><div class="grid-2">
     <div class="tag-list">${aTags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
     <div class="tag-list">${bTags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
   </div></div>`;
@@ -243,44 +243,44 @@ function renderCompareResult(){
         <div class="duo-title">${duo.title}</div>
       </div>
       <div class="card glass" style="text-align:center">
-        <h4>${A} and ${B}</h4>
+        <h4 aria-level="2">${A} and ${B}</h4>
         <p style="color:var(--text-muted);margin-top:4px">${archA.icon} ${archA.name} &nbsp;meets&nbsp; ${archB.icon} ${archB.name}</p>
         <div class="ingot-name count-up" style="font-size:44px;margin-top:14px" data-target="${deep.relationshipScore}" data-suffix="%">0%</div>
         <p style="color:var(--text-muted)">Overall Compatibility</p>
-        <span class="tag band-tag" style="margin-top:10px;display:inline-block;color:${bandColor(deep.band)};border-color:${bandColor(deep.band)}66">${deep.band}</span>
+        <span class="tag band-tag" style="margin-top:10px;display:inline-block;color:color-mix(in srgb, ${bandColor(deep.band)} 45%, var(--text));border-color:${bandColor(deep.band)}66">${deep.band}</span>
       </div>
 
       <div class="card glass cmp-dynamic-card" style="margin-top:14px">
-        <h4>The Dynamic</h4>
+        <h4 aria-level="2">The Dynamic</h4>
         <p>${buildCompareDynamicSummary(deep, nameA, nameB)}</p>
         ${deep.explanations.length > 1 ? deep.explanations.slice(1).map(e => `<p style="margin-top:8px">${e}</p>`).join("") : ""}
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Where You Naturally Agree</h4>
+        <h4 aria-level="2">Where You Naturally Agree</h4>
         ${layers.agreement.agree.length ? layers.agreement.agree.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">No single trait both of you are strongly aligned on, and that's fine, it just means your common ground is more about balance than sameness.</p>`}
       </div>
       <div class="card glass" style="margin-top:12px">
-        <h4>Where You Naturally Disagree</h4>
+        <h4 aria-level="2">Where You Naturally Disagree</h4>
         ${layers.agreement.disagree.length ? layers.agreement.disagree.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">Nothing stands out as a hard opposite, your differences here are more matters of degree than direction.</p>`}
       </div>
       <div class="card glass" style="margin-top:12px">
-        <h4>Where You Balance Each Other</h4>
+        <h4 aria-level="2">Where You Balance Each Other</h4>
         ${layers.agreement.balance.length ? layers.agreement.balance.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">You're fairly evenly matched across the board, less a case of balancing each other and more just running at similar levels.</p>`}
       </div>
       <div class="card glass" style="margin-top:12px">
-        <h4>Where Conflict May Happen</h4>
+        <h4 aria-level="2">Where Conflict May Happen</h4>
         ${layers.agreement.conflictAreas.length ? layers.agreement.conflictAreas.map(r => `<p style="margin-top:8px">${r.text}</p>`).join("") : `<p style="margin-top:8px">Nothing in the friction-prone areas (trust, patience, risk, planning, independence) shows a sharp opposite, so conflict here is more likely to come from a bad day than a fundamental mismatch.</p>`}
       </div>
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>What ${layers.brings.a.name} Brings</h4><div class="tag-list">${layers.brings.a.traits.length ? layers.brings.a.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
-        <div class="card glass"><h4>What ${layers.brings.b.name} Brings</h4><div class="tag-list">${layers.brings.b.traits.length ? layers.brings.b.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">What ${layers.brings.a.name} Brings</h4><div class="tag-list">${layers.brings.a.traits.length ? layers.brings.a.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">What ${layers.brings.b.name} Brings</h4><div class="tag-list">${layers.brings.b.traits.length ? layers.brings.b.traits.map(t=>`<span class="tag">${t}</span>`).join("") : "<span class='tag'>A steady, matched contribution</span>"}</div></div>
       </div>
 
       <div class="section-divider"><span>The Receipts</span></div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Overview</h4>
+        <h4 aria-level="2">Overview</h4>
         <div class="grid-2 cmp-overview-grid">
           ${overview.map(m => `
             <div class="mini-bar-row"><span>${m.label}</span><span class="count-up" data-target="${m.score}" data-suffix="%">0%</span></div>`).join("")}
@@ -288,24 +288,24 @@ function renderCompareResult(){
       </div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Similarity</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${deep.similarityScore}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${deep.similarityScore}%</p></div>
-        <div class="card glass"><h4>Comparison Confidence</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${deep.comparisonConfidence}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${deep.comparisonConfidence}%</p></div>
+        <div class="card glass"><h4 aria-level="2">Similarity</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${deep.similarityScore}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${deep.similarityScore}%</p></div>
+        <div class="card glass"><h4 aria-level="2">Comparison Confidence</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${deep.comparisonConfidence}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${deep.comparisonConfidence}%</p></div>
       </div>
       <div class="card glass" style="margin-top:12px"><p style="font-size:13.5px">${deep.similarityNote}</p></div>
 
       <div class="grid-2" style="margin-top:12px">
         ${topCats.map(c => `
-          <div class="card glass"><h4>${c.name}</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${c.score}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${c.score}%</p></div>`).join("")}
+          <div class="card glass"><h4 aria-level="2">${c.name}</h4><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${c.score}%"></div></div><p style="margin-top:6px;font-size:12px;color:var(--text-dim);text-align:right">${c.score}%</p></div>`).join("")}
       </div>
       <div class="careers-toggle"><button onclick="toggleCompareCategories()">${compareCategoriesExpanded ? "Show fewer categories" : `Show all ${deep.categories.length} categories`}</button></div>
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Shared Strengths</h4><div class="tag-list">${deep.sharedStrengths.map(s=>`<span class="tag">${s}</span>`).join("") || "<span class='tag'>Still emerging</span>"}</div></div>
-        <div class="card glass"><h4>Possible Friction</h4><div class="tag-list">${deep.conflictAreas.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
+        <div class="card glass"><h4 aria-level="2">Shared Strengths</h4><div class="tag-list">${deep.sharedStrengths.map(s=>`<span class="tag">${s}</span>`).join("") || "<span class='tag'>Still emerging</span>"}</div></div>
+        <div class="card glass"><h4 aria-level="2">Possible Friction</h4><div class="tag-list">${deep.conflictAreas.map(s=>`<span class="tag">${s}</span>`).join("")}</div></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Who Does What More</h4>
+        <h4 aria-level="2">Who Does What More</h4>
         ${deep.whoComparisons.map(w => `<div class="mini-bar-row"><span>${w.label}</span><span>${w.winner}</span></div>`).join("")}
       </div>
 
@@ -313,14 +313,14 @@ function renderCompareResult(){
 
       <div class="card glass" style="text-align:center">
         <div class="grid-2">
-          <div><div class="eyebrow accent">${A.toUpperCase()}</div><h4>${layers.archetype.a.icon} ${layers.archetype.a.name}</h4></div>
-          <div><div class="eyebrow accent">${B.toUpperCase()}</div><h4>${layers.archetype.b.icon} ${layers.archetype.b.name}</h4></div>
+          <div><div class="eyebrow accent">${A.toUpperCase()}</div><h4 aria-level="2">${layers.archetype.a.icon} ${layers.archetype.a.name}</h4></div>
+          <div><div class="eyebrow accent">${B.toUpperCase()}</div><h4 aria-level="2">${layers.archetype.b.icon} ${layers.archetype.b.name}</h4></div>
         </div>
       </div>
       <div class="card glass" style="margin-top:12px;text-align:center">
         <div class="grid-2">
-          <div><div class="eyebrow" style="color:${layers.soul.a.hex}">SOUL TYPE</div><h4>${layers.soul.a.name} &bull; ${layers.soul.a.trait}</h4></div>
-          <div><div class="eyebrow" style="color:${layers.soul.b.hex}">SOUL TYPE</div><h4>${layers.soul.b.name} &bull; ${layers.soul.b.trait}</h4></div>
+          <div><div class="eyebrow" style="color:color-mix(in srgb, ${layers.soul.a.hex} 28%, var(--text))">SOUL TYPE</div><h4 aria-level="2">${layers.soul.a.name} &bull; ${layers.soul.a.trait}</h4></div>
+          <div><div class="eyebrow" style="color:color-mix(in srgb, ${layers.soul.b.hex} 28%, var(--text))">SOUL TYPE</div><h4 aria-level="2">${layers.soul.b.name} &bull; ${layers.soul.b.trait}</h4></div>
         </div>
       </div>
 
@@ -328,12 +328,12 @@ function renderCompareResult(){
       ${compareTagPair("Top Tendencies", layers.topTendencies.a, layers.topTendencies.b)}
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Mind Map</h4><canvas id="cmpRadarMind" width="360" height="360" role="img" aria-label="Overlaid radar chart of both people's dimensions"></canvas></div>
-        <div class="card glass"><h4>Emotion Radar</h4><canvas id="cmpRadarEmotion" width="360" height="360" role="img" aria-label="Overlaid radar chart of both people's emotional dimensions"></canvas></div>
+        <div class="card glass"><h4 aria-level="2">Mind Map</h4><canvas id="cmpRadarMind" width="360" height="360" role="img" aria-label="Overlaid radar chart of both people's dimensions"></canvas></div>
+        <div class="card glass"><h4 aria-level="2">Emotion Radar</h4><canvas id="cmpRadarEmotion" width="360" height="360" role="img" aria-label="Overlaid radar chart of both people's emotional dimensions"></canvas></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Fun Stats</h4>
+        <h4 aria-level="2">Fun Stats</h4>
         ${layers.funStats.map(f => `<div class="mini-bar-row"><span>${f.label}</span><span>${A}: ${f.a}% &nbsp;&bull;&nbsp; ${B}: ${f.b}%</span></div>`).join("")}
       </div>
 
@@ -350,21 +350,21 @@ function renderCompareResult(){
       ${compareStyleRow("Growth Advice", layers.growthAdvice.a, layers.growthAdvice.b)}
 
       <div class="grid-2" style="margin-top:12px">
-        <div class="card glass"><h4>Perfect Activity</h4><p>${deep.activities.activity}</p></div>
-        <div class="card glass"><h4>Perfect Vacation</h4><p>${deep.activities.vacation}</p></div>
-        <div class="card glass"><h4>Perfect Business</h4><p>${deep.activities.business}</p></div>
-        <div class="card glass"><h4>Perfect Weekend</h4><p>${deep.activities.weekend}</p></div>
-        <div class="card glass"><h4>How You'd Solve Problems</h4><p>${deep.activities.solveProblems}</p></div>
-        <div class="card glass"><h4>How You'd Survive a Crisis</h4><p>${deep.activities.crisis}</p></div>
-        <div class="card glass" style="grid-column:1/-1"><h4>How This Friendship Gets Built</h4><p>${deep.activities.friendship}</p></div>
+        <div class="card glass"><h4 aria-level="2">Perfect Activity</h4><p>${deep.activities.activity}</p></div>
+        <div class="card glass"><h4 aria-level="2">Perfect Vacation</h4><p>${deep.activities.vacation}</p></div>
+        <div class="card glass"><h4 aria-level="2">Perfect Business</h4><p>${deep.activities.business}</p></div>
+        <div class="card glass"><h4 aria-level="2">Perfect Weekend</h4><p>${deep.activities.weekend}</p></div>
+        <div class="card glass"><h4 aria-level="2">How You'd Solve Problems</h4><p>${deep.activities.solveProblems}</p></div>
+        <div class="card glass"><h4 aria-level="2">How You'd Survive a Crisis</h4><p>${deep.activities.crisis}</p></div>
+        <div class="card glass" style="grid-column:1/-1"><h4 aria-level="2">How This Friendship Gets Built</h4><p>${deep.activities.friendship}</p></div>
       </div>
 
       <div class="card glass" style="margin-top:12px">
-        <h4>Fun Facts</h4>
+        <h4 aria-level="2">Fun Facts</h4>
         ${deep.funFacts.map(f => `<p style="margin-top:6px;font-size:13.5px">${f}</p>`).join("")}
       </div>
 
-      <div class="card glass" style="margin-top:12px"><h4>Advice</h4><p>Lean on the shared strengths to build trust quickly, and name the friction points out loud early. Most conflict here comes from different defaults, not different goals.</p></div>
+      <div class="card glass" style="margin-top:12px"><h4 aria-level="2">Advice</h4><p>Lean on the shared strengths to build trust quickly, and name the friction points out loud early. Most conflict here comes from different defaults, not different goals.</p></div>
     </div>
   `;
 }

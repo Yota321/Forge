@@ -90,7 +90,7 @@ function fetchWeatherSuggestion(){
 }
 
 function improveListCard(title, items, reason){
-  return `<div class="card glass"><h4>${title}</h4>${reason ? `<p class="improve-reason">${reason}</p>` : ""}<ul class="improve-list">${items.map(i => `<li>${i}</li>`).join("")}</ul></div>`;
+  return `<div class="card glass"><h4 aria-level="2">${title}</h4>${reason ? `<p class="improve-reason">${reason}</p>` : ""}<ul class="improve-list">${items.map(i => `<li>${i}</li>`).join("")}</ul></div>`;
 }
 
 function renderImprove(){
@@ -103,7 +103,7 @@ function renderImprove(){
       <div class="container">
         ${topBar(true)}
         <div class="eyebrow accent">IMPROVE</div>
-        <h2 style="margin:10px 0 6px">Nothing to Build On Yet</h2>
+        <h2 aria-level="1" style="margin:10px 0 6px">Nothing to Build On Yet</h2>
         <p class="tagline" style="text-align:left;color:var(--text-muted)">Take the assessment once and this page fills in with suggestions actually built around how you answered, not generic advice.</p>
         <div class="cta-row" style="justify-content:flex-start;margin-top:18px">
           <button class="btn btn-primary" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button>
@@ -124,13 +124,13 @@ function renderImprove(){
     <div class="container">
       ${topBar(true)}
       <div class="eyebrow accent">IMPROVE</div>
-      <h2 style="margin:10px 0 6px">Practical, Not Prescriptive</h2>
+      <h2 aria-level="1" style="margin:10px 0 6px">Practical, Not Prescriptive</h2>
       <p class="tagline" style="text-align:left;color:var(--text-muted)">Built around your ${a.icon} ${a.name} read (${rec.primary.label}${rec.secondary ? ` with a bit of ${rec.secondary.label}` : ""}), not a generic list. Nothing here is a requirement, these are things that tend to land well for people who read the way you do &mdash; take what's useful, skip what isn't.</p>
 
       ${checkIn.dueForCheckIn ? `
       <div class="card glass improve-checkin" style="margin-top:16px">
         <div class="eyebrow accent">CHECK-IN</div>
-        <h4>How's it going?</h4>
+        <h4 aria-level="2">How's it going?</h4>
         <p>It's been a few days since you were last here. If you've tried even one or two of these, a retake is the most honest way to see whether anything's actually shifted.</p>
         <div class="cta-row" style="margin-top:10px">
           <button class="btn btn-primary btn-sm" onclick="click(480);goToNameScreen()">Retake Assessment &rarr;</button>
@@ -140,11 +140,11 @@ function renderImprove(){
 
       <div class="card glass" style="margin-top:16px" id="improveTodayCard">
         <div class="eyebrow accent">TODAY</div>
-        <h4>A line to sit with</h4>
+        <h4 aria-level="2">A line to sit with</h4>
         <p id="improveQuoteText" style="min-height:20px">Loading&hellip;</p>
         <p id="improveQuoteAuthor" style="color:var(--text-dim);font-size:12.5px;margin-top:4px"></p>
         <div class="nav-menu-sep" style="margin:14px 0"></div>
-        <h4>If you're stepping outside</h4>
+        <h4 aria-level="2">If you're stepping outside</h4>
         <p id="improveWeatherText" style="min-height:20px">Checking conditions&hellip;</p>
       </div>
 
@@ -163,7 +163,7 @@ function renderImprove(){
       <div class="grid-2" style="margin-top:12px">
         ${improveListCard("Podcasts", rec.podcasts, `A bit of ${rec.secondary.label.toLowerCase()} mixed in here too.`)}
         <div class="card glass" id="improveFeedbackCard">
-          <h4>Did Any of This Land?</h4>
+          <h4 aria-level="2">Did Any of This Land?</h4>
           <p style="color:var(--text-muted);font-size:13px">No wrong answer, this just quietly shapes what shows up next time.</p>
           <div class="cta-row" style="margin-top:8px">
             <button class="btn btn-ghost btn-sm" onclick="recordImproveFeedback('${rec.primary.id}','tried')">Tried something</button>
@@ -173,7 +173,7 @@ function renderImprove(){
       </div>
 
       <div class="card glass" style="margin-top:12px;text-align:center">
-        <h4>These Only Mean Something If You Check Back</h4>
+        <h4 aria-level="2">These Only Mean Something If You Check Back</h4>
         <p>${nudge}</p>
         <div class="cta-row" style="justify-content:center;margin-top:10px">
           <button class="btn btn-primary" onclick="click(520);goToNameScreen()">Retake Assessment &rarr;</button>
