@@ -1,140 +1,132 @@
 # Forge
 
-A privacy-first adaptive personality platform.
+A personality platform that runs entirely in your browser. Nothing leaves your device, ever.
 
-Forge analyzes how you think, communicate, make decisions, solve problems, and connect with other people using an adaptive assessment that runs entirely inside your browser.
+No accounts. No cloud. No tracking. No data collection.
 
-No accounts.
-No cloud processing.
-No tracking.
-No data collection.
-
-Everything happens locally on your device.
+You answer questions, Forge figures out how you think, and that's it. Your personality is yours, so it stays with you.
 
 ---
 
-## Overview
+## What is this
 
-Forge combines multiple psychological frameworks into one adaptive personality system instead of simply recreating MBTI or DISC.
+Most personality tests are MBTI with a new coat of paint. Forge isn't that. It blends a few different psychological frameworks into one adaptive system, so the result feels less like a label and more like a mirror.
 
-Every assessment generates a rich personality profile including:
+Every assessment gives you:
 
-- Primary Archetype (one of 30)
-- Full Archetype Ranking
-- Hidden Trait Radar
-- Career Matches
-- Relationship Analysis
-- Compatibility Reports
-- Communication & Leadership Style
-- Growth Areas & Life Balance
-- Fantasy & Narrative Roles
-- Match Confidence & Personality Stability
-- Personality Code
-- Shareable Profile
+- A primary archetype (one of 30)
+- Your full archetype ranking
+- A hidden trait radar
+- Career matches
+- Relationship analysis
+- Compatibility reports
+- Communication and leadership style
+- Growth areas and life balance
+- Fantasy and narrative roles
+- Match confidence and personality stability
+- A personality code
+- A shareable profile
+
+Quite a lot, honestly. But it's all computed live from your own answers across 25 measured dimensions, nothing is faked per archetype.
 
 ---
 
-## How the Assessment Works
+## How the quiz works
 
-The quiz is scenario-based (not a static survey) and adapts its length to how clear your profile becomes as you answer:
+It's scenario-based, not a boring static survey. And it adapts its length to how clear your profile gets as you go.
 
-1. **Questions 1-15** — a fixed baseline set. Every visitor gets exactly these 15 questions, in the same order, so every profile starts from the same foundation.
-2. **Questions 16-35** — 20 questions chosen adaptively, in two batches of 10, based on what your first-15 answers already show. Two people who answer the baseline identically get an identical adaptive set; different answers lead to a different one.
-3. **Confidence check** — after question 35, Forge evaluates how clear your profile already is.
-4. **Questions 36-45 (optional)** — asked one at a time, only if the profile isn't confident yet, stopping the moment it is.
+1. **Questions 1 to 15:** a fixed baseline. Everyone gets the same 15, in the same order, so every profile starts from the same foundation.
+2. **Questions 16 to 35:** 20 adaptive questions, in two batches of 10, picked from what your first 15 answers already show. Answer the baseline the same way as someone else and you get the same set. Answer differently, and you don't.
+3. **Confidence check:** after question 35, Forge looks at how clear your profile already is.
+4. **Questions 36 to 45 (optional):** asked one at a time, only if it's still unsure, and it stops the moment it isn't.
 
-So a full assessment is a **minimum of 35 and a maximum of 45 questions**, entirely client-side, with no server-dependent logic and no reliance on the clock or a random seed — the same answers always lead to the same adaptive path and the same result.
+So a full run is **35 questions minimum, 45 maximum**. All client-side, no server logic, no clock, no random seed. Same answers, same path, same result. Every time.
 
-(The onboarding screen also offers two fixed-length shortcuts — a 15-question "Quick Read" and a 50-question "Deep Dive" — which skip the confidence check entirely and always ask exactly that many questions.)
+There are also two fixed-length shortcuts on the onboarding screen: a 15-question **Quick Read** and a 50-question **Deep Dive**. Both skip the confidence check and always ask exactly that many.
 
 ---
 
 ## Results
 
-The results page is a bento-style dashboard built entirely from your own answers: an overview grid of short summary cards (traits, mind map, social style, career fits, values, growth timeline, relationships, and more) that each open into a full detail view on tap. Nothing is hardcoded per archetype beyond the archetype's own reference data — every number and chart is computed live from your 25 measured dimensions.
+The results page is a bento-style dashboard. You get an overview grid of small summary cards (traits, mind map, social style, career fits, values, growth timeline, relationships, and more), and each one opens into a full detail view when you tap it.
 
-Quick Read results show a reduced report (primary archetype, soul type, confidence, top traits, short summary, basic dimensions) with a prompt to continue into the full assessment instead of starting over; Balanced and Deep Dive both show the complete report, Deep Dive differs only in how many questions it took to get there.
+Quick Read shows a reduced report: primary archetype, soul type, confidence, top traits, a short summary and basic dimensions. It nudges you to continue into the full assessment instead of starting over. Balanced and Deep Dive both show the complete report, Deep Dive just takes more questions to get there.
 
-Results can be:
-- **Shared** as a compact `PF5-...` code (the internal code-format version; public-facing copy calls the product "PersonaForge 1" — see the versioning note in `js/engine.js`) or a direct link
-- **Compared** against another person's result, one-on-one or as a 3-5 person party compare — a warning appears if either profile is a Quick Read
-- **Exported** as a Story or Post image, or a scannable QR code
+You can:
 
----
-
-## Project Structure
-
-Forge is plain static HTML/CSS/JS — no build step, no bundler, no framework.
-
-| Path | What it is |
-|---|---|
-| `index.html` | Landing page |
-| `quiz.html` | Onboarding + the adaptive assessment |
-| `result.html` | The results dashboard |
-| `compare.html` | One-on-one and party compare |
-| `legal.html` | Terms of Service & credits |
-| `404.html` | Deep-link/clean-URL recovery page (see below) |
-| `css/global.css` | Shared tokens, resets, nav, buttons, theming |
-| `css/pages.css` | Page-specific layout and styling |
-| `js/engine.js` | Question bank, archetype data, scoring, the adaptive engine, encode/decode |
-| `js/global.js` | Theme, sound, nav, toasts, the custom scrollbar, clean-URL handling |
-| `js/home.js`, `js/quiz.js`, `js/result.js`, `js/compare.js`, `js/legal.js` | Per-page rendering |
-| `js/compatibility.js` | Compare-result rendering shared by `result.js` and `compare.js` |
-| `service-worker.js` | Offline caching |
-| `manifest.json` | PWA install manifest |
-| `assets/` | Images, audio, icons, and per-archetype artwork |
-
----
-
-## Clean URLs
-
-Quiz, Result, Compare, and Legal are reachable at extensionless paths (`/quiz`, `/result`, `/compare`, `/legal`) as well as their real `.html` files. Internal links and buttons still point at the real files for a fast, single-request navigation; each page then rewrites its own address bar to the clean form once loaded. A direct load, bookmark, or refresh of a clean path is handled by `404.html`, which recognizes the route and redirects to the matching file — the same mechanism GitHub Pages already needs for shared profile links. `service-worker.js` carries its own copy of the route map so this keeps working offline too.
-
----
-
-## Offline / PWA
-
-Forge installs as a Progressive Web App and works fully offline after the first visit: `service-worker.js` precaches every page, script, stylesheet, and core asset, then serves the freshest version when online and falls back to the cached copy when it can't reach the network. Your results, answers, and history are never part of that cache — they live only in this browser's `localStorage`/`sessionStorage`, on this device.
+- **Share** your result as a compact `PF5-...` code or a direct link. (`PF5` is the internal code format version. Public copy calls the product "PersonaForge 1", see the versioning note in `js/engine.js`.)
+- **Compare** with someone else, one-on-one or as a 3 to 5 person party. You'll get a warning if either profile is a Quick Read.
+- **Export** as a Story or Post image, or a scannable QR code.
 
 ---
 
 ## Compatibility
 
-Compare two Forge profiles to discover shared strengths, complementary traits, potential conflicts, and category-by-category compatibility (friendship, romantic, business, gaming, creative). A party mode extends this to a 3-5 person group.
+Put two profiles side by side and Forge shows shared strengths, complementary traits, possible conflicts, and category scores for friendship, romantic, business, gaming and creative. Party mode does the same thing for a group of 3 to 5.
+
+Fun with friends. Slightly dangerous with partners.
+
+---
+
+## Project structure
+
+Plain static HTML, CSS and JS. No build step, no bundler, no framework.
+
+| Path | What it is |
+|---|---|
+| `index.html` | Landing page |
+| `quiz.html` | Onboarding and the adaptive assessment |
+| `result.html` | Results dashboard |
+| `compare.html` | One-on-one and party compare |
+| `legal.html` | Terms of Service and credits |
+| `404.html` | Deep-link and clean-URL recovery page |
+| `css/global.css` | Shared tokens, resets, nav, buttons, theming |
+| `css/pages.css` | Page-specific layout and styling |
+| `js/engine.js` | Question bank, archetype data, scoring, adaptive engine, encode/decode |
+| `js/global.js` | Theme, sound, nav, toasts, custom scrollbar, clean-URL handling |
+| `js/home.js`, `js/quiz.js`, `js/result.js`, `js/compare.js`, `js/legal.js` | Per-page rendering |
+| `js/compatibility.js` | Compare rendering shared by `result.js` and `compare.js` |
+| `service-worker.js` | Offline caching |
+| `manifest.json` | PWA install manifest |
+| `assets/` | Images, audio, icons, per-archetype artwork |
+
+---
+
+## Clean URLs
+
+Quiz, Result, Compare and Legal all work at extensionless paths (`/quiz`, `/result`, `/compare`, `/legal`) as well as their real `.html` files.
+
+Internal links still point at the real files, since that's one fast request. Once a page loads, it rewrites its own address bar to the clean version. If someone loads, bookmarks or refreshes a clean path directly, `404.html` spots the route and redirects to the right file. GitHub Pages needs that same trick for shared profile links anyway. `service-worker.js` keeps its own copy of the route map, so all of this works offline too.
+
+---
+
+## Offline and PWA
+
+Forge installs as a Progressive Web App and works fully offline after your first visit. The service worker precaches every page, script, stylesheet and core asset, serves the freshest version when you're online, and falls back to the cached copy when you're not.
+
+Your results, answers and history are never part of that cache. They live in this browser's `localStorage` and `sessionStorage`, on this device, and nowhere else.
 
 ---
 
 ## Privacy
 
-Forge is designed around one principle: your personality belongs to you.
+One rule: your personality belongs to you.
 
-No accounts. No analytics. No ads. No servers. No tracking. Results are generated entirely inside your browser, and only ever leave your device if you choose to share a code, link, or QR image yourself.
-
----
-
-## Running Locally
-
-No install step needed — it's static files. Serve the project root with any static file server and open it in a browser, for example:
-
-```
-python -m http.server 8420
-```
-
-For clean URLs (`/quiz`, `/result`, ...) to also work locally on a direct load or refresh (not just via in-app navigation), the server needs to serve `404.html`'s content with a 404 status for unmatched paths, the same way GitHub Pages does. See `.claude/launch.json` for a small Python server that already does this.
+No accounts, no analytics, no ads, no servers, no tracking. Results are generated inside your browser, and they only leave your device if you choose to share a code, link or QR image yourself.
 
 ---
 
 ## Deployment
 
-Forge is designed to deploy as-is to GitHub Pages (or any static host) with no build step and no server-side configuration beyond a custom 404 page, which most static hosts, including GitHub Pages, already support natively.
+Deploy it as-is to GitHub Pages or any static host. No build step, no server config, just a custom 404 page, which most static hosts (GitHub Pages included) already support.
 
 ---
 
 ## Philosophy
 
-Forge is not designed to put people into boxes. It is designed to help people understand themselves better, discover patterns in how they think, and compare those patterns with others in meaningful ways.
+Forge isn't here to put you in a box. It's here to help you understand yourself a bit better, spot patterns in how you think, and compare them with other people in a way that actually means something.
 
-Every result is a snapshot, not a label. People evolve. Forge evolves with them.
+Every result is a snapshot, not a label. People change, and Forge should too.
 
 ---
 
