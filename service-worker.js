@@ -2,7 +2,7 @@
    Bump CACHE_VERSION when cached files or shell behavior changes.
    Profile data stays in localStorage; this worker only handles network responses. */
 
-   const CACHE_VERSION = "v7.9.6";
+   const CACHE_VERSION = "v7.9.8";
 
    const SHELL_CACHE = `personaforge-shell-${CACHE_VERSION}`;
    const STATIC_CACHE = `personaforge-static-${CACHE_VERSION}`;
