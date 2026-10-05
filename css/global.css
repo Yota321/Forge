@@ -596,15 +596,50 @@ html::-webkit-scrollbar{ display:none; }
 
 /* ---------- Modal (Privacy, etc.) ---------- */
 .modal-overlay{
-  position:fixed; inset:0; z-index:4000; display:flex; align-items:center; justify-content:center;
-  padding: 24px; background: rgba(6,7,11,0.55); backdrop-filter: blur(6px);
-  opacity:0; transition: opacity .22s var(--ease);
+  position:fixed;
+  inset:0;
+  z-index:4000;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:24px;
+  background: rgba(6,7,11,0.55);
+  backdrop-filter: blur(6px);
+  opacity:0;
+  transition: opacity .22s var(--ease);
+  overflow-y:auto;
 }
-[data-theme="light"] .modal-overlay{ background: rgba(100,116,139,0.35); }
+
 .modal-overlay.open{ opacity:1; }
+
 .modal-card{
-  max-width: 440px; width:100%; padding: 32px 28px 28px; text-align:left; position:relative;
-  transform: translateY(10px) scale(.97); transition: transform .22s var(--ease);
+  max-width: 440px;
+  width:100%;
+  max-height: calc(100dvh - 48px);
+  overflow-y:auto;
+  overflow-x:hidden;
+  min-height:0;
+  padding: 32px 28px 28px;
+  text-align:left;
+  position:relative;
+  transform: translateY(10px) scale(.97);
+  transition: transform .22s var(--ease);
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-card.glass{
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
+@media (max-width: 700px){
+  .modal-overlay{
+    padding: 12px;
+  }
+
+  .modal-card{
+    max-height: calc(100dvh - 24px);
+  }
 }
 .modal-overlay.open .modal-card{ transform: translateY(0) scale(1); }
 .modal-card h3{ font-size: 22px; margin: 10px 0 12px; }
