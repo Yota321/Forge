@@ -1,15 +1,14 @@
 <div align="center">
 
-# Forge
+<img src="assets/Logo_white.svg"
+     alt="Forge"
+     width="220">
 
 **A personality platform that lives entirely in your browser.**
-
-No accounts. No cloud. No tracking. Nothing leaves your device unless you send it yourself.
 
 [Overview](#overview) · [How it works](#how-the-assessment-works) · [Results](#results) · [Structure](#project-structure) · [Run it](#running-locally) · [Privacy](#privacy)
 
 </div>
-
 ---
 
 ## Overview
