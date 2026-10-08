@@ -15,8 +15,8 @@ let lastResult = null;
 let careersExpanded = false;
 
 /* ---------------- RESULT: bento card chrome ------------------------------
-   Real Lucide icons (sourced from .claude/Icons, same approach as the
-   quiz's own QZ_ICONS) used purely as small category badges on each
+   Real Lucide icons (sourced from .claude/Icons) used purely as small
+   category badges on each
    bento card — decoration, not data. Each card also gets a soft tinted
    background/foreground pair (RESULT_ICON_TINTS) so the grid reads as
    varied-but-coordinated the way the flat-bento reference does, instead
@@ -275,8 +275,13 @@ function renderAtlasItem(item, category){
     meta = item.medium ? `${item.source} &middot; ${item.medium}` : item.source;
     roleText = item.role;
   }
-  return `
-  <div class="card media-match-row">
+  // Characters and worlds open the same explanation page the Result strip uses;
+  // historical figures and stories have no structured character profile, so they stay plain.
+  let href = null;
+  const code = lastResult && lastResult.code;
+  if (item.characterId && typeof Forge !== "undefined" && Forge.characters) href = Forge.characters.url(item.characterId, { code });
+  else if (category === "World" && typeof Forge !== "undefined" && Forge.characters) href = Forge.characters.worldUrl(item.name, { code });
+  const body = `
     <div class="media-match-head">
       <span class="media-match-name">${name}</span>
       <span class="media-match-source">${meta || ""}</span>
@@ -284,7 +289,10 @@ function renderAtlasItem(item, category){
     <p class="media-match-role">${roleText}</p>
     ${item.energy ? `<p style="margin-top:6px">${item.energy}</p>` : ""}
     <p class="media-match-why">${item.explanation}</p>
-  </div>`;
+    ${href ? `<span class="cx-link">Why this match? &rarr;</span>` : ""}`;
+  return href
+    ? `<a class="card media-match-row cx-atlas-link" href="${obEsc(href)}" style="display:block;color:inherit;text-decoration:none">${body}</a>`
+    : `<div class="card media-match-row">${body}</div>`;
 }
 function renderAtlasSection(section){
   const note = section.category === "HistoricalFigure"
@@ -574,6 +582,9 @@ function renderResult(){
         `,
         { span: "2of12", className: "hero-emotions" })}
       </div>
+
+      ${cxTargetedBanner(r)}
+      ${cxStripHTML(r, { code: r.code, eyebrow: "Why this character?", title: "Characters your profile aligns with." })}
 
       ${isQuickRead ? "" : `
       ${resultDetailCard("secondary-archetype", "usersRound", "Secondary Archetype", "A deeper layer beneath your primary archetype.",
@@ -1172,28 +1183,6 @@ function compareThisResult(){
 
 
 
-function runInlineCompare(){
-  const codeStr = document.getElementById("inlineCompareCode").value;
-  const other = freshenDecoded(decodeCode(codeStr));
-  const out = document.getElementById("inlineCompareOut");
-  if (!other){
-    out.innerHTML = `<p class="center-note" style="text-align:left">That code doesn't look right. Check for typos and try again.</p>`;
-    return;
-  }
-  if (other.obsolete){
-    out.innerHTML = `<p class="center-note" style="text-align:left">${obEsc(OBSOLETE_CODE_MESSAGE)}</p>`;
-    return;
-  }
-  const mine = { normDims: lastResult.normDims };
-  compareCategoriesExpanded = false;
-  // See compare.js's runCompare() — nameA/nameB are escaped at the source
-  // so renderCompareResult() and computeDeepCompatibility()'s generated
-  // text (explanations/funFacts/who-comparisons) never see raw HTML.
-  compareState = { profileA: mine, archA: lastResult.archetype, nameA: obEsc(lastResult.name), profileB: other, archB: other.archetype, nameB: obEsc(other.name), target: "inlineCompareOut" };
-  click(420);
-  showCompatibilityLoading(out, () => mountCompareResult(out));
-}
-
 /* ---------------- Radar chart (canvas, no library) ---------------------*/
 function hexToRgba(hex, alpha){
   const h = (hex || "#A78BFA").replace("#","");
@@ -1780,32 +1769,45 @@ async function exportPNG(kind){
     const r = lastResult; const a = r.archetype;
     const isStory = kind === "story";
     const w = 1080, h = isStory ? 1920 : 1080;
-    const canvas = document.createElement("canvas");
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext("2d");
+    const loaded = await loadExportImage(a.image);
+    // Draws the whole card. The archetype art is drawn first; if the browser
+    // refuses to read the canvas back (a "tainted" canvas, which happens when the
+    // page is opened from file:// or the image is served without CORS headers),
+    // the card is drawn again with a plain panel behind the text, so the export
+    // still produces a file instead of failing.
+    const render = (img) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      exportPageBackground(ctx, w, h, a);
+      if (isStory){
+        exportBrandHeader(ctx, w, 66, r, 32);
+        exportDrawImageCover(ctx, img, 80, 140, w-160, 1120, 32);
+        exportIdentityPanel(ctx, r, a, 80, 1280, w-160, 490, {
+          nameSize: 54, subSize: 25, showDescription: true, descLines: 3, chipCount: 3
+        });
+        exportBrandFooter(ctx, w, 1860, r);
+      } else {
+        exportBrandHeader(ctx, w, 54, r, 26);
+        exportDrawImageCover(ctx, img, 60, 106, w-120, 480, 26);
+        exportIdentityPanel(ctx, r, a, 60, 606, w-120, 340, {
+          nameSize: 44, subSize: 22, showDescription: false, chipCount: 3, pad: 36
+        });
+        exportBrandFooter(ctx, w, 990, r);
+      }
 
-    const img = await loadExportImage(a.image);
-    exportPageBackground(ctx, w, h, a);
-
-    if (isStory){
-      exportBrandHeader(ctx, w, 66, r, 32);
-      exportDrawImageCover(ctx, img, 80, 140, w-160, 1120, 32);
-      exportIdentityPanel(ctx, r, a, 80, 1280, w-160, 490, {
-        nameSize: 54, subSize: 25, showDescription: true, descLines: 3, chipCount: 3
-      });
-      exportBrandFooter(ctx, w, 1860, r);
-    } else {
-      exportBrandHeader(ctx, w, 54, r, 26);
-      exportDrawImageCover(ctx, img, 60, 106, w-120, 480, 26);
-      exportIdentityPanel(ctx, r, a, 60, 606, w-120, 340, {
-        nameSize: 44, subSize: 22, showDescription: false, chipCount: 3, pad: 36
-      });
-      exportBrandFooter(ctx, w, 990, r);
+      return canvas.toDataURL("image/png");
+    };
+    let dataUrl;
+    try{ dataUrl = render(loaded); }
+    catch(e){
+      if (!loaded || !(e && e.name === "SecurityError")) throw e;
+      dataUrl = render(null);
     }
 
     const link = document.createElement("a");
     link.download = `forge-${kind}.png`;
-    link.href = canvas.toDataURL("image/png");
+    link.href = dataUrl;
     link.click();
     click(760);
   } catch(e){

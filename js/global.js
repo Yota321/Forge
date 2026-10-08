@@ -1277,8 +1277,10 @@ function useCleanURL(routeName){
    the full picture. */
 function navigate(view){
   window.scrollTo(0, 0);
-  clearShareableURL();
   const onPage = typeof PF_PAGE !== "undefined" ? PF_PAGE : null;
+  // Only a view that renders IN PLACE needs a fresh history entry (Back/Forward re-render it from the URL). A real page change
+  // used to push a duplicate entry for the page being left, which cost an extra Back press to get past it.
+  if ((view === "landing" && onPage === "index") || ((view === "compare" || view === "party") && onPage === "compare")) clearShareableURL();
   if (view === "landing"){
     if (onPage === "index") renderLanding();
     else location.href = "index.html";
@@ -1400,6 +1402,28 @@ function toggleSound(){
   }
 }
 
+/* MOTION INTENSITY. The same --motion token the CSS hover lifts use (css/global.css): 1 is the original
+   strength, .2 the current one, 0 off. Read live so the narrow-viewport / touch / reduced-motion
+   overrides in CSS apply to the pointer-driven JS effects too. */
+function readMotionScale(){
+  try{
+    const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--motion"));
+    return isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.2;
+  } catch(e){ return 0.2; }
+}
+let MOTION = readMotionScale();
+window.addEventListener("resize", () => { MOTION = readMotionScale(); });
+
+/* Anything a person clicks, types into or drags. A card must hold still while the pointer is over one, so the
+   target never drifts as the mouse arrives. `host` is the card itself: a card that is a button is not
+   "a control inside the card", so it keeps its (now very small) tilt. */
+const INTERACTIVE_SEL = "a[href], button, input, select, textarea, label, summary, option, [role='button'], [role='link'], [role='slider'], [role='tab'], [role='menuitem'], [role='checkbox'], [role='radio'], [role='switch'], [role='combobox'], [role='textbox'], [contenteditable]:not([contenteditable='false']), [onclick], [draggable='true'], .btn, .icon-btn";
+function overControl(target, host){
+  const t = target && target.nodeType === 3 ? target.parentElement : target;
+  const c = t && t.closest ? t.closest(INTERACTIVE_SEL) : null;
+  return !!c && c !== host && (!host || host.contains(c));
+}
+
 const MAGNET_MAX_PX = 8;
 function initMagneticButtons(container){
   if (reducedMotion() || !window.matchMedia("(hover: hover)").matches) return;
@@ -1410,8 +1434,8 @@ function initMagneticButtons(container){
       raf = requestAnimationFrame(() => {
         raf = null;
         const rect = btn.getBoundingClientRect();
-        const x = Math.max(-MAGNET_MAX_PX, Math.min(MAGNET_MAX_PX, (e.clientX - rect.left - rect.width / 2) * 0.25));
-        const y = Math.max(-MAGNET_MAX_PX, Math.min(MAGNET_MAX_PX, (e.clientY - rect.top - rect.height / 2) * 0.35));
+        const x = Math.max(-MAGNET_MAX_PX, Math.min(MAGNET_MAX_PX, (e.clientX - rect.left - rect.width / 2) * 0.25)) * MOTION;
+        const y = Math.max(-MAGNET_MAX_PX, Math.min(MAGNET_MAX_PX, (e.clientY - rect.top - rect.height / 2) * 0.35)) * MOTION;
         btn.style.setProperty("--magnet-x", x.toFixed(1) + "px");
         btn.style.setProperty("--magnet-y", y.toFixed(1) + "px");
       });
@@ -1438,14 +1462,14 @@ function initCardTilt(container){
   (container || document).querySelectorAll(".bento-card").forEach(card => {
     let raf = null;
     card.addEventListener("pointermove", (e) => {
-      if (raf) return;
+      if (raf || overControl(e.target, card)) return;      // hold still while over a control inside the card
       raf = requestAnimationFrame(() => {
         raf = null;
         const rect = card.getBoundingClientRect();
         const px = (e.clientX - rect.left) / rect.width - 0.5;
         const py = (e.clientY - rect.top) / rect.height - 0.5;
-        card.style.setProperty("--tilt-x", (-py * CARD_TILT_MAX_DEG * 2).toFixed(2) + "deg");
-        card.style.setProperty("--tilt-y", (px * CARD_TILT_MAX_DEG * 2).toFixed(2) + "deg");
+        card.style.setProperty("--tilt-x", (-py * CARD_TILT_MAX_DEG * 2 * MOTION).toFixed(2) + "deg");
+        card.style.setProperty("--tilt-y", (px * CARD_TILT_MAX_DEG * 2 * MOTION).toFixed(2) + "deg");
       });
     });
     card.addEventListener("pointerleave", () => {
@@ -1476,8 +1500,8 @@ function initHeroParallax(container){
       const rect = split.getBoundingClientRect();
       const px = (e.clientX - rect.left) / rect.width - 0.5;
       const py = (e.clientY - rect.top) / rect.height - 0.5;
-      split.style.setProperty("--parallax-x", (-px * HERO_PARALLAX_MAX_PX * 2).toFixed(1) + "px");
-      split.style.setProperty("--parallax-y", (-py * HERO_PARALLAX_MAX_PX * 2).toFixed(1) + "px");
+      split.style.setProperty("--parallax-x", (-px * HERO_PARALLAX_MAX_PX * 2 * MOTION).toFixed(1) + "px");
+      split.style.setProperty("--parallax-y", (-py * HERO_PARALLAX_MAX_PX * 2 * MOTION).toFixed(1) + "px");
     });
   });
   split.addEventListener("pointerleave", () => {
@@ -1734,6 +1758,38 @@ function initScrollbar(){
 }
 initScrollbar();
 
+/* attachCustomScrollbar(scrollEl, host)
+   Gives any scrolling element the site's own scrollbar (the same rail/track/thumb markup, classes,
+   colours and behaviour as the page scrollbar and the result-detail panel), driven by the same
+   createScrollbarController(). `scrollEl` is the element that actually scrolls (its native bar is
+   hidden by CSS); `host` is a positioned, overflow-hidden ancestor that stays put while scrollEl
+   scrolls, so the overlay doesn't scroll away with the content. Returns the controller. */
+function attachCustomScrollbar(scrollEl, host){
+  if (!scrollEl || !host) return null;
+  const rail = document.createElement("div");
+  rail.className = "scrollbar-rail detail-scrollbar-rail";
+  rail.setAttribute("aria-hidden", "true");
+  rail.innerHTML = '<div class="scrollbar-track"></div><div class="scrollbar-thumb"></div>';
+  host.appendChild(rail);
+  const ctrl = createScrollbarController({
+    rail,
+    track: rail.querySelector(".scrollbar-track"),
+    thumb: rail.querySelector(".scrollbar-thumb"),
+    getScrollTop: () => scrollEl.scrollTop,
+    getScrollHeight: () => scrollEl.scrollHeight,
+    getViewportHeight: () => scrollEl.clientHeight,
+    scrollTo: (top, smooth) => scrollEl.scrollTo({ top, behavior: smooth ? "smooth" : "auto" }),
+    scrollEventTarget: scrollEl,
+  });
+  if (window.ResizeObserver){
+    const ro = new ResizeObserver(() => ctrl.refresh());
+    ro.observe(scrollEl);
+    Array.prototype.forEach.call(scrollEl.children, c => ro.observe(c));
+  }
+  window.addEventListener("resize", () => ctrl.refresh());
+  return ctrl;
+}
+
 /* ---------------- service worker registration -----------------------------
    Every page loads global.js, so this runs once per page load regardless
    of which page is entered first — the browser dedupes repeat
@@ -1843,7 +1899,7 @@ function showUpdateToast(waitingWorker){
    like (see [data-tone] rules in css/pages.css); this only picks which.
    ============================================================================= */
 (function forgeBentoTones(){
-  const SEL = ".bento-card, .card.glass, .lp-feature, .lp-cta-panel, .qz-card, .cmp-style-row";
+  const SEL = ".bento-card, .card.glass, .lp-feature, .lp-cta-panel, .cmp-style-row"; // .qz-card is excluded on purpose: its tones are fixed in the quiz markup
   const TONES = ["indigo", "mint", "cream", "peach", "violet", "gold"];
   const FAMILY = { indigo:"blue", violet:"purple", cream:"neutral", mint:"green", peach:"orange", gold:"yellow", sky:"cyan" };
   // Families that read as "the same colour" to the eye even though they differ.
@@ -1867,10 +1923,15 @@ function showUpdateToast(waitingWorker){
       const r = el.getBoundingClientRect();
       return r.width > 8 && r.height > 8;
     });
+    // Measure where each card actually sits in the layout, not where an entrance animation has it right now
+    // (quiz answers spring in from off-screen offsets): clear own transforms for the read, then restore.
+    const saved = all.map(el => el.style.transform);
+    all.forEach(el => { el.style.transform = "none"; });
     const rects = all.map(el => {
       const r = el.getBoundingClientRect();
       return { left: r.left + scrollX, right: r.right + scrollX, top: r.top + scrollY, bottom: r.bottom + scrollY };
     });
+    all.forEach((el, i) => { el.style.transform = saved[i]; });
     // Neighbour graph: edge neighbours (share a side) are weighted heavily, corner neighbours lightly.
     const nb = all.map(() => []);
     for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++){
@@ -1911,13 +1972,23 @@ function showUpdateToast(waitingWorker){
     window.addEventListener("resize", schedule);
     window.addEventListener("load", schedule);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
-    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    // Cards inserted by a page script get their final colour in the same task, before the browser can
+    // paint them: MutationObserver callbacks run as a microtask, ahead of the next frame. (Anything else
+    // that mutates the DOM, e.g. count-up text, only schedules a debounced re-check.)
+    const hasCard = n => n.nodeType === 1 && ((n.matches && n.matches(SEL)) || (n.querySelector && n.querySelector(SEL)));
+    new MutationObserver(muts => {
+      if (muts.some(m => Array.prototype.some.call(m.addedNodes, hasCard))) assign();
+      else schedule();
+    }).observe(document.body, { childList: true, subtree: true });
     // Layout reflows (breakpoint changes, fonts, late content) change the body size even when no resize event is seen.
     if (window.ResizeObserver) new ResizeObserver(schedule).observe(document.body);
     new MutationObserver(schedule).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     [400, 1200, 2600].forEach(ms => setTimeout(assign, ms));
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+  // global.js loads at the end of <body>, so body already exists: start observing immediately. Waiting for
+  // DOMContentLoaded would miss cards that a page's own inline boot script renders before that event.
+  if (document.body) { start(); document.addEventListener("DOMContentLoaded", assign); }
+  else document.addEventListener("DOMContentLoaded", start);
 })();
 
 /* Gentle pointer parallax on the home bento's decorative shapes. */
@@ -1967,6 +2038,7 @@ function showUpdateToast(waitingWorker){
   document.addEventListener("pointermove", e => {
     const el = e.target.closest && e.target.closest(SEL);
     if (!el) return;
+    if (overControl(e.target, el)) return;      // over a button / link / input / select / slider inside the card: freeze, don't chase the cursor
     const r = el.getBoundingClientRect();
     el.style.setProperty("--tx", (((e.clientX - r.left) / r.width - .5) * 2).toFixed(2));
     el.style.setProperty("--ty", (((e.clientY - r.top) / r.height - .5) * 2).toFixed(2));

@@ -91,10 +91,12 @@ function renderGrowth(){
         </div>
       </div>` : ""}
 
+      ${cxJourneyHTML({ reveal: false })}
+
       ${memoryStatements.length ? `
       <div class="card glass" style="margin-top:14px">
         <div class="eyebrow accent">FORGE REMEMBERS</div>
-        ${memoryStatements.map(m => `<p style="margin-top:8px">${m}</p>`).join("")}
+        ${memoryStatements.map(m => `<p style="margin-top:8px">${cxLinkMatchStatement(m)}</p>`).join("")}
       </div>` : ""}
 
       ${snapshot ? `

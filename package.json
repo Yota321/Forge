@@ -1,0 +1,6 @@
+{
+  "name": "personaforge",
+  "private": true,
+  "description": "Static, zero-build PWA. package.json exists only to run the dependency-free tests: npm test (node --test, tests live in the .claude/tests profiles folder).",
+  "scripts": { "test": "node --test \".claude/tests profiles/**/*.test.js\"" }
+}

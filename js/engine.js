@@ -779,7 +779,7 @@ const QUESTION_ILLUSTRATIONS = {
 const ARCHETYPES = [
   { id:"stormcaller", name:"The Stormcaller", title:"Command Presence", icon:"⛈️",
     colors:["#818CF8","#38BDF8"],
-    image:"assets/archetypes/webp/stormcaller.webp",
+    image:"assets/archetypes/stormcaller.webp",
     signature:[{dim:"leadership",w:2},{dim:"confidence",w:2},{dim:"risk",w:1}],
     description:"You don't wait for a room to find its energy, you bring it. When things get tense, people look to you first, and you usually already have an answer.",
     strengths:["Decisive under pressure","Magnetic presence","Rallies people fast"],
@@ -801,7 +801,7 @@ const ARCHETYPES = [
 
   { id:"architect", name:"The Architect", title:"Builder of Systems", icon:"🏛️",
     colors:["#34D399","#CBD5E1"],
-    image:"assets/archetypes/webp/architect.webp",
+    image:"assets/archetypes/architect.webp",
     signature:[{dim:"planning",w:2},{dim:"discipline",w:2},{dim:"logic",w:1}],
     description:"You think in blueprints. Before anyone else has a plan, you already have three, plus a backup for when the first one breaks.",
     strengths:["Long-term planning","Reliability","Clear-headed problem solving"],
@@ -823,7 +823,7 @@ const ARCHETYPES = [
 
   { id:"sentinel", name:"The Sentinel", title:"Unshaken Ground", icon:"🛡️",
     colors:["#60A5FA","#2DD4BF"],
-    image:"assets/archetypes/webp/sentinel.webp",
+    image:"assets/archetypes/sentinel.webp",
     signature:[{dim:"responsibility",w:2},{dim:"emotionalStability",w:2},{dim:"trust",w:1}],
     description:"You're who people call when things actually go wrong, not because you love the chaos, but because you don't flinch in it.",
     strengths:["Steady under pressure","Deeply reliable","Protective of people who matter"],
@@ -845,7 +845,7 @@ const ARCHETYPES = [
 
   { id:"pathfinder", name:"The Pathfinder", title:"Off the Map", icon:"🧭",
     colors:["#FBBF24","#34D399"],
-    image:"assets/archetypes/webp/pathfinder.webp",
+    image:"assets/archetypes/pathfinder.webp",
     signature:[{dim:"curiosity",w:2},{dim:"adaptability",w:2},{dim:"independence",w:1}],
     description:"Comfort zones bore you a little. You'd rather figure it out as you go than follow someone else's map, even when their map is fine.",
     strengths:["Fast adaptation","Genuine curiosity","Comfortable with uncertainty"],
@@ -867,7 +867,7 @@ const ARCHETYPES = [
 
   { id:"archivist", name:"The Archivist", title:"Keeper of Detail", icon:"📚",
     colors:["#A78BFA","#F472B6"],
-    image:"assets/archetypes/webp/archivist.webp",
+    image:"assets/archetypes/archivist.webp",
     signature:[{dim:"selfAwareness",w:2},{dim:"patience",w:2},{dim:"logic",w:1}],
     description:"You remember the detail everyone else forgot, and you're quietly the person with the most context in the room.",
     strengths:["Deep pattern memory","Careful, considered judgment","Quiet expertise"],
@@ -889,7 +889,7 @@ const ARCHETYPES = [
 
   { id:"dreamweaver", name:"The Dreamweaver", title:"Half Elsewhere", icon:"🌙",
     colors:["#F472B6","#818CF8"],
-    image:"assets/archetypes/webp/dreamweaver.webp",
+    image:"assets/archetypes/dreamweaver.webp",
     signature:[{dim:"creativity",w:2},{dim:"openMindedness",w:2},{dim:"empathy",w:1}],
     description:"Your head is a little bit somewhere else, mid-idea, half a world you're still building. Most of your best thinking happens sideways.",
     strengths:["Original thinking","Emotionally attuned","Comfortable with ambiguity"],
@@ -911,7 +911,7 @@ const ARCHETYPES = [
 
   { id:"vanguard", name:"The Vanguard", title:"Leading Edge", icon:"☄️",
     colors:["#FB923C","#FACC15"],
-    image:"assets/archetypes/webp/vanguard.webp",
+    image:"assets/archetypes/vanguard.webp",
     signature:[{dim:"drive",w:2},{dim:"competitiveness",w:2},{dim:"risk",w:1}],
     description:"You go first, on purpose. Waiting for permission has never really been your style, and it shows in everything you touch.",
     strengths:["Bold initiative","Relentless drive","Thrives under competition"],
@@ -933,7 +933,7 @@ const ARCHETYPES = [
 
   { id:"oracle", name:"The Oracle", title:"Sees the Undercurrent", icon:"🔮",
     colors:["#38BDF8","#A78BFA"],
-    image:"assets/archetypes/webp/oracle.webp",
+    image:"assets/archetypes/oracle.webp",
     signature:[{dim:"empathy",w:2},{dim:"curiosity",w:2},{dim:"selfAwareness",w:1}],
     description:"You notice what people don't say out loud. Half the time you know how something's going to land before it does.",
     strengths:["Reads people accurately","Sharp intuition","Comfortable naming hard truths"],
@@ -955,7 +955,7 @@ const ARCHETYPES = [
 
   { id:"luminary", name:"The Luminary", title:"Warm Light", icon:"🏮",
     colors:["#FACC15","#FB7185"],
-    image:"assets/archetypes/webp/luminary.webp",
+    image:"assets/archetypes/luminary.webp",
     signature:[{dim:"optimism",w:2},{dim:"socialEnergy",w:2},{dim:"kindness",w:1}],
     description:"People leave conversations with you feeling a little more capable than when they walked in. That's not an accident, it's just how you show up.",
     strengths:["Genuinely encouraging","Easy to be around","Brings out the best in others"],
@@ -977,7 +977,7 @@ const ARCHETYPES = [
 
   { id:"catalyst", name:"The Catalyst", title:"Where It Starts", icon:"⚡",
     colors:["#FDE047","#FB923C"],
-    image:"assets/archetypes/webp/catalyst.webp",
+    image:"assets/archetypes/catalyst.webp",
     signature:[{dim:"humor",w:2},{dim:"adaptability",w:1},{dim:"drive",w:1}],
     description:"Things move when you're in the room, conversations open up, plans actually happen. You're rarely the loudest, but you're often the reason it started.",
     strengths:["Breaks the ice fast","Reads the room's energy","Turns talk into action"],
@@ -999,7 +999,7 @@ const ARCHETYPES = [
 
   { id:"maverick", name:"The Maverick", title:"Own Rules", icon:"🗡️",
     colors:["#94A3B8","#F87171"],
-    image:"assets/archetypes/webp/maverick.webp",
+    image:"assets/archetypes/maverick.webp",
     signature:[{dim:"independence",w:2},{dim:"openMindedness",w:1},{dim:"risk",w:1}],
     description:"You'd rather be right and alone than comfortable and wrong. Rules get a fair hearing from you, then get questioned anyway.",
     strengths:["Thinks independently","Unbothered by consensus","Genuinely original"],
@@ -1021,7 +1021,7 @@ const ARCHETYPES = [
 
   { id:"visionary", name:"The Visionary", title:"Sees It Finished", icon:"✨",
     colors:["#C4B5FD","#5EEAD4"],
-    image:"assets/archetypes/webp/visionary.webp",
+    image:"assets/archetypes/visionary.webp",
     signature:[{dim:"persistence",w:2},{dim:"creativity",w:1},{dim:"confidence",w:1}],
     description:"You see the finished version before anyone else believes it's possible, and you're stubborn enough to actually build toward it.",
     strengths:["Big-picture thinking","Unshakeable persistence","Inspires belief in others"],
@@ -2581,6 +2581,9 @@ class QuizSession {
   }
 
   normalizedDims(){
+    // A targeted retake (js/forge/retake.js) blends its few new answers into
+    // the person's existing profile instead of replacing it.
+    if (this.targeted && typeof Forge !== "undefined" && Forge.retake) return Forge.retake.blendDims(this);
     // clamp to a stable -10..10 range regardless of quiz length, for the
     // encoding and archetype matching steps below.
     const out = {};
@@ -2611,6 +2614,8 @@ class QuizSession {
       contradictions: this.contradictions,
       confidencePct: this.confidencePct,
       tags: Array.from(this.tags),
+      assessmentKind: this.assessmentKind || "full",
+      targeted: this.targeted || null,
       savedAt: Date.now(),
     };
   }
@@ -2636,6 +2641,12 @@ function restoreQuizSession(saved){
   s.confidencePct = saved.confidencePct || 0;
   s.tags = new Set(saved.tags || []);
   s.justExtended = false;
+  if (saved.assessmentKind === "targeted" && saved.targeted){
+    s.assessmentKind = "targeted";
+    s.targeted = saved.targeted;
+    // a targeted run is exactly its planned questions long
+    s.minAdaptive = s.maxQuestions = s.plan.length;
+  }
   return s;
 }
 
@@ -3493,12 +3504,25 @@ const ATLAS_CATEGORY_CONFIG = {
   HistoricalFigure: { label: "Historical Minds", count: 2, maxPerBucket: 1, minScore: 1.2 },
 };
 function computeAtlasMatch(normDims){
+  // Characters are matched, ranked and explained by ONE engine (js/forge/characters.js).
+  // This function only delegates, so the Atlas, the timeline's "matched X" statements and the
+  // Character Explanation page can never disagree. The scoring below remains for worlds and
+  // historical minds, and as the fallback if the character engine isn't loaded on a page.
+  const FC = (typeof Forge !== "undefined" && Forge.characters && Forge.characters.roster().length) ? Forge.characters : null;
   const byCategory = {};
   ATLAS_ENTITIES.forEach(e => { (byCategory[e.category] = byCategory[e.category] || []).push(e); });
 
   const sections = [];
   const featuredIds = new Set();
   Object.entries(ATLAS_CATEGORY_CONFIG).forEach(([category, cfg]) => {
+    if (category === "Character" && FC){
+      const items = FC.atlasItems(normDims, cfg.count);
+      if (items.length && items[0].matchPct >= 35){
+        items.forEach(i => featuredIds.add(i.id));
+        sections.push({ category, label: cfg.label, items });
+      }
+      return;
+    }
     const pool = byCategory[category] || [];
     if (!pool.length) return;
     const scored = pool.map(entity => ({ entity, score: scoreAtlasEntity(entity, normDims) })).sort((a, b) => b.score - a.score);
@@ -3512,29 +3536,34 @@ function computeAtlasMatch(normDims){
   });
 
   // Stories: derived from the Character section's own top matches (each
-  // one already implies its source story) rather than a fourth dataset --
-  // same reasoning as v1.1, just re-scored through the unified engine.
-  const charScored = (byCategory.Character || []).map(e => ({ entity: e, score: scoreAtlasEntity(e, normDims) })).sort((a, b) => b.score - a.score);
+  // one already implies its source story).
   const seenSources = new Set();
   const stories = [];
-  charScored.forEach(s => {
-    if (stories.length >= 3 || seenSources.has(s.entity.source)) return;
-    seenSources.add(s.entity.source);
-    stories.push({ source: s.entity.source, medium: s.entity.medium, role: s.entity.role, explanation: explainSignatureMatch(s.entity.signature, normDims) });
-  });
+  let expectedEntity = null;
+  if (FC){
+    const prof = FC.profileFrom({ normDims });
+    FC.rank(prof).forEach((x, idx) => {
+      if (idx === 0) expectedEntity = { id: "character:" + x.char.name, name: x.char.name };
+      if (stories.length >= 3 || seenSources.has(x.char.universe)) return;
+      seenSources.add(x.char.universe);
+      stories.push({ source: x.char.universe, medium: x.char.medium, role: x.char.role, characterId: x.char.id, explanation: FC.shortWhy(prof, x) });
+    });
+  } else {
+    const charScored = (byCategory.Character || []).map(e => ({ entity: e, score: scoreAtlasEntity(e, normDims) })).sort((a, b) => b.score - a.score);
+    charScored.forEach(s => {
+      if (stories.length >= 3 || seenSources.has(s.entity.source)) return;
+      seenSources.add(s.entity.source);
+      stories.push({ source: s.entity.source, medium: s.entity.medium, role: s.entity.role, explanation: explainSignatureMatch(s.entity.signature, normDims) });
+    });
+    expectedEntity = charScored[0] && charScored[0].entity;
+  }
   if (stories.length) sections.push({ category: "Story", label: "Stories You'd Fit Into", items: stories });
 
-  // Unexpected Match (v1.6: paired with the "obvious" pick, per the
-  // brief's own "the explanation matters more than the match"). The
-  // single best-scoring entity from whichever category didn't already
-  // clear its own confidence bar above -- a real, decent fit that's
-  // still genuinely surprising, not a random pick. "Expected" is simply
-  // the #1 Character match already shown in its own section above --
-  // reused, not recomputed, so the two can never disagree with each
-  // other about what the "obvious" pick even was.
-  const allScored = ATLAS_ENTITIES.map(entity => ({ entity, score: scoreAtlasEntity(entity, normDims) })).sort((a, b) => b.score - a.score);
+  // Unexpected Match: the single best-scoring entity from whichever category didn't already
+  // clear its own confidence bar above (characters are excluded when the character engine owns them).
+  const pool2 = FC ? ATLAS_ENTITIES.filter(e => e.category !== "Character") : ATLAS_ENTITIES;
+  const allScored = pool2.map(entity => ({ entity, score: scoreAtlasEntity(entity, normDims) })).sort((a, b) => b.score - a.score);
   const unexpected = allScored.find(s => !featuredIds.has(s.entity.id) && s.score >= 0.5);
-  const expectedEntity = charScored[0] && charScored[0].entity;
   if (unexpected){
     const baseExplanation = explainSignatureMatch(unexpected.entity.signature, normDims);
     const explanation = (expectedEntity && expectedEntity.id !== unexpected.entity.id)
@@ -3546,16 +3575,22 @@ function computeAtlasMatch(normDims){
     });
   }
 
-  // Opposite Personality: the lowest-scoring entity overall -- always
-  // shown (there's always a "most different" entry, unlike a positive
-  // match, which can legitimately not exist), framed as contrast rather
-  // than a match.
-  const opposite = allScored[allScored.length - 1];
-  if (opposite && opposite.score < 0){
-    sections.push({
-      category: "Opposite", label: "Opposite Personality",
-      items: [{ ...opposite.entity, explanation: explainSignatureContrast(opposite.entity.signature, normDims) }],
-    });
+  // Opposite Personality: framed as contrast rather than a match.
+  if (FC){
+    const sel = FC.selections(FC.profileFrom({ normDims }));
+    if (sel && sel.opposite){
+      const o = sel.opposite;
+      sections.push({ category: "Opposite", label: "Opposite Personality", items: [{ id: "character:" + o.char.name, characterId: o.char.id, name: o.char.name, category: "Character", medium: o.char.medium, source: o.char.universe, role: o.char.role, energy: o.char.energy,
+        explanation: "A very different shape from yours: " + FC.cards({ normDims }).cards.find(c => c.kind === "opposite").blurb.replace(/^A very different shape from yours: /, "") }] });
+    }
+  } else {
+    const opposite = allScored[allScored.length - 1];
+    if (opposite && opposite.score < 0){
+      sections.push({
+        category: "Opposite", label: "Opposite Personality",
+        items: [{ ...opposite.entity, explanation: explainSignatureContrast(opposite.entity.signature, normDims) }],
+      });
+    }
   }
 
   return sections;
@@ -4684,11 +4719,13 @@ function getProfileCodeFromURL(){
 }
 
 function setShareableURL(code){
-  if (!code || !window.history || !history.pushState) return;
+  if (!code || !window.history || !history.replaceState) return;
   const url = new URL(location.href);
   url.search = "";
   url.searchParams.set("code", code);
-  history.pushState({ code }, "", url.toString());
+  // Rewrites THIS page's own entry (the result you are looking at) instead of stacking a new one on every render, so Back from a
+  // result leaves the result rather than stepping through copies of it.
+  if (url.toString() !== location.href) history.replaceState({ code }, "", url.toString());
 }
 
 function clearShareableURL(){
@@ -4795,8 +4832,17 @@ function computeResult(session){
     // genuine evidence ("1,900 answered questions"), not a guess derived
     // from pace/depth after the fact.
     questionCount: session.cursor,
+    dimConfidence: (() => {
+      if (session.targeted && typeof Forge !== "undefined" && Forge.retake) return Forge.retake.blendConfidence(session);
+      const o = {}; DIMENSIONS.forEach(d => { o[d] = getDimensionConfidence(session, d); }); return o;
+    })(),
+    assessmentKind: session.assessmentKind || "full",
+    questionIds: (session.plan || []).slice(0, session.cursor).map(q => q && q.id).filter(Boolean),
     ...buildProfileExtras(normDims, match.primary, match.ranked, session),
   };
+  if (session.targeted && typeof Forge !== "undefined" && Forge.retake){
+    result.confidence = Forge.retake.finalizeConfidence(session, result.confidence);
+  }
   localStorage.setItem("pf_last_code", code);
   saveToTimeline(result);
   ensureLocalProfile(result);
@@ -5353,7 +5399,7 @@ function sanitizeImportedGroups(groups){
   return groups.filter(g => g && isSafeId(g.id)).map(g => ({
     id: g.id,
     name: typeof g.name === "string" ? g.name.slice(0, 40) : "Unnamed Group",
-    codes: Array.isArray(g.codes) ? g.codes.filter(c => typeof c === "string").slice(0, 5) : [],
+    codes: Array.isArray(g.codes) ? g.codes.filter(c => typeof c === "string").slice(0, 10) : [],
     createdAt: typeof g.createdAt === "number" ? g.createdAt : Date.now(),
   }));
 }
@@ -5545,7 +5591,7 @@ function saveGroup(name, codes){
   const group = {
     id: (crypto.randomUUID ? crypto.randomUUID() : `g_${Date.now()}_${Math.random().toString(36).slice(2)}`),
     name: (name || "Unnamed Group").slice(0, 40),
-    codes: codes.slice(0, 5),
+    codes: codes.slice(0, 10),
     createdAt: Date.now(),
   };
   groups.unshift(group);
@@ -5611,6 +5657,14 @@ function saveToTimeline(result){
       atlasTopMatchName: (result.atlas.find(s => s.category === "Character") || {}).items?.[0]?.name || null,
       narrativeRoleName: result.narrativeRole ? result.narrativeRole.primary.name : null,
       identityTagline: result.identityTagline || null,
+      // Forge model (v2): per-dimension confidence MEASURED from this
+      // assessment's own answers (0..1). Absent on older entries, which the
+      // Forge layer estimates instead and labels as estimated.
+      dimConfidence: result.dimConfidence || null,
+      assessmentKind: result.assessmentKind || "full",
+      // ids of the questions answered in this run, so a later targeted retake
+      // can prefer questions this person hasn't already seen.
+      questionIds: Array.isArray(result.questionIds) ? result.questionIds.slice(0, 60) : null,
     });
     while (history.length > TIMELINE_CAP) history.shift();
     localStorage.setItem("pf_history", JSON.stringify(history));

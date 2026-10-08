@@ -2,7 +2,7 @@
    Bump CACHE_VERSION when cached files or shell behavior changes.
    Profile data stays in localStorage; this worker only handles network responses. */
 
-   const CACHE_VERSION = "v7.9.8";
+   const CACHE_VERSION = "v7.34.2";
 
    const SHELL_CACHE = `personaforge-shell-${CACHE_VERSION}`;
    const STATIC_CACHE = `personaforge-static-${CACHE_VERSION}`;
@@ -16,13 +16,13 @@
    // per-page (see shellKey/networkFirstShell below), so a page that was
    // never visited online still has to exist in the shell cache for
    // offline navigation to find it.
-   const PAGES = ["index.html","quiz.html","result.html","compare.html","profile.html","growth.html","improve.html","journal.html","frameworks.html","legal.html","404.html"];
+   const PAGES = ["index.html","quiz.html","result.html","compare.html","profile.html","growth.html","improve.html","journal.html","frameworks.html","legal.html","character.html","404.html"];
    const APP_SHELL = [toURL("manifest.json")];
 
    // Same-origin code. cacheFirst() would pick these up at runtime anyway,
    // but only after the first online visit to each page -- precaching is
    // what makes a first-ever *offline* reload of, say, Growth work.
-   const CODE_ASSETS = ["css/global.css","css/pages.css","js/engine.js","js/global.js","js/home.js","js/quiz.js","js/result.js","js/compare.js","js/compatibility.js","js/profile.js","js/growth.js","js/improve.js","js/journal.js","js/frameworks.js","js/legal.js"];
+   const CODE_ASSETS = ["css/global.css","css/pages.css","js/engine.js","js/forge/core.js","js/forge/characters-data.js","js/forge/packs.js","js/forge/pack-characters.js","js/forge/pack-characters-2.js","js/forge/pack-emblems.js","js/forge/pack-character-notes.js","js/nav.js","js/forge/experience.js","js/forge/lens-compat.js","js/forge/lens-norm.js","js/forge/pack-lenses.js","js/forge/pack-party.js","js/forge/pack-party-2.js","js/forge/pack-worlds.js","js/forge/pack-teams.js","js/forge/pack-variety.js","js/compare-experience.js","js/compare-story.js","js/forge/story.js","js/forge/story-depth.js","js/forge/pack-scenarios-3.js","js/forge/pack-story-depth.js","js/forge/pack-story-depth-worlds.js","js/forge/pack-story.js","js/forge/pack-story-worlds.js","js/forge/pack-story-worlds-2.js","js/forge/pack-story-ventures.js","js/forge/pack-scenarios-2.js","js/forge/characters.js","js/forge/store.js","js/forge/timeline.js","js/forge/insights.js","js/forge/experiments.js","js/forge/retake.js","js/forge/characters-journey.js","js/character-ui.js","js/global.js","js/home.js","js/quiz.js","js/result.js","js/compare.js","js/compatibility.js","js/profile.js","js/growth.js","js/improve.js","js/journal.js","js/frameworks.js","js/legal.js","js/forge/pack-characters-3.js","js/forge/pack-characters-4.js","js/forge/pack-characters-5.js","js/forge/pack-characters-6.js","js/forge/pack-emblems-3.js","js/forge/pack-emblem-art.js","js/forge/pack-worlds-2.js","js/forge/pack-worlds-3.js","js/forge/pack-character-notes-2.js","js/forge/pack-character-notes-3.js","js/forge/pack-character-notes-4.js","js/forge/pack-character-notes-5.js","js/forge/emblems.js","js/forge/pack-emblems-sets.js","js/forge/pack-teams-2.js","js/forge/pack-teams-3.js","js/forge/pack-teams-4.js","js/forge/pack-orgs.js","js/forge/pack-orgs-2.js","js/forge/pack-orgs-3.js","js/forge/pack-story-worlds-3.js","js/forge/pack-story-worlds-4.js","js/forge/pack-story-worlds-5.js","js/forge/pack-story-worlds-6.js","js/forge/pack-story-worlds-7.js","js/forge/pack-story-worlds-8.js","js/forge/pack-scenarios-4.js","js/forge/pack-scenarios-5.js","js/forge/pack-story-depth-worlds-2.js","js/forge/pack-story-depth-worlds-3.js","js/forge/pack-story-depth-worlds-4.js","js/forge/pack-story-depth-worlds-5.js","js/forge/pack-story-depth-worlds-6.js","js/forge/pack-story-depth-worlds-7.js","js/forge/pack-story-ties.js","js/forge/pack-story-finale.js"];
    
    const STATIC_ASSETS = [
      "assets/BG.mp3",
@@ -35,6 +35,19 @@
      "assets/Icon_white_192.png",
      "assets/Icon_white_512.png",
      "assets/Open_Graph.png",
+     "assets/Hero_Home.jpg",
+     "assets/archetypes/architect.webp",
+     "assets/archetypes/archivist.webp",
+     "assets/archetypes/catalyst.webp",
+     "assets/archetypes/dreamweaver.webp",
+     "assets/archetypes/luminary.webp",
+     "assets/archetypes/maverick.webp",
+     "assets/archetypes/oracle.webp",
+     "assets/archetypes/pathfinder.webp",
+     "assets/archetypes/sentinel.webp",
+     "assets/archetypes/stormcaller.webp",
+     "assets/archetypes/vanguard.webp",
+     "assets/archetypes/visionary.webp",
      ...CODE_ASSETS,
    ].map(toURL);
    

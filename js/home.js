@@ -308,8 +308,8 @@ function initHeroParallax(){
       const rect = visual.getBoundingClientRect();
       const px = (e.clientX - rect.left) / rect.width - 0.5;
       const py = (e.clientY - rect.top) / rect.height - 0.5;
-      photo.style.setProperty("--px", (px * 14).toFixed(2) + "px");
-      photo.style.setProperty("--py", (py * 14).toFixed(2) + "px");
+      photo.style.setProperty("--px", (px * 14 * MOTION).toFixed(2) + "px");
+      photo.style.setProperty("--py", (py * 14 * MOTION).toFixed(2) + "px");
     });
   });
   visual.addEventListener("pointerleave", () => {

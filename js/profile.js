@@ -216,6 +216,7 @@ function showEditProfileModal(){
   overlay.innerHTML = `
     <div class="modal-card glass edit-profile-modal" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
       <button class="icon-btn modal-close" onclick="closeEditProfileModal()" aria-label="Close">${ICONS.close}</button>
+      <div class="modal-scroll" id="editProfileScroll">
       <div class="eyebrow accent">EDIT PROFILE</div>
       <h3 id="editProfileTitle">Everything about you, in one place</h3>
       <p style="color:var(--text-muted);font-size:13.5px">Updates instantly. None of this affects your archetype or soul type -- retake the assessment for that.</p>
@@ -235,12 +236,14 @@ function showEditProfileModal(){
         <button class="btn btn-ghost" onclick="closeEditProfileModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveEditProfileModal()">Save Changes</button>
       </div>
+      </div>
     </div>`;
   document.body.appendChild(overlay);
   rememberFocusTrigger();
   requestAnimationFrame(() => { overlay.classList.add("open"); getFocusable(overlay)[0]?.focus(); });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closeEditProfileModal(); });
   document.addEventListener("keydown", onEditProfileModalKey);
+  attachCustomScrollbar(overlay.querySelector("#editProfileScroll"), overlay.querySelector(".edit-profile-modal"));
 }
 function onEditProfileModalKey(e){
   if (e.key === "Escape"){ closeEditProfileModal(); return; }
@@ -380,6 +383,8 @@ function renderProfile(){
         <p>The rest of this page fills in the moment you take the assessment, archetype, soul type, growth history, all of it.</p>
         <div class="cta-row" style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="click(520);goToNameScreen()">Start Assessment &rarr;</button></div>
       </div>` : ""}
+
+      ${hasResult ? cxStripHTML(Forge.characters.localProfile() || decoded, { code: profile.code, reveal: false, eyebrow: "Characters", title: "Characters your profile aligns with.", note: "Tap any card to see exactly why Forge matched it." }) : ""}
 
       <div class="card glass" style="margin-top:14px">
         <div class="progress-head">

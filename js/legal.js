@@ -16,14 +16,15 @@
 
 // Bump this (and add a row to LEGAL_VERSION_HISTORY) whenever this page's
 // legal content, credits, or structure meaningfully changes.
-const LEGAL_VERSION = "1.3.0";
-const LEGAL_LAST_UPDATED = "September 30, 2026";
+const LEGAL_VERSION = "1.4.0";
+const LEGAL_LAST_UPDATED = "October 8, 2026";
 
 const LEGAL_VERSION_HISTORY = [
   { version: "1.0.0", date: "September 3, 2026", notes: "Initial Terms of Service, privacy notes, and third-party credits published." },
   { version: "1.1.0", date: "September 3, 2026", notes: "Generalized profile-code wording to cover future PF formats beyond PF1/PF2, added compliance, indemnification, DMCA, export control, dispute resolution, force majeure, severability, entire agreement, and assignment clauses, and revised wording throughout." },
   { version: "1.2.0", date: "September 29, 2026", notes: "Updated profile-code wording for PF4, a complete redesign of the assessment engine. PF1-PF3 codes are retired and no longer compatible; no automatic migration is performed." },
-  { version: "1.3.0", date: "September 30, 2026", notes: "Public release numbering now starts at PersonaForge 1; internal development version numbers are no longer shown anywhere in the app. Quick Read now shows a reduced report with a prompt to continue into the full assessment. Compare and Party Compare show a notice when a profile in the comparison is a Quick Read result." }
+  { version: "1.3.0", date: "September 30, 2026", notes: "Public release numbering now starts at PersonaForge 1; internal development version numbers are no longer shown anywhere in the app. Quick Read now shows a reduced report with a prompt to continue into the full assessment. Compare and Party Compare show a notice when a profile in the comparison is a Quick Read result." },
+  { version: "1.4.0", date: "October 8, 2026", notes: "Added copyright and trademark notices for fictional characters, franchises and logos; added icon credits (Lucide, ISC) and a note on emblems drawn with reference to SVG Repo downloads; corrected the interface icon set entry." }
 ];
 
 // Every font actually used anywhere in Forge.
@@ -71,7 +72,8 @@ const LEGAL_THIRD_PARTY = [
   { name: "Fontshare", purpose: "Webfont delivery for Clash Display and Satoshi", homepage: "https://www.fontshare.com/", license: "Hosting service; the font itself keeps its own license (see Fonts above)", attribution: "See Fonts above" },
   { name: "QR code generator", purpose: "Renders the scannable QR code for shared profile links", homepage: "N/A", license: "Original Forge code (implements the public ISO/IEC 18004 QR standard, no third-party library used)", attribution: "Not applicable" },
   { name: "Trait radar chart", purpose: "Canvas-drawn radar visualization on the results screen", homepage: "N/A", license: "Original Forge code", attribution: "Not applicable" },
-  { name: "Interface icon set", purpose: "Every UI icon (home, theme, sound, navigation, etc.)", homepage: "N/A", license: "Original Forge artwork, no external icon library used", attribution: "Not applicable" }
+  { name: "Lucide icons", purpose: "Interface icons (home, theme, sound, navigation and similar) are drawn from or adapted from the Lucide set", homepage: "https://lucide.dev/", license: "ISC License. Copyright (c) 2026 Lucide Icons and Contributors. Some Lucide icons derive from Feather, MIT License, Copyright (c) 2013-present Cole Bemis", attribution: "Required: the copyright and permission notice must be retained. It is reproduced in the Open Source Notices section below" },
+  { name: "Character, team, world and organization emblems", purpose: "The small symbols shown beside characters, teams, worlds and organizations", homepage: "N/A", license: "Mostly original Forge drawings. Some were redrawn as single-line strokes with reference to the Lucide set and icon downloads from SVG Repo (svgrepo.com); a few use SVG Repo downloads exactly as supplied, only re-framed and recoloured", attribution: "Each SVG Repo file carries its own licence on its source page. Where an emblem was adapted from one, credit belongs to that icon's author. Well-known symbols used for identification only remain the property of their owners" }
 ];
 
 // Music credit. This is the one block to edit if the background track ever
@@ -95,10 +97,15 @@ const LEGAL_MUSIC_CREDIT = {
 // Source Software section) — append { name, homepage, license, notice }
 // objects into the relevant array below as dependencies are added.
 const LEGAL_OPEN_SOURCE_GROUPS = [
-  { license: "MIT", entries: [] },
+  { license: "MIT", entries: [
+    { name: "Feather icons (via Lucide)", homepage: "https://feathericons.com/", license: "MIT License", notice: "Copyright (c) 2013-present Cole Bemis. Permission is granted, free of charge, to use, copy, modify, merge, publish, distribute, sublicense and/or sell copies, provided the copyright notice and this permission notice are included in all copies or substantial portions. The software is provided \"as is\", without warranty of any kind." }
+  ] },
   { license: "Apache License 2.0", entries: [] },
   { license: "BSD", entries: [] },
   { license: "Creative Commons", entries: [] },
+  { license: "ISC", entries: [
+    { name: "Lucide icons", homepage: "https://lucide.dev/", license: "ISC License", notice: "Copyright (c) 2026 Lucide Icons and Contributors. Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies. THE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE." }
+  ] },
   { license: "Other", entries: [] }
 ];
 
@@ -115,7 +122,7 @@ const LEGAL_TOC = [
   { id: "shared-codes", label: "8. Shared Profile Codes" },
   { id: "generated-results", label: "9. Generated Results" },
   { id: "intellectual-property", label: "10. Intellectual Property" },
-  { id: "third-party-assets", label: "11. Third-Party Assets" },
+  { id: "third-party-assets", label: "11. Third-Party Assets &amp; Trademarks" },
   { id: "music-attribution", label: "12. Music Attribution" },
   { id: "open-source", label: "13. Open Source Software" },
   { id: "no-warranty", label: "14. No Warranty" },
@@ -237,8 +244,10 @@ function renderLegal(){
       <div class="legal-layout">
 
         <nav class="legal-toc glass" aria-label="Table of contents">
-          <div class="legal-toc-title">On this page</div>
-          <div>${renderLegalTOC()}</div>
+          <div class="legal-toc-scroll">
+            <div class="legal-toc-title">On this page</div>
+            <div>${renderLegalTOC()}</div>
+          </div>
         </nav>
 
         <details class="legal-toc-mobile glass legal-accordion">
@@ -315,11 +324,14 @@ function renderLegal(){
 
           <section class="legal-section" id="intellectual-property">
             <h2>10. Intellectual Property</h2>
-            <p>The Forge name, logo, icon set, interface design, wording, and the underlying PF-code personality model and quiz content are the intellectual property of the Forge project. The specific answers you give and the resulting personal profile are yours to keep, export, and share as you like. Third-party assets used inside Forge remain the property of their respective owners. See the credits below for exactly what's used and under what terms.</p>
+            <p>The Forge name, logo, interface design, wording, original emblem drawings, and the underlying PF-code personality model and quiz content are the intellectual property of the Forge project. The interface icons are adapted from the Lucide set (see Third-Party Notices &amp; Credits). The specific answers you give and the resulting personal profile are yours to keep, export, and share as you like. Third-party assets used inside Forge remain the property of their respective owners. See the credits below for exactly what's used and under what terms.</p>
           </section>
 
           <section class="legal-section" id="third-party-assets">
-            <h2>11. Third-Party Assets</h2>
+            <h2>11. Third-Party Assets, Characters &amp; Trademarks</h2>
+            <p>Forge is an unofficial, fan-made, non-commercial tool. It is not affiliated with, endorsed by, sponsored by or approved by any author, studio, publisher, game developer or rights holder whose characters or worlds it mentions.</p>
+            <p>Character, team, world and organization names, descriptions of fictional personalities, and franchise titles (including, for example, DC, Marvel, Disney, Nintendo, Capcom, Square Enix, CD Projekt Red, Studio Ghibli, Warner Bros. and many others) are trademarks or copyrighted works of their respective owners and are used here only to identify them. All rights in those characters, names and works remain with their owners. Forge's character profiles are the project's own short, original written assessments, not reproductions of any source work.</p>
+            <p>Most of Forge's emblems are symbolic drawings in a single line style and are not the official logos, insignia or artwork of any franchise. A few characters and fictional organizations are instead shown with a well-known symbol (for example the Umbrella Corporation mark, or the Superman, Wonder Woman and Green Lantern emblems), used only to identify them; those marks remain the property of their owners. A small number of emblems use icon artwork downloaded from SVG Repo, shown as supplied apart from re-framing and a change to the theme colour. Where an emblem was drawn with reference to a downloaded icon (for example from SVG Repo) or to the Lucide set, it was simplified and redrawn, and the source's licence and credit terms are recorded in the credits below. If you are a rights holder and want something changed or removed, see DMCA &amp; Copyright below.</p>
             <p>Forge is built with as few external dependencies as possible. The full, itemized list of everything third-party actually used, including libraries, fonts, and delivery services, lives in the <a href="#third-party-credits">Third-Party Notices &amp; Credits</a> section below, kept up to date as Forge's dependencies change.</p>
           </section>
 
@@ -330,7 +342,7 @@ function renderLegal(){
 
           <section class="legal-section" id="open-source">
             <h2>13. Open Source Software</h2>
-            <p>Forge doesn't currently bundle any third-party open-source libraries. The quiz engine, QR code generator, canvas-drawn charts, and icon set are all original code written for this project. If that changes in a future version, every open-source dependency will be listed, grouped by license, in the <a href="#open-source-credits">Open Source Notices</a> section below.</p>
+            <p>Forge doesn't bundle any third-party JavaScript libraries. The quiz engine, QR code generator and canvas-drawn charts are original code written for this project. Its interface icons are adapted from Lucide (ISC), which in turn includes some Feather icons (MIT); their licence notices are reproduced below. If that changes in a future version, every open-source dependency will be listed, grouped by license, in the <a href="#open-source-credits">Open Source Notices</a> section below.</p>
           </section>
 
           <section class="legal-section" id="no-warranty">
@@ -455,7 +467,7 @@ function renderLegal(){
 
           <section class="legal-section" id="open-source-credits">
             <h2>Open Source Notices</h2>
-            <p>An expandable, future-proofed home for any open-source software Forge comes to depend on, grouped by license family. Right now, this list is empty on purpose. See <a href="#open-source">Open Source Software</a> above.</p>
+            <p>An expandable, future-proofed home for any open-source software Forge comes to depend on, grouped by license family. Right now it holds the icon licences Forge is required to reproduce. See <a href="#open-source">Open Source Software</a> above.</p>
             <details class="legal-accordion glass">
               <summary>By license <span class="count">${legalOpenSourceTotal()} total</span>${LEGAL_CHEVRON}</summary>
               <div class="legal-accordion-body">
@@ -469,7 +481,7 @@ function renderLegal(){
       </div>
 
       <div class="footer-nav" style="margin-top:48px;">
-        <a href="index.html" class="btn btn-primary" style="text-decoration:none;">Back to Forge</a>
+        <a href="index.html" class="btn btn-primary" style="text-decoration:none;" onclick="if (typeof Nav !== 'undefined'){ Nav.back('index.html'); return false; }">Back to Forge</a>
       </div>
 
       <footer class="legal-footer glass">
@@ -487,4 +499,6 @@ function renderLegal(){
 
     </div>
   `;
+  const tocScroll = document.querySelector(".legal-toc-scroll");
+  if (tocScroll) attachCustomScrollbar(tocScroll, tocScroll.parentElement);
 }

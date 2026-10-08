@@ -426,6 +426,64 @@ function startQuiz(name, meta, pace){
   renderQuiz();
 }
 
+/* ---------------- TARGETED RETAKE ---------------------------------------
+   Opened from the character explanation page ("Answer targeted questions")
+   as quiz.html?mode=targeted&focus=<dims>. Re-asks only what Forge is least
+   sure about; the answers are blended with the existing profile by
+   Forge.retake (see engine.js QuizSession.targeted). Shows what it will do
+   first, since this skips the usual onboarding. Anything that can't run
+   (no profile, nothing worth revisiting) says so instead of failing. */
+let pendingTargeted = null;
+function targetedShell(inner){
+  setAccentColors();
+  setPageTitle("Targeted questions");
+  root.innerHTML = `
+    <div class="container lp-topbar-wrap">${topBar(true)}</div>
+    <div class="ns-wrap"><div class="ns-panel glass" id="targetedScreen"><div class="ns-panel-top"><div class="eyebrow accent">TARGETED RETAKE</div></div><div class="ns-panel-body">${inner}</div></div></div>`;
+  spawnAmbience();
+  const h = document.getElementById("targetedTitle");
+  if (h){ h.setAttribute("tabindex", "-1"); try{ h.focus({ preventScroll: true }); } catch(e){ /* ignore */ } }
+}
+function startTargetedQuiz(focusDims){
+  const R = typeof Forge !== "undefined" && Forge.retake, C = typeof Forge !== "undefined" && Forge.characters;
+  const profile = R && C ? C.localProfile() : null;
+  if (!profile){
+    targetedShell(`<h2 id="targetedTitle" aria-level="1">Take the <span class="accent-text">full assessment</span> first</h2>
+      <p>Targeted questions build on an existing profile, and there isn't one on this device yet.</p>
+      <button class="btn btn-primary" onclick="renderNameScreen()">Start the assessment &rarr;</button>`);
+    return;
+  }
+  const focus = (Array.isArray(focusDims) ? focusDims : []).filter(d => DIMENSIONS.includes(d)).slice(0, 8);
+  let plan = null;
+  try{ plan = R.plan(profile, { snapshots: Forge.timeline ? Forge.timeline.snapshots() : [], focusDims: focus }); } catch(e){ plan = null; }
+  if (!plan || !plan.ok || !plan.questionIds.length){
+    targetedShell(`<h2 id="targetedTitle" aria-level="1">Nothing <span class="accent-text">to revisit</span></h2>
+      <p>Forge couldn't find targeted questions worth asking right now.</p>
+      <button class="btn btn-primary" onclick="goHome()">Back home</button>`);
+    return;
+  }
+  pendingTargeted = { profile, plan };
+  const proj = plan.projected ? `<p>Confidence: about <strong>${plan.projected.from}%</strong> now, an estimated <strong>${plan.projected.to}%</strong> after (an estimate, not a promise).</p>` : "";
+  targetedShell(`<h2 id="targetedTitle" aria-level="1">${plan.questionCount} questions, <span class="accent-text">just the thin spots</span></h2>
+    <p>${obEsc(plan.summary)} ${obEsc(plan.explain)}</p>
+    ${plan.areas.length ? `<div class="tag-list">${plan.areas.map(a => `<span class="tag">${obEsc(a)}</span>`).join("")}</div>` : ""}
+    ${proj}
+    <button class="btn btn-primary" onclick="click(520);beginTargetedQuiz()">Start &rarr;</button>
+    <div class="ns-divider">OR</div>
+    <button class="btn btn-ghost" onclick="typeof Nav !== 'undefined' ? Nav.back('index.html') : (history.length > 1 ? history.back() : goHome())">Not now</button>`);
+}
+function beginTargetedQuiz(){
+  if (!pendingTargeted){ renderNameScreen(); return; }
+  const s = Forge.retake.createSession(pendingTargeted.profile, pendingTargeted.plan, {});
+  if (!s){ renderNameScreen(); return; }
+  clearQuizProgress();
+  clearOnboardingProgress();
+  pendingName = pendingTargeted.profile.identity.name || "";
+  session = s;
+  pendingTargeted = null;
+  renderQuiz();
+}
+
 /* ---------------- SESSION RECOVERY (refresh mid-onboarding/mid-quiz) ---
    boot() in quiz.html calls into these instead of assuming a fresh visit.
    Onboarding progress restores silently (nothing lost, no extra tap: it's
@@ -496,6 +554,11 @@ function qzEnterFrom(pos){
   return { x:0, y:60, scale:.95, opacity:0 };
 }
 const QZ_REST_XF = { x:0, y:0, scale:1, opacity:1 };
+// The three answer cards always carry their final colours IN THE MARKUP (data-tone), so the
+// very first style computation already has the finished palette. Nothing recolours them
+// afterwards: the page-wide tone assigner deliberately skips .qz-card (see global.js).
+// gold / indigo / mint: neighbours always differ, in both themes.
+const QZ_TONES = ["gold", "indigo", "mint"];
 
 /* Real Lucide line icons (24x24, stroke-width 2, round caps), sourced
    directly from .claude/Icons rather than hand-typed, so the path data
@@ -556,17 +619,7 @@ function qzIconForOption(opt, idx, used){
 function qzIconSvg(key){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${QZ_ICONS[key] || QZ_ICONS.compass}</svg>`;
 }
-// The large per-question illustration (see QUESTION_ILLUSTRATIONS in
-// engine.js) - a different, wider 0-100 viewBox than the small per-option
-// icons above, since this one is the visual centerpiece of the card, not
-// a small marker next to a line of text. Deliberately not shown as an
-// answer hint: the same handful of icons cover many differently-answered
-// questions, so it sets a mood for the scenario without pointing at any
-// option.
-function qzQuestionIllustration(q){
-  const inner = QUESTION_ILLUSTRATIONS[q.illustration] || QUESTION_ILLUSTRATIONS.compass;
-  return `<svg class="qz-illustration" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
-}
+
 // Animates the current question's cards/heading out (mirroring their own
 // entrance direction) before handing off to whatever actually advances
 // the session — used for Back/Next Question, which (unlike selecting an
@@ -613,14 +666,13 @@ function renderQuiz(){
     <div class="container lp-topbar-wrap">${topBar(true)}</div>
     <div class="qz-wide">
       <div class="qz-progress2">
-        <span class="qz-progress2-num"><span class="accent">${String(current + 1).padStart(2, "0")}</span> <span class="dim">/ ${total}</span></span>
+        <span class="qz-progress2-num"><span class="accent">${String(current + 1).padStart(2, "0")}</span> <span class="dim">/ ${Math.max(total, current + 1)}</span></span>
       </div>
       <div class="qz-progress2-meta" style="text-align:center; margin-bottom:8px;">${modeLabel} &bull; <span class="count-up" data-target="${pctDone}" data-suffix="%">0%</span></div>
-      <div class="qz-illustration-wrap" aria-hidden="true">${qzQuestionIllustration(q)}</div>
       <div class="qz-question2" id="qzQuestion" role="heading" aria-level="1">${q.text}</div>
       <div class="qz-cards" id="answerRow" role="listbox" aria-label="Answer options">
         ${q.options.map((opt, i) => `
-          <button class="qz-card ${existing && existing.optionIndex === i ? "selected" : ""}" role="option" data-pos="${posName(i)}" onclick="selectOption(${i})">
+          <button class="qz-card ${existing && existing.optionIndex === i ? "selected" : ""}" role="option" data-pos="${posName(i)}" data-tone="${QZ_TONES[i % QZ_TONES.length]}" onclick="selectOption(${i})">
             <span class="qz-card-letter">${String.fromCharCode(65 + i)}</span>
             <span class="qz-card-icon">${qzIconSvg(qzIconForOption(opt, i, usedIcons))}</span>
             <span class="qz-card-text">${opt.text}</span>
